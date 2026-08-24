@@ -62,8 +62,6 @@ npm run build                    # static production build → apps/library/dist
 npm run test:e2e                 # Playwright e2e
 ```
 
-> If `npm install` fails while resolving peer dependencies, retry with `--legacy-peer-deps`.
-
 ## Add a new book
 
 1. Create `books/<slug>/smartbook.json` — the descriptor (title, description, chapter list, optional

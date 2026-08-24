@@ -11,7 +11,6 @@ export default defineConfig({
     // Worker startup can be slow on constrained machines; keep a generous
     // timeout so a cold run doesn't fail spuriously. The suite itself is tiny.
     testTimeout: 30000,
-    setupFiles: './packages/engine/src/test/setup.ts',
     include: ['packages/**/src/**/*.{test,spec}.{ts,tsx}', 'apps/**/src/**/*.{test,spec}.{ts,tsx}'],
   },
 });
