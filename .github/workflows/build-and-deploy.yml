@@ -92,8 +92,14 @@ jobs:
           retention-days: 7
 
   # ----------------------------------------------------------------------------
-  # Static production build (main only). BASE_PATH makes asset URLs work under
-  # the /<repo>/ prefix that GitHub project pages use.
+  # Static production build (main only).
+  #
+  # The site is served from a custom domain (see apps/library/public/CNAME), so
+  # it lives at the domain root and the default base path of "/" is correct.
+  # If the custom domain is ever removed, GitHub falls back to a *project* page
+  # at /<repo>/ — set BASE_PATH accordingly, e.g.:
+  #   env:
+  #     BASE_PATH: /${{ github.event.repository.name }}/
   # ----------------------------------------------------------------------------
   build:
     needs: [check, e2e]
@@ -111,8 +117,6 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          BASE_PATH: /${{ github.event.repository.name }}/
 
       - uses: actions/upload-pages-artifact@v5
         with:
