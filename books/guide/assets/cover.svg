@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img" aria-label="The Smart Ebook Guide">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2b3a67" />
+      <stop offset="100%" stop-color="#12172b" />
+    </linearGradient>
+  </defs>
+
+  <rect width="300" height="400" fill="url(#bg)" />
+  <rect x="0" y="0" width="10" height="400" fill="#3f51b5" />
+
+  <!-- A page turning into an "island" of interactivity -->
+  <g transform="translate(150 150)" fill="none" stroke="#8fa2ff" stroke-width="3">
+    <rect x="-56" y="-64" width="112" height="128" rx="6" />
+    <line x1="-36" y1="-36" x2="24" y2="-36" />
+    <line x1="-36" y1="-16" x2="34" y2="-16" />
+    <line x1="-36" y1="4" x2="10" y2="4" />
+    <circle cx="26" cy="40" r="18" stroke="#ffd166" />
+    <path d="M18 40l6 6 12-14" stroke="#ffd166" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <text
+    x="28"
+    y="290"
+    fill="#ffffff"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="30"
+    font-weight="bold"
+  >
+    The Smart
+  </text>
+  <text
+    x="28"
+    y="326"
+    fill="#ffffff"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="30"
+    font-weight="bold"
+  >
+    Ebook Guide
+  </text>
+  <text x="28" y="360" fill="#8fa2ff" font-family="Georgia, serif" font-size="15">Smart Ebooks</text>
+</svg>

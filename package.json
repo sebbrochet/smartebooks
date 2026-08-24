@@ -1,0 +1,51 @@
+{
+  "name": "smart-ebooks",
+  "private": true,
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "description": "Smart Ebooks — a platform hosting multiple interactive books on one shared engine.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @smart-ebooks/library",
+    "build": "npm run build --workspace @smart-ebooks/library",
+    "preview": "npm run preview --workspace @smart-ebooks/library",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/mdast": "^4.0.4",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^4.1.5",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "eslint-plugin-security": "^4.0.0",
+    "jsdom": "^29.1.1",
+    "mdast-util-directive": "^3.1.0",
+    "prettier": "^3.8.3",
+    "typescript": "~5.6.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.5"
+  }
+}

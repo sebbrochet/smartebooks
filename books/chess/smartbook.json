@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "slug": "chess",
+  "title": "Chess: Boards & Puzzles",
+  "description": "A demo book showing domain-specific chess islands (PGN board + puzzle) on the shared engine.",
+  "authors": ["Smart Ebooks"],
+  "createdAt": "2026-08-23",
+  "engine": { "min": "0.1.0" },
+  "chapters": [{ "file": "01-chess-basics.md", "order": 1 }]
+}

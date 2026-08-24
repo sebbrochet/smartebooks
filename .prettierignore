@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+site
+test-results
+playwright-report
+*.md

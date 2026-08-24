@@ -1,0 +1,97 @@
+.chessboard-island {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.chessboard-island__board {
+  width: 320px;
+  height: 320px;
+  max-width: 100%;
+}
+
+.chessboard-island__controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.chessboard-island__buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.chessboard-island__buttons button,
+.chessboard-island__controls > button {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border, #ccc);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg, inherit);
+  cursor: pointer;
+}
+
+.chessboard-island__buttons button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.chessboard-island__status {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted, #666);
+}
+
+.chesspuzzle__solution {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  margin: 0;
+}
+
+.chessboard-island.is-solved .chessboard-island__board {
+  outline: 2px solid var(--correct, #2e7d32);
+}
+
+/* Analysis embedded under a live board */
+.chessboard-island__analysis {
+  align-self: stretch;
+  border-top: 1px solid var(--border, #ddd);
+  padding-top: 0.6rem;
+}
+
+/* Stockfish analysis */
+.chess-analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.chess-analysis > button {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--accent, #3f51b5);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent, #3f51b5);
+  cursor: pointer;
+}
+
+.chess-analysis__result {
+  font-size: 0.95rem;
+}
+
+.chess-analysis__result strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.chess-analysis__depth,
+.chess-analysis__msg {
+  color: var(--muted, #666);
+}
+
+.chess-analysis__pv {
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--muted, #666);
+}

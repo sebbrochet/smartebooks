@@ -1,0 +1,82 @@
+/**
+ * Board themes and piece sets for the chessboard island.
+ *
+ * Both are applied as scoped modifier classes on the board wrapper, e.g.
+ * `cg-wrap cg-theme--blue cg-pieces--unicode`. Everything here is self-contained
+ * (no extra image assets): board themes only recolour the light square (the dark
+ * square is the same theme-neutral 20%-black SVG overlay from chessground.brown.css),
+ * and the `unicode` piece set draws glyphs via `::before` instead of images.
+ *
+ * To add a new image-based piece set: drop a
+ * `.cg-wrap.cg-pieces--NAME piece.<color>.<role> { background-image: url(...) }`
+ * block below and add `NAME` to PIECE_SETS in boardOptions.ts.
+ */
+
+/* --- Board themes ---------------------------------------------------------
+ * `brown` is the chessground default (no override needed). The others just set
+ * the light-square colour; the dark square is derived by the shared overlay.
+ * The class+element selector out-specifies chessground's bare `cg-board` rule.
+ */
+.cg-theme--blue cg-board {
+  background-color: #dee3e6;
+}
+.cg-theme--green cg-board {
+  background-color: #e8ecc7;
+}
+.cg-theme--grey cg-board {
+  background-color: #dcdcdc;
+}
+
+/* --- Piece set: unicode (asset-free) --------------------------------------
+ * Replaces the cburnett background images with centred chess glyphs. Sized in
+ * container-query width units so pieces scale with the board.
+ */
+.chessboard-island__board.cg-pieces--unicode {
+  container-type: inline-size;
+}
+
+.cg-pieces--unicode piece {
+  background-image: none !important;
+}
+
+.cg-pieces--unicode piece::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11cqw;
+  line-height: 1;
+}
+
+.cg-pieces--unicode piece.white::before {
+  color: #f4f4f4;
+  -webkit-text-stroke: 1.5px #333;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+
+.cg-pieces--unicode piece.black::before {
+  color: #2a2a2a;
+  -webkit-text-stroke: 1px #efefef;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.cg-pieces--unicode piece.king::before {
+  content: '\265A';
+}
+.cg-pieces--unicode piece.queen::before {
+  content: '\265B';
+}
+.cg-pieces--unicode piece.rook::before {
+  content: '\265C';
+}
+.cg-pieces--unicode piece.bishop::before {
+  content: '\265D';
+}
+.cg-pieces--unicode piece.knight::before {
+  content: '\265E';
+}
+.cg-pieces--unicode piece.pawn::before {
+  content: '\265F';
+}

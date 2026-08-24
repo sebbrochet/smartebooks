@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "slug": "guide",
+  "title": "The Smart Ebook Guide",
+  "description": "A hands-on tour of the smart-ebook toolkit: directives, islands, and local tracking.",
+  "authors": ["Smart Ebooks"],
+  "createdAt": "2026-08-22",
+  "cover": "assets/cover.svg",
+  "engine": { "min": "0.1.0" },
+  "chapters": [
+    { "file": "01-getting-started.md", "order": 1 },
+    { "file": "02-interactivity-toolkit.md", "order": 2 },
+    { "file": "03-tracking-progress.md", "order": 3 }
+  ],
+  "assets": ["assets/cover.svg"]
+}

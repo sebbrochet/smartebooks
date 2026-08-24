@@ -1,0 +1,23 @@
+{
+  "name": "@smart-ebooks/library",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Smart Ebooks platform: a bookshelf that hosts and publishes multiple books on one engine.",
+  "scripts": {
+    "predev": "node scripts/copy-stockfish.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-stockfish.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@smart-ebooks/engine": "*",
+    "@smart-ebooks/islands-chess": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "stockfish": "^18.0.0"
+  }
+}

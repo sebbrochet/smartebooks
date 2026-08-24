@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Smart Ebooks — a platform of interactive, app-like books built from plain Markdown."
+    />
+    <title>Smart Ebooks</title>
+    <script>
+      // Apply the saved theme before paint to avoid a flash of the wrong theme.
+      // Falls back to the pre-1.0 key until migrateLegacySettings() has run.
+      try {
+        var t =
+          localStorage.getItem('smart-ebooks:theme') || localStorage.getItem('smart-ebook-theme');
+        if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

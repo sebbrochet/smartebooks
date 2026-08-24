@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "slug": "sampler",
+  "title": "Platform Sampler",
+  "description": "A tiny second book that demonstrates multiple titles on one shared engine.",
+  "authors": ["Smart Ebooks"],
+  "createdAt": "2026-08-22",
+  "engine": { "min": "0.1.0" },
+  "chapters": [{ "file": "01-welcome.md", "order": 1 }]
+}
