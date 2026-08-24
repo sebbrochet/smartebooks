@@ -115,6 +115,13 @@ jobs:
 
       - run: npm ci
 
+      # Turns Pages on if it isn't already, so a fresh clone of this repo
+      # deploys without anyone first flipping a switch in Settings.
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Build
         run: npm run build
 
