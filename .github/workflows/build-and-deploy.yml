@@ -1,0 +1,129 @@
+# Validates the platform on every push and PR, then publishes the static bookshelf
+# (engine + all books) to GitHub Pages.
+#
+# Flow on a push to main:
+#   1. check  : typecheck, lint, format check and unit tests (fast feedback).
+#   2. e2e    : Playwright drives the real app — reading, quizzes, import/export,
+#               resume, and the Stockfish (WASM) chess analysis island.
+#   3. build  : Vite emits the static site to apps/library/dist.
+#   4. deploy : that artifact is published to Pages (main only).
+#
+# The site is fully static and local-only (reader progress lives in the browser),
+# so there is nothing to configure beyond Pages itself.
+#
+# In the repository: Settings -> Pages -> Source = "GitHub Actions".
+
+name: Build & deploy (platform)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Static checks + unit tests across the whole workspace.
+  # ----------------------------------------------------------------------------
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Audit
+        run: npm audit --audit-level=high
+
+  # ----------------------------------------------------------------------------
+  # End-to-end tests against the running app (Playwright starts the dev server).
+  # ----------------------------------------------------------------------------
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ----------------------------------------------------------------------------
+  # Static production build (main only). BASE_PATH makes asset URLs work under
+  # the /<repo>/ prefix that GitHub project pages use.
+  # ----------------------------------------------------------------------------
+  build:
+    needs: [check, e2e]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/library/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

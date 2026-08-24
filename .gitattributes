@@ -1,0 +1,30 @@
+# Normalise line endings so diffs stay clean across Windows/macOS/Linux.
+# LF is stored in the repository and checked out, matching Prettier's default.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF to run correctly.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets: never line-ending-convert or diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.wasm binary
+*.zip binary
+*.smartbook binary
+
+# Generated/lock files: collapse in review, but still diffable when needed.
+package-lock.json linguist-generated=true -diff
