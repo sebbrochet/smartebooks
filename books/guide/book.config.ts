@@ -1,4 +1,4 @@
-import { makeBook, defaultIslands, type Book } from '@smart-ebooks/engine';
+import { makeBook, packBookAssets, defaultIslands, type Book } from '@smart-ebooks/engine';
 import descriptor from './smartbook.json';
 
 const modules = import.meta.glob('./content/*.md', {
@@ -9,20 +9,11 @@ const modules = import.meta.glob('./content/*.md', {
 
 // Package this book's own assets, exactly like an imported `.smartbook` does:
 // bytes on the book, resolved to Blob URLs at render and included on export.
-// SVG is text, so `?raw` round-trips it losslessly.
-const assetSources = import.meta.glob('./assets/*.svg', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-
-const encoder = new TextEncoder();
-const assets = Object.fromEntries(
-  Object.entries(assetSources).map(([path, source]) => [
-    path.replace(/^\.\//, ''),
-    encoder.encode(source),
-  ]),
-);
+// Text assets round-trip through `?raw`; small binaries come in as data URLs.
+const assets = packBookAssets({
+  ...import.meta.glob('./assets/*.svg', { query: '?raw', import: 'default', eager: true }),
+  ...import.meta.glob('./assets/*.wav', { query: '?inline', import: 'default', eager: true }),
+} as Record<string, string>);
 
 // This book uses only the built-in islands.
 export const book: Book = {

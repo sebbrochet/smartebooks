@@ -27,3 +27,24 @@ test('a bundled book renders its packaged cover, and others fall back', async ({
   const chess = page.getByRole('link', { name: /Chess/ });
   await expect(chess.locator('.bookcover--generated')).toBeVisible();
 });
+
+test('a bundled book resolves packaged media to a Blob URL', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  // Packaged media is base-path independent and travels with a .smartbook export.
+  const audio = page.locator('.island--audio audio');
+  await expect(audio).toHaveAttribute('src', /^blob:/);
+
+  // The clip is really decodable, not just a Blob of the wrong bytes.
+  const duration = await audio.evaluate(
+    (el: HTMLAudioElement) =>
+      new Promise<number>((resolve, reject) => {
+        if (el.readyState > 0) return resolve(el.duration);
+        el.addEventListener('loadedmetadata', () => resolve(el.duration), { once: true });
+        el.addEventListener('error', () => reject(new Error('audio failed to load')), {
+          once: true,
+        });
+      }),
+  );
+  expect(duration).toBeGreaterThan(0);
+});

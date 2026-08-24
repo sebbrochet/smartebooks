@@ -73,7 +73,7 @@ moves is remembered.
 Audio clips work the same way — this one points to a sample path you would supply in
 `public/`.
 
-::audio{id="ch1-audio" src="/audio/sample.mp3" title="Chapter narration (sample)"}
+::audio{id="ch1-audio" src="assets/narration.wav" title="Chapter narration (sample)"}
 
 ## Still on the roadmap
 

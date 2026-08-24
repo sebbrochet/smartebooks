@@ -30,6 +30,7 @@ export { mdastToText, extractDirectiveCode, extractJsonConfig } from './markdown
 
 // Book packaging (.smartbook)
 export { makeBook } from './package/makeBook';
+export { packBookAssets } from './package/bookAssets';
 export { exportBookToZip } from './package/exportBook';
 export { parseSmartbook, type ImportedPackage } from './package/importBook';
 export {
