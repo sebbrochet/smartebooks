@@ -2,6 +2,8 @@
 
 **A platform for building and publishing many interactive, app-like "smart ebooks" on one shared engine.**
 
+📖 **Live at [smartebooks.sebbrochet.com](https://smartebooks.sebbrochet.com)** — read the books in your browser.
+
 A *smart ebook* is a static website that reads like a book but behaves like an app: alongside the prose it embeds **quizzes, flashcards, puzzles, exercises, videos and audio**, and it remembers the reader's **progress and scores** — all with **no backend** (everything lives in the browser).
 
 This repository is an **npm-workspaces monorepo**, not a single book:

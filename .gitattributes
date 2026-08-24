@@ -26,5 +26,6 @@
 *.zip binary
 *.smartbook binary
 
-# Generated/lock files: collapse in review, but still diffable when needed.
-package-lock.json linguist-generated=true -diff
+# Lock file: collapsed in GitHub reviews, but still diffable locally — lockfile
+# drift is a real failure mode (`npm ci` requires it to match package.json).
+package-lock.json linguist-generated=true
