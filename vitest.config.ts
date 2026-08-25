@@ -8,7 +8,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     pool: 'threads',
-    // Worker startup can be slow on constrained machines; keep a generous
+    // The suite spends ~0.3s actually running tests; the rest is worker startup.
+    // Spawning one worker per file bought nothing and failed intermittently on
+    // constrained machines, so share a single worker: faster and reliable.
+    fileParallelism: false,
+    // Worker startup can still be slow on constrained machines; keep a generous
     // timeout so a cold run doesn't fail spuriously. The suite itself is tiny.
     testTimeout: 30000,
     include: ['packages/**/src/**/*.{test,spec}.{ts,tsx}', 'apps/**/src/**/*.{test,spec}.{ts,tsx}'],

@@ -159,8 +159,20 @@ export async function readBookStats(bookSlug: string): Promise<BookStats> {
 
 // --- Reader-state backup (export/import progress as JSON) --------------------
 
-/** Local-state keys we are willing to export/import (defense against injection). */
-const BACKUP_KEY_PREFIXES = ['progress:', 'score:', 'review:', 'media:', 'game:', 'reading:'];
+/**
+ * Shape a reader-state key must have to be exported/imported: `<kind>:<id>`.
+ *
+ * This is deliberately **structural rather than a list of known kinds**. Islands
+ * choose their own kind (`progress:`, `score:`, `chessply:`, …), and islands can
+ * ship from outside the engine — an allow-list silently excluded those from
+ * backups, losing reader progress on restore. The pattern still rejects
+ * arbitrary keys, which is the injection defence the allow-list provided.
+ */
+const BACKUP_KEY_PATTERN = /^[a-z][a-z0-9-]*:\S{1,128}$/;
+
+function isBackupKey(key: string): boolean {
+  return BACKUP_KEY_PATTERN.test(key);
+}
 
 export interface ProgressBackup {
   format: 'smart-ebooks-progress';
@@ -193,7 +205,7 @@ export async function exportProgress(bookSlug?: string): Promise<ProgressBackup>
       const slug = rest.slice(0, sep);
       const key = rest.slice(sep + 1);
       if (bookSlug && slug !== bookSlug) continue;
-      if (!BACKUP_KEY_PREFIXES.some((p) => key.startsWith(p))) continue;
+      if (!isBackupKey(key)) continue;
       (books[slug] ??= {})[key] = value;
     }
   } catch {
@@ -211,9 +223,9 @@ export async function exportProgress(bookSlug?: string): Promise<ProgressBackup>
 }
 
 /**
- * Restore reader progress from an exported backup. Only known key prefixes are
- * written (untrusted input is filtered). `merge` keeps existing state; `replace`
- * first clears each affected book.
+ * Restore reader progress from an exported backup. Keys must have the
+ * `<kind>:<id>` shape (untrusted input is filtered). `merge` keeps existing
+ * state; `replace` first clears each affected book.
  */
 export async function importProgress(
   data: unknown,
@@ -238,7 +250,7 @@ export async function importProgress(
 
     let touched = false;
     for (const [key, value] of Object.entries(bookEntries as Record<string, unknown>)) {
-      if (!BACKUP_KEY_PREFIXES.some((p) => key.startsWith(p))) continue;
+      if (!isBackupKey(key)) continue;
       await set(keyFor(slug, key), value);
       entriesImported++;
       touched = true;
