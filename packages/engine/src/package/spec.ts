@@ -46,6 +46,14 @@ export interface SmartbookIslands {
   packs?: Record<string, unknown>;
 }
 
+/**
+ * Publication intent. **Absent means `private`** — a safe default that is
+ * occasionally inconvenient beats one that occasionally publishes something
+ * personal. Note this only governs the *site*; keeping private content out of a
+ * public repository is the primary control (SPEC003 E1.1).
+ */
+export type SmartbookVisibility = 'public' | 'private';
+
 export interface SmartbookDescriptor {
   schemaVersion: number;
   /**
@@ -68,4 +76,15 @@ export interface SmartbookDescriptor {
   assets?: string[];
   /** Island packs this book declares (SPEC006 F1.1). */
   islands?: SmartbookIslands;
+  /** Publication intent; absent means `private` (SPEC003 E1.1). */
+  visibility?: SmartbookVisibility;
+}
+
+/**
+ * Whether a book may be published to the web. Deliberately not `!== 'private'`:
+ * anything unrecognised — absent, misspelt, a stray value from a hand-edited
+ * file — must fall to private rather than to public.
+ */
+export function isPublic(descriptor: Pick<SmartbookDescriptor, 'visibility'>): boolean {
+  return descriptor.visibility === 'public';
 }

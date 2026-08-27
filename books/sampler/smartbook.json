@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "minReaderSchema": 1,
   "slug": "sampler",
+  "visibility": "public",
   "title": "Platform Sampler",
   "description": "A tiny second book that demonstrates multiple titles on one shared engine.",
   "authors": ["Smart Ebooks"],

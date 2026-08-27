@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "minReaderSchema": 2,
   "slug": "chess",
+  "visibility": "public",
   "title": "Chess: Boards & Puzzles",
   "description": "A demo book showing domain-specific chess islands (PGN board + puzzle) on the shared engine.",
   "authors": ["Smart Ebooks"],

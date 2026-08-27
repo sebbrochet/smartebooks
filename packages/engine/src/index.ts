@@ -44,10 +44,12 @@ export {
 export {
   SMARTBOOK_SCHEMA_VERSION,
   MIN_SUPPORTED_SCHEMA,
+  isPublic,
   type SmartbookDescriptor,
   type SmartbookChapterEntry,
   type SmartbookEngineRange,
   type SmartbookIslands,
+  type SmartbookVisibility,
 } from './package/spec';
 
 // Persistence

@@ -1,4 +1,5 @@
 import {
+  isPublic,
   makeBook,
   packBookAssets,
   type Book,
@@ -76,6 +77,22 @@ function buildBook(descriptor: SmartbookDescriptor, folder: string): Book {
 export const bundledBooks: ShelfBook[] = Object.entries(descriptors)
   .flatMap(([path, descriptor]) => {
     const parts = splitBookPath(path);
-    return parts ? [{ book: buildBook(descriptor, parts[0]), trusted: true }] : [];
+    if (!parts) return [];
+
+    // Filtering the shelf is not enough: `import.meta.glob` is eager, so a
+    // private book's Markdown would still be embedded in the JS bundle even
+    // though nothing linked to it. `books/` therefore means "the published
+    // set", and this fails the build rather than shipping hidden content.
+    // Private books belong in a private repo, built with `npm run package`
+    // (SPEC003 E1.1 / E1.5).
+    if (!isPublic(descriptor)) {
+      throw new Error(
+        `books/${parts[0]} is not public (visibility: ${descriptor.visibility ?? 'absent'}). ` +
+          `Everything under books/ is compiled into the site bundle, so a non-public book cannot ` +
+          `live here. Move it to a private repository and use "npm run package -- ${parts[0]}".`,
+      );
+    }
+
+    return [{ book: buildBook(descriptor, parts[0]), trusted: true }];
   })
   .sort((a, b) => a.book.meta.title.localeCompare(b.book.meta.title));

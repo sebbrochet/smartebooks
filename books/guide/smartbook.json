@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "minReaderSchema": 1,
   "slug": "guide",
+  "visibility": "public",
   "title": "The Smart Ebook Guide",
   "description": "A hands-on tour of the smart-ebook toolkit: directives, islands, and local tracking.",
   "authors": ["Smart Ebooks"],
