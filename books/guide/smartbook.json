@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "minReaderSchema": 1,
   "slug": "guide",
   "title": "The Smart Ebook Guide",
   "description": "A hands-on tour of the smart-ebook toolkit: directives, islands, and local tracking.",

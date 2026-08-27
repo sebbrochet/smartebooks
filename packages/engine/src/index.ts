@@ -43,9 +43,11 @@ export {
 } from './store/importedBooks';
 export {
   SMARTBOOK_SCHEMA_VERSION,
+  MIN_SUPPORTED_SCHEMA,
   type SmartbookDescriptor,
   type SmartbookChapterEntry,
   type SmartbookEngineRange,
+  type SmartbookIslands,
 } from './package/spec';
 
 // Persistence

@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "minReaderSchema": 1,
   "slug": "sampler",
   "title": "Platform Sampler",
   "description": "A tiny second book that demonstrates multiple titles on one shared engine.",

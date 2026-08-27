@@ -1,5 +1,5 @@
 import { unzipSync, strFromU8 } from 'fflate';
-import { SMARTBOOK_SCHEMA_VERSION, type SmartbookDescriptor } from './spec';
+import { MIN_SUPPORTED_SCHEMA, SMARTBOOK_SCHEMA_VERSION, type SmartbookDescriptor } from './spec';
 
 /** A parsed, validated `.smartbook` package. */
 export interface ImportedPackage {
@@ -21,11 +21,27 @@ function isSafeSlug(value: unknown): value is string {
 function validateDescriptor(value: unknown): asserts value is SmartbookDescriptor {
   const d = value as Record<string, unknown> | null;
   if (!d || typeof d !== 'object') throw new Error('Invalid smartbook.json.');
-  if (d.schemaVersion !== SMARTBOOK_SCHEMA_VERSION) {
+
+  // Accept a *range* of schemas rather than one exact version, so an older
+  // package stays readable and a newer one is readable when it says it can be.
+  const version = d.schemaVersion;
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
+    throw new Error('Package has an invalid schemaVersion.');
+  }
+  if (version < MIN_SUPPORTED_SCHEMA) {
     throw new Error(
-      `Unsupported package version (expected schemaVersion ${SMARTBOOK_SCHEMA_VERSION}).`,
+      `Package is too old (schemaVersion ${version}; this reader supports ${MIN_SUPPORTED_SCHEMA} and up).`,
     );
   }
+  // A newer package is fine as long as it declares it can be read by a reader
+  // of our vintage; absent, assume it cannot.
+  const needs = typeof d.minReaderSchema === 'number' ? d.minReaderSchema : version;
+  if (needs > SMARTBOOK_SCHEMA_VERSION) {
+    throw new Error(
+      `Package needs a newer reader (requires schemaVersion ${needs}; this reader supports up to ${SMARTBOOK_SCHEMA_VERSION}).`,
+    );
+  }
+
   if (!isSafeSlug(d.slug)) throw new Error('Package has an invalid or missing slug.');
   if (typeof d.title !== 'string' || d.title.trim().length === 0) {
     throw new Error('Package has an invalid or missing title.');

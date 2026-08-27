@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { zipSync, strToU8 } from 'fflate';
 import { parseSmartbook } from './importBook';
+import { MIN_SUPPORTED_SCHEMA, SMARTBOOK_SCHEMA_VERSION } from './spec';
 import { makeImportedBook } from '../store/importedBooks';
 import type { StoredImport } from '../store/importedBooks';
 
@@ -36,6 +37,48 @@ describe('parseSmartbook', () => {
     const bad = JSON.stringify({ schemaVersion: 99, slug: 'x', title: 'X' });
     expect(() => parseSmartbook(zip({ 'smartbook.json': bad, 'content/01.md': '# a' }))).toThrow(
       /version/i,
+    );
+  });
+
+  // A range, not an equality: exact-match versioning would make every schema
+  // bump a flag day for readers and packages alike (SPEC003 D6 / E1.3).
+  it('accepts a package written against an older schema', () => {
+    const older = JSON.stringify({
+      schemaVersion: MIN_SUPPORTED_SCHEMA,
+      slug: 'older',
+      title: 'Older',
+    });
+    const pkg = parseSmartbook(zip({ 'smartbook.json': older, 'content/01.md': '# a' }));
+    expect(pkg.descriptor.slug).toBe('older');
+  });
+
+  it('accepts a newer package that declares it can be read by this reader', () => {
+    const newer = JSON.stringify({
+      schemaVersion: SMARTBOOK_SCHEMA_VERSION + 5,
+      minReaderSchema: SMARTBOOK_SCHEMA_VERSION,
+      slug: 'newer',
+      title: 'Newer',
+    });
+    const pkg = parseSmartbook(zip({ 'smartbook.json': newer, 'content/01.md': '# a' }));
+    expect(pkg.descriptor.slug).toBe('newer');
+  });
+
+  it('rejects a newer package that needs a newer reader', () => {
+    const newer = JSON.stringify({
+      schemaVersion: SMARTBOOK_SCHEMA_VERSION + 5,
+      minReaderSchema: SMARTBOOK_SCHEMA_VERSION + 1,
+      slug: 'newer',
+      title: 'Newer',
+    });
+    expect(() => parseSmartbook(zip({ 'smartbook.json': newer, 'content/01.md': '# a' }))).toThrow(
+      /newer reader/i,
+    );
+  });
+
+  it('rejects a non-integer schema version', () => {
+    const bad = JSON.stringify({ schemaVersion: 'one', slug: 'x', title: 'X' });
+    expect(() => parseSmartbook(zip({ 'smartbook.json': bad, 'content/01.md': '# a' }))).toThrow(
+      /invalid schemaVersion/i,
     );
   });
 

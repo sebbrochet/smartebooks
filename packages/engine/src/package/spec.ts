@@ -7,10 +7,21 @@
  *   assets/…                (media — resolved at import time, Phase 2)
  *
  * The same descriptor also backs bundled books (each `books/<slug>/` ships a
- * `smartbook.json`), unifying the built-in and imported paths.
+ * `smartbook.json`), unifying the built-in and imported paths. A bundled book
+ * is *only* this descriptor plus its content and assets — there is no code, so
+ * a book can be written by a generator, an agent, or by hand.
  */
 
-export const SMARTBOOK_SCHEMA_VERSION = 1;
+/** Schema version this build writes. */
+export const SMARTBOOK_SCHEMA_VERSION = 2;
+
+/**
+ * Oldest schema this build can still read. Packages are accepted across a
+ * *range*, not by exact match: an older package stays readable, and a newer one
+ * is readable when it declares a `minReaderSchema` we satisfy. Exact-match
+ * versioning would make every schema change a flag day in both directions.
+ */
+export const MIN_SUPPORTED_SCHEMA = 1;
 
 export interface SmartbookChapterEntry {
   /** Filename relative to `content/`, e.g. `01-intro.md`. */
@@ -26,8 +37,22 @@ export interface SmartbookEngineRange {
   max?: string;
 }
 
+export interface SmartbookIslands {
+  /**
+   * Island packs this book uses, keyed by pack name, with per-book options.
+   * The host maps a name to its implementation; the book carries only data.
+   * Built-in islands are always available and need not be listed.
+   */
+  packs?: Record<string, unknown>;
+}
+
 export interface SmartbookDescriptor {
   schemaVersion: number;
+  /**
+   * Oldest reader schema able to render this package. Defaults to
+   * `schemaVersion` (assume no backward compatibility unless stated).
+   */
+  minReaderSchema?: number;
   slug: string;
   title: string;
   description?: string;
@@ -41,4 +66,6 @@ export interface SmartbookDescriptor {
   chapters?: SmartbookChapterEntry[];
   /** Declared asset paths (packaged/resolved in Phase 2). */
   assets?: string[];
+  /** Island packs this book declares (SPEC006 F1.1). */
+  islands?: SmartbookIslands;
 }
