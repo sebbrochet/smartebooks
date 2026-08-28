@@ -34,7 +34,7 @@ export const defaultIslands: IslandDefinition[] = [
     // `src` is required: a video island with no source is an authoring mistake
     // worth catching at build time rather than rendering an empty player.
     attributes: {
-      src: { type: 'string', required: true },
+      src: { type: 'asset', required: true },
       title: { type: 'string', default: 'Video' },
     },
   },
@@ -48,7 +48,7 @@ export const defaultIslands: IslandDefinition[] = [
     name: 'audio',
     component: AudioIsland,
     attributes: {
-      src: { type: 'string', required: true },
+      src: { type: 'asset', required: true },
       title: { type: 'string', default: 'Audio' },
     },
   },

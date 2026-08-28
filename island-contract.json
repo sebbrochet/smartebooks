@@ -12,8 +12,8 @@
   },
   "attributes": {
     "checkpoint": { "label": { "type": "string" } },
-    "video": { "src": { "type": "string", "required": true }, "title": { "type": "string" } },
-    "audio": { "src": { "type": "string", "required": true }, "title": { "type": "string" } },
+    "video": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
+    "audio": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "chess-board": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
       "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },

@@ -8,12 +8,11 @@ import { attrText } from './attributes';
  * Embedded audio island. Renders a native audio element and records a local
  * "played" flag when playback starts.
  */
-export function AudioIsland({ id, attributes }: IslandComponentProps) {
-  const { trusted, resolveAsset } = useBook();
+export function AudioIsland({ id, attributes, packagedAssets }: IslandComponentProps) {
+  const { trusted } = useBook();
   const src = attrText(attributes.src);
   const title = attrText(attributes.title, 'Audio');
-  const resolvedAsset = src.startsWith('assets/') ? resolveAsset?.(src) : undefined;
-  const effectiveSrc = resolvedAsset ?? src;
+  const fromPackage = packagedAssets.includes('src');
   const [played, setPlayed] = usePersistentState<boolean>(`media:${id}`, false);
 
   if (!src) {
@@ -24,7 +23,7 @@ export function AudioIsland({ id, attributes }: IslandComponentProps) {
     );
   }
 
-  if (!trusted && !resolvedAsset && !isHttpsUrl(src)) {
+  if (!trusted && !fromPackage && !isHttpsUrl(src)) {
     return (
       <div className="island island--audio island--disabled" role="note">
         Audio source blocked in an imported book.
@@ -35,7 +34,7 @@ export function AudioIsland({ id, attributes }: IslandComponentProps) {
   return (
     <figure className={`island island--audio ${played ? 'is-played' : ''}`}>
       <figcaption>{title}</figcaption>
-      <audio controls src={effectiveSrc} onPlay={() => setPlayed(true)} />
+      <audio controls src={src} onPlay={() => setPlayed(true)} />
     </figure>
   );
 }

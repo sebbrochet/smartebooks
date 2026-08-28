@@ -30,13 +30,12 @@ function toYouTubeEmbed(src: string): string | null {
  * Embedded video island. Supports YouTube URLs (iframe) and direct media files
  * (native <video>). Records a local "watched" flag when playback starts.
  */
-export function VideoIsland({ id, attributes }: IslandComponentProps) {
-  const { trusted, resolveAsset } = useBook();
+export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentProps) {
+  const { trusted } = useBook();
   const src = attrText(attributes.src);
   const title = attrText(attributes.title, 'Video');
-  const resolvedAsset = src.startsWith('assets/') ? resolveAsset?.(src) : undefined;
-  const effectiveSrc = resolvedAsset ?? src;
-  const embed = useMemo(() => toYouTubeEmbed(effectiveSrc), [effectiveSrc]);
+  const fromPackage = packagedAssets.includes('src');
+  const embed = useMemo(() => toYouTubeEmbed(src), [src]);
   const [watched, setWatched] = usePersistentState<boolean>(`media:${id}`, false);
 
   if (!src) {
@@ -48,7 +47,7 @@ export function VideoIsland({ id, attributes }: IslandComponentProps) {
   }
 
   // In imported books, only packaged assets, youtube embeds, or https files are allowed.
-  if (!trusted && !embed && !resolvedAsset && !isHttpsUrl(src)) {
+  if (!trusted && !embed && !fromPackage && !isHttpsUrl(src)) {
     return (
       <div className="island island--video island--disabled" role="note">
         Video source blocked in an imported book.
@@ -69,7 +68,7 @@ export function VideoIsland({ id, attributes }: IslandComponentProps) {
           />
         </div>
       ) : (
-        <video controls src={effectiveSrc} onPlay={() => setWatched(true)}>
+        <video controls src={src} onPlay={() => setWatched(true)}>
           <track kind="captions" />
         </video>
       )}

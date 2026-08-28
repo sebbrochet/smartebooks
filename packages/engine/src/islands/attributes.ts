@@ -18,7 +18,13 @@ export type AttributeSpec =
   | { type: 'string'; required?: boolean; default?: string }
   | { type: 'number'; required?: boolean; default?: number; min?: number; max?: number }
   | { type: 'boolean'; default?: boolean }
-  | { type: 'enum'; values: readonly string[]; required?: boolean; default?: string };
+  | { type: 'enum'; values: readonly string[]; required?: boolean; default?: string }
+  /**
+   * A reference to a packaged asset (`assets/…`) or an external URL. Resolved
+   * to a usable URL at render time, where the book's asset resolver lives —
+   * not here, because Blob URLs are per-reader and per-session.
+   */
+  | { type: 'asset'; required?: boolean; default?: string };
 
 export interface AttributeProblem {
   attribute: string;
@@ -55,6 +61,8 @@ function coerce(
 
   switch (spec.type) {
     case 'string':
+    case 'asset':
+      // An asset is a string until render time, when it becomes a URL.
       return raw;
 
     case 'enum':

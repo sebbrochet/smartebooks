@@ -39,6 +39,15 @@ export interface FlashcardData {
 export interface IslandComponentProps {
   id: string;
   attributes: Record<string, AttributeValue>;
+  /**
+   * Names of `type: 'asset'` attributes whose value the engine resolved from
+   * **this book's package**, rather than leaving as an external URL.
+   *
+   * This is a security signal, not a convenience: an imported book may only
+   * play media it actually ships (or a plain `https:` URL), and a book must not
+   * be able to fake that by writing a `blob:` URL itself.
+   */
+  packagedAssets: readonly string[];
   data?: unknown;
   children?: ReactNode;
 }
