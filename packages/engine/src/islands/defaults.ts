@@ -19,7 +19,8 @@ export const defaultIslands: IslandDefinition[] = [
   { name: 'flashcard', component: FlashcardIsland, extract: (node) => extractFlashcard(node) },
   { name: 'audio', component: AudioIsland },
   {
-    name: 'matchingpairs',
+    name: 'matching-pairs',
+    aliases: ['matchingpairs'],
     component: MatchingPairsIsland,
     extract: (node) => extractJsonConfig(node),
   },

@@ -28,7 +28,13 @@ const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);
 export function allowedIslands(descriptor) {
   const declared = Object.keys(descriptor.islands?.packs ?? {});
   const fromPacks = declared.flatMap((pack) => CONTRACT.packs[pack] ?? []);
-  return { names: new Set([...CONTRACT.builtIn, ...fromPacks]), declaredPacks: declared };
+  const names = new Set([...CONTRACT.builtIn, ...fromPacks]);
+
+  // The full alias map, not filtered to this book: knowing that "chessboard"
+  // means "chess-board" is what lets an error name the pack that provides it.
+  const aliases = new Map(Object.entries(CONTRACT.aliases ?? {}));
+
+  return { names, aliases, declaredPacks: declared };
 }
 
 /** Every directive in one Markdown source, with its name, id and position. */
@@ -63,11 +69,12 @@ function directivesIn(markdown) {
  */
 export function checkDirectives(descriptor, files, folder = descriptor.slug) {
   const problems = [];
-  const { names, declaredPacks } = allowedIslands(descriptor);
+  const { names, aliases, declaredPacks } = allowedIslands(descriptor);
 
   for (const pack of declaredPacks.filter((p) => !CONTRACT.packs[p])) {
     problems.push({
       folder,
+      severity: 'error',
       rule: 'pack-unknown',
       message: `smartbook.json declares unknown island pack "${pack}". Known: ${Object.keys(CONTRACT.packs).join(', ')}.`,
     });
@@ -82,15 +89,33 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug) {
       const at = `${path}:${line}`;
 
       if (!names.has(name)) {
+        // Resolve the alias first, so a legacy spelling is diagnosed as the
+        // island it means rather than as an unknown word.
+        const canonical = aliases.get(name);
+
+        if (canonical && names.has(canonical)) {
+          // Available to this book: it still renders, so nudge rather than fail.
+          problems.push({
+            folder,
+            severity: 'warning',
+            rule: 'directive-alias',
+            message: `${at}: ":::${name}" is an old name for ":::${canonical}" — still works, but rename it.`,
+          });
+          continue;
+        }
+
+        const target = canonical ?? name;
+        const spelling = canonical ? `":::${name}" (now ":::${canonical}")` : `":::${name}"`;
         const inAnotherPack = Object.entries(CONTRACT.packs).find(([, list]) =>
-          list.includes(name),
+          list.includes(target),
         );
         problems.push({
           folder,
+          severity: 'error',
           rule: 'directive-unknown',
           message: inAnotherPack
-            ? `${at}: ":::${name}" needs the "${inAnotherPack[0]}" island pack, which this book does not declare.`
-            : `${at}: ":::${name}" is not an island provided by this book.`,
+            ? `${at}: ${spelling} needs the "${inAnotherPack[0]}" island pack, which this book does not declare.`
+            : `${at}: ${spelling} is not an island provided by this book.`,
         });
         continue;
       }
@@ -100,6 +125,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug) {
         if (previous) {
           problems.push({
             folder,
+            severity: 'error',
             rule: 'id-duplicate',
             message: `${at}: id "${id}" is already used at ${previous} — they would share saved progress.`,
           });

@@ -56,7 +56,7 @@ saved locally.
 Match each term on the left to its meaning on the right. Your best (fewest) number of
 moves is remembered.
 
-:::matchingpairs{id="ch1-match"}
+:::matching-pairs{id="ch1-match"}
 ```json
 {
   "pairs": [

@@ -10,13 +10,13 @@ describe('resolveIslands', () => {
   it('gives a book the built-in islands when it declares no packs', () => {
     const names = resolveIslands(descriptor()).map((i) => i.name);
     expect(names).toContain('quiz');
-    expect(names).not.toContain('chessboard');
+    expect(names).not.toContain('chess-board');
   });
 
   it('adds a declared pack on top of the built-ins', () => {
     const names = resolveIslands(descriptor({ packs: { chess: {} } })).map((i) => i.name);
     expect(names).toContain('quiz');
-    expect(names).toContain('chessboard');
+    expect(names).toContain('chess-board');
   });
 
   it('passes per-book options through to the pack', () => {

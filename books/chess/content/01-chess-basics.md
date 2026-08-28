@@ -10,7 +10,7 @@ Step through the game with the controls under the board. This book sets `theme=b
 as its board default; this directive adds `pieces=unicode`, and `analysis=on` gives an
 on-demand **Stockfish** evaluation of whatever position you've navigated to.
 
-:::chessboard{id="chess-scholars" pieces=unicode analysis=on}
+:::chess-board{id="chess-scholars" pieces=unicode analysis=on}
 ```pgn
 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
 ```
@@ -21,7 +21,7 @@ on-demand **Stockfish** evaluation of whatever position you've navigated to.
 White to move and mate in one. Think first, then reveal. This puzzle uses the
 `green` board theme.
 
-:::chesspuzzle{id="chess-backrank" theme=green fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
+:::chess-puzzle{id="chess-backrank" theme=green fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
 Ra8# — a back-rank mate.
 :::
 

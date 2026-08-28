@@ -26,4 +26,22 @@ describe('island-contract.json', () => {
     const all = [...contract.builtIn, ...Object.values(contract.packs).flat()];
     expect(new Set(all).size).toBe(all.length);
   });
+
+  // Aliases are what keep already-published books working after a rename, so a
+  // missing entry here means the linter would reject content that still renders.
+  it('maps every alias to its canonical island', () => {
+    const fromCode = Object.fromEntries(
+      [...defaultIslands, ...chessIslands()].flatMap((island) =>
+        (island.aliases ?? []).map((alias) => [alias, island.name]),
+      ),
+    );
+    expect(contract.aliases).toEqual(fromCode);
+  });
+
+  it('never aliases a name that is itself an island', () => {
+    const canonical = new Set([...contract.builtIn, ...Object.values(contract.packs).flat()]);
+    for (const alias of Object.keys(contract.aliases)) {
+      expect(canonical.has(alias)).toBe(false);
+    }
+  });
 });

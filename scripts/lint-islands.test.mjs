@@ -19,13 +19,13 @@ describe('checkDirectives', () => {
 
   test('accepts a pack island when the book declares the pack', () => {
     const descriptor = book({ packs: { chess: {} } });
-    assert.deepEqual(checkDirectives(descriptor, file('::chessanalysis{fen="8/8"}')), []);
+    assert.deepEqual(checkDirectives(descriptor, file('::chess-analysis{fen="8/8"}')), []);
   });
 
   // The failure this prevents: a grey "Unknown interactive block" in a
   // published book, found by a reader rather than by the build.
   test('rejects a pack island the book did not declare, and names the pack', () => {
-    const problems = checkDirectives(book(), file('::chessanalysis{fen="8/8"}'));
+    const problems = checkDirectives(book(), file('::chess-analysis{fen="8/8"}'));
     assert.deepEqual(rules(problems), ['directive-unknown']);
     assert.match(problems[0].message, /needs the "chess" island pack/);
   });
@@ -66,5 +66,39 @@ describe('checkDirectives', () => {
   test('reports the line a problem is on', () => {
     const markdown = '# Title\n\nSome prose.\n\n:::nonsense\n\nhi\n\n:::';
     assert.match(checkDirectives(book(), file(markdown))[0].message, /content\/01\.md:5/);
+  });
+
+  // A rename must not break already-published books, so an old spelling still
+  // resolves — but it is reported so content migrates (SPEC001 P1.4).
+  test('warns on a renamed island rather than rejecting it', () => {
+    const problems = checkDirectives(book(), file(':::matchingpairs{id="m"}\n\nhi\n\n:::'));
+    assert.deepEqual(rules(problems), ['directive-alias']);
+    assert.equal(problems[0].severity, 'warning');
+    assert.match(problems[0].message, /old name for ":::matching-pairs"/);
+  });
+
+  test('accepts the canonical name with no warning', () => {
+    assert.deepEqual(checkDirectives(book(), file(':::matching-pairs{id="m"}\n\nhi\n\n:::')), []);
+  });
+
+  // The alias belongs to a pack island, so a book without the pack still gets
+  // a hard error — and it should still say which pack, despite the old name.
+  test('does not let an alias smuggle in an undeclared pack', () => {
+    const problems = checkDirectives(book(), file('::chessboard{id="c"}'));
+    assert.deepEqual(rules(problems), ['directive-unknown']);
+    assert.equal(problems[0].severity, 'error');
+    assert.match(problems[0].message, /needs the "chess" island pack/);
+    assert.match(problems[0].message, /now ":::chess-board"/);
+  });
+
+  test('warns on a pack alias when the book declares the pack', () => {
+    const descriptor = book({ packs: { chess: {} } });
+    const problems = checkDirectives(descriptor, file('::chessboard{id="c"}'));
+    assert.deepEqual(rules(problems), ['directive-alias']);
+  });
+
+  test('marks real problems as errors', () => {
+    const problems = checkDirectives(book(), file(':::nonsense\n\nhi\n\n:::'));
+    assert.equal(problems[0].severity, 'error');
   });
 });

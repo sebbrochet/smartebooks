@@ -52,7 +52,8 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
 
   return [
     {
-      name: 'chessboard',
+      name: 'chess-board',
+      aliases: ['chessboard'],
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./ChessBoardIsland'),
@@ -63,7 +64,8 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       }),
     },
     {
-      name: 'chesspuzzle',
+      name: 'chess-puzzle',
+      aliases: ['chesspuzzle'],
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./ChessPuzzleIsland'),
@@ -77,7 +79,8 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
     {
       // Stockfish (WASM) analysis of a position. `fen` comes straight from the
       // directive attributes, so no extractor is needed.
-      name: 'chessanalysis',
+      name: 'chess-analysis',
+      aliases: ['chessanalysis'],
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./StockfishAnalysisIsland'),

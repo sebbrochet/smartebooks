@@ -27,6 +27,30 @@ describe('createIslandRegistry', () => {
     expect(bookA.get('only-b')).toBeUndefined();
     expect(bookB.get('only-a')).toBeUndefined();
   });
+
+  // Renaming an island must not break books already published with the old
+  // spelling (SPEC001 P1.4).
+  it('resolves an alias to its canonical island', () => {
+    const registry = createIslandRegistry([{ ...demo('chess-board'), aliases: ['chessboard'] }]);
+    expect(registry.get('chessboard')?.name).toBe('chess-board');
+    expect(registry.get('chess-board')?.name).toBe('chess-board');
+  });
+
+  it('lists canonical names only, so aliases are accepted but not advertised', () => {
+    const registry = createIslandRegistry([
+      { ...demo('matching-pairs'), aliases: ['matchingpairs'] },
+    ]);
+    expect(registry.names()).toEqual(['matching-pairs']);
+  });
+
+  // Otherwise one island's legacy spelling could hijack another's real name.
+  it('never lets an alias shadow a real island name', () => {
+    const registry = createIslandRegistry([
+      { ...demo('quiz'), aliases: [] },
+      { ...demo('exercise'), aliases: ['quiz'] },
+    ]);
+    expect(registry.get('quiz')?.name).toBe('quiz');
+  });
 });
 
 describe('island plugin API', () => {

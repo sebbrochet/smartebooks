@@ -39,10 +39,10 @@ best result is saved locally.
 
 ## Play to learn
 
-`:::matchingpairs` mounts a match-the-pairs exercise. Here's the matching game again with
+`:::matching-pairs` mounts a match-the-pairs exercise. Here's the matching game again with
 new pairs.
 
-:::matchingpairs{id="ch2-match"}
+:::matching-pairs{id="ch2-match"}
 ```json
 {
   "pairs": [
