@@ -6,7 +6,13 @@ import {
   type IslandDefinition,
   type DirectiveNode,
 } from '@smart-ebooks/engine';
-import { DEFAULT_BOARD_OPTIONS, resolveBoardOptions, type BoardOptions } from './boardOptions';
+import {
+  BOARD_THEMES,
+  DEFAULT_BOARD_OPTIONS,
+  PIECE_SETS,
+  resolveBoardOptions,
+  type BoardOptions,
+} from './boardOptions';
 
 export {
   BOARD_THEMES,
@@ -50,10 +56,22 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
   const board = (node: DirectiveNode): BoardOptions =>
     resolveBoardOptions(directiveAttributes(node), defaults);
 
+  // The book's own defaults become the schema defaults, so a per-directive
+  // attribute is validated by the engine and an invalid one falls back to what
+  // this book chose rather than to the built-in.
+  const boardAttributes = {
+    theme: { type: 'enum', values: BOARD_THEMES, default: defaults.theme },
+    pieces: { type: 'enum', values: PIECE_SETS, default: defaults.pieces },
+  } as const;
+
   return [
     {
       name: 'chess-board',
       aliases: ['chessboard'],
+      attributes: {
+        ...boardAttributes,
+        analysis: { type: 'boolean', default: false },
+      },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./ChessBoardIsland'),
@@ -66,6 +84,10 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
     {
       name: 'chess-puzzle',
       aliases: ['chesspuzzle'],
+      attributes: {
+        ...boardAttributes,
+        fen: { type: 'string', required: true },
+      },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./ChessPuzzleIsland'),
@@ -81,6 +103,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       // directive attributes, so no extractor is needed.
       name: 'chess-analysis',
       aliases: ['chessanalysis'],
+      attributes: {
+        fen: { type: 'string', required: true },
+      },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./StockfishAnalysisIsland'),

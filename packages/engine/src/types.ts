@@ -1,6 +1,7 @@
 import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
 import type { SmartbookDescriptor } from './package/spec';
 import type { IslandDefinition } from './islandRegistry';
+import type { AttributeValue } from './islands/attributes';
 
 /**
  * A parsed quiz question, extracted from a `:::quiz` directive at build/parse time
@@ -28,11 +29,16 @@ export interface FlashcardData {
 
 /**
  * Props every interactive island receives. `id` keys its persisted state,
- * `attributes` are the raw directive attributes, `data` is any pre-parsed config.
+ * `data` is any pre-parsed config.
+ *
+ * `attributes` are the directive's attributes after the island's declared
+ * schema has been applied (SPEC001 P1.2): values it declared arrive coerced and
+ * defaulted, anything it did not declare arrives as the raw string. Read them
+ * with `attrText` / `attrFlag` / `attrNumber`.
  */
 export interface IslandComponentProps {
   id: string;
-  attributes: Record<string, string>;
+  attributes: Record<string, AttributeValue>;
   data?: unknown;
   children?: ReactNode;
 }

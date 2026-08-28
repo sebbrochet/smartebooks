@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
-import { usePersistentState, type IslandComponentProps } from '@smart-ebooks/engine';
+import { attrFlag, usePersistentState, type IslandComponentProps } from '@smart-ebooks/engine';
 import { pgnToPlies } from './pgn';
 import { DEFAULT_BOARD_OPTIONS, type BoardOptions } from './boardOptions';
 import 'chessground/assets/chessground.base.css';
@@ -14,8 +14,6 @@ import './themes.css';
 // out of the board chunk for books that never use it.
 const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
 
-const TRUTHY = ['on', 'true', '1', 'yes'];
-
 /**
  * Displays a chess game from PGN with move navigation. Read-only board
  * (Chessground); the current ply is persisted per book. Visual options
@@ -27,7 +25,7 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
   const parsed = (data as { pgn?: string; board?: BoardOptions }) ?? {};
   const pgn = parsed.pgn ?? '';
   const { theme, pieces } = parsed.board ?? DEFAULT_BOARD_OPTIONS;
-  const analysisOn = TRUTHY.includes((attributes.analysis ?? '').toLowerCase());
+  const analysisOn = attrFlag(attributes.analysis);
   const { fens, sans } = useMemo(() => pgnToPlies(pgn), [pgn]);
   const [ply, setPly] = usePersistentState<number>(`chessply:${id}`, 0);
   const boardRef = useRef<HTMLDivElement>(null);

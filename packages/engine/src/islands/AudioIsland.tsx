@@ -2,6 +2,7 @@ import type { IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
 import { useBook } from '../reader/BookContext';
 import { isHttpsUrl } from './mediaUrl';
+import { attrText } from './attributes';
 
 /**
  * Embedded audio island. Renders a native audio element and records a local
@@ -9,8 +10,8 @@ import { isHttpsUrl } from './mediaUrl';
  */
 export function AudioIsland({ id, attributes }: IslandComponentProps) {
   const { trusted, resolveAsset } = useBook();
-  const src = attributes.src ?? '';
-  const title = attributes.title ?? 'Audio';
+  const src = attrText(attributes.src);
+  const title = attrText(attributes.title, 'Audio');
   const resolvedAsset = src.startsWith('assets/') ? resolveAsset?.(src) : undefined;
   const effectiveSrc = resolvedAsset ?? src;
   const [played, setPlayed] = usePersistentState<boolean>(`media:${id}`, false);

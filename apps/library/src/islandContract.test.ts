@@ -44,4 +44,33 @@ describe('island-contract.json', () => {
       expect(canonical.has(alias)).toBe(false);
     }
   });
+
+  // The linter validates content against these, so a drifted schema means
+  // either false errors or attributes silently going unchecked.
+  it('describes the same attributes the islands declare', () => {
+    // `default` is deliberately excluded: chess defaults come from each book's
+    // pack options, so they are not a property of the shared contract.
+    const shape = (specs: Record<string, Record<string, unknown>>) =>
+      Object.fromEntries(
+        Object.entries(specs).map(([name, spec]) => [
+          name,
+          {
+            type: spec.type,
+            ...(spec.required === true ? { required: true } : {}),
+            ...(spec.values ? { values: [...(spec.values as string[])] } : {}),
+          },
+        ]),
+      );
+
+    const fromCode = Object.fromEntries(
+      [...defaultIslands, ...chessIslands()]
+        .filter((island) => island.attributes)
+        .map((island) => [
+          island.name,
+          shape(island.attributes as Record<string, Record<string, unknown>>),
+        ]),
+    );
+
+    expect(contract.attributes).toEqual(fromCode);
+  });
 });

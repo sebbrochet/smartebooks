@@ -1,4 +1,5 @@
 import type { IslandComponent } from './types';
+import type { AttributeSpec } from './islands/attributes';
 
 /** An mdast directive node passed to an island's `extract` function. */
 export type DirectiveNode = unknown;
@@ -14,6 +15,13 @@ export interface IslandDefinition {
   aliases?: string[];
   /** The React component that renders the island. May be `React.lazy(...)`. */
   component: IslandComponent;
+  /**
+   * Declared attribute shape. The engine coerces and defaults centrally, so an
+   * island receives validated values instead of re-checking strings itself —
+   * and the content linter can flag a bad attribute before publication.
+   * Attributes not listed here reach the component untouched, as strings.
+   */
+  attributes?: Record<string, AttributeSpec>;
   /**
    * Optional: pre-parse the directive body into structured `data` at parse
    * time (runs in the Markdown pipeline). Use engine helpers such as

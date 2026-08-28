@@ -90,3 +90,12 @@ export {
   type DirectiveNode,
 } from './islandRegistry';
 export { defaultIslands } from './islands/defaults';
+export {
+  resolveAttributes,
+  attrText,
+  attrFlag,
+  attrNumber,
+  type AttributeSpec,
+  type AttributeValue,
+  type AttributeProblem,
+} from './islands/attributes';

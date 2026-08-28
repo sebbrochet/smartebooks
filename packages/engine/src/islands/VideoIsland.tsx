@@ -3,6 +3,7 @@ import type { IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
 import { useBook } from '../reader/BookContext';
 import { isHttpsUrl } from './mediaUrl';
+import { attrText } from './attributes';
 
 /**
  * Convert a YouTube watch/short URL into an embeddable URL. Returns null for
@@ -31,8 +32,8 @@ function toYouTubeEmbed(src: string): string | null {
  */
 export function VideoIsland({ id, attributes }: IslandComponentProps) {
   const { trusted, resolveAsset } = useBook();
-  const src = attributes.src ?? '';
-  const title = attributes.title ?? 'Video';
+  const src = attrText(attributes.src);
+  const title = attrText(attributes.title, 'Video');
   const resolvedAsset = src.startsWith('assets/') ? resolveAsset?.(src) : undefined;
   const effectiveSrc = resolvedAsset ?? src;
   const embed = useMemo(() => toYouTubeEmbed(effectiveSrc), [effectiveSrc]);

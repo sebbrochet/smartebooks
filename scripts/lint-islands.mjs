@@ -48,14 +48,51 @@ function directivesIn(markdown) {
     ) {
       return;
     }
+    const attributes = {};
+    for (const [key, value] of Object.entries(node.attributes ?? {})) {
+      if (typeof value === 'string') attributes[key] = value;
+    }
     found.push({
       name: node.name,
-      id: typeof node.attributes?.id === 'string' ? node.attributes.id : undefined,
+      id: typeof attributes.id === 'string' ? attributes.id : undefined,
+      attributes,
       line: node.position?.start?.line ?? 0,
     });
   });
   return found;
 }
+
+/**
+ * Check one directive's attributes against the island's declared schema.
+ *
+ * The runtime is forgiving (a bad value falls back to its default so a reader
+ * never loses a page); this is where the author is told instead.
+ */
+function checkAttributes(island, attributes) {
+  const specs = CONTRACT.attributes?.[island];
+  if (!specs) return [];
+
+  const problems = [];
+  for (const [name, spec] of Object.entries(specs)) {
+    const raw = attributes[name];
+
+    if (raw === undefined) {
+      if (spec.required) problems.push(`"${name}" is required`);
+      continue;
+    }
+
+    if (spec.type === 'enum' && !spec.values.includes(raw)) {
+      problems.push(`"${name}" must be one of ${spec.values.join(', ')} (got "${raw}")`);
+    } else if (spec.type === 'number' && !Number.isFinite(Number(raw))) {
+      problems.push(`"${name}" must be a number (got "${raw}")`);
+    } else if (spec.type === 'boolean' && !BOOLEANS.has(raw.toLowerCase())) {
+      problems.push(`"${name}" must be true or false (got "${raw}")`);
+    }
+  }
+  return problems;
+}
+
+const BOOLEANS = new Set(['', 'true', 'yes', 'on', '1', 'false', 'no', 'off', '0']);
 
 /**
  * Check the directives in a book's content.
@@ -85,7 +122,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug) {
   const seenIds = new Map();
 
   for (const { path, markdown } of files) {
-    for (const { name, id, line } of directivesIn(markdown)) {
+    for (const { name, id, attributes, line } of directivesIn(markdown)) {
       const at = `${path}:${line}`;
 
       if (!names.has(name)) {
@@ -132,6 +169,15 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug) {
         } else {
           seenIds.set(id, at);
         }
+      }
+
+      for (const detail of checkAttributes(name, attributes)) {
+        problems.push({
+          folder,
+          severity: 'error',
+          rule: 'attribute-invalid',
+          message: `${at}: ":::${name}" ${detail}.`,
+        });
       }
     }
   }

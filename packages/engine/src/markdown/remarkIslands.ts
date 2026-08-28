@@ -1,6 +1,7 @@
 import { visit } from 'unist-util-visit';
 import type { Root } from 'mdast';
 import type { IslandRegistry } from '../islandRegistry';
+import { resolveAttributes } from '../islands/attributes';
 
 interface DirectiveNode {
   type: string;
@@ -44,12 +45,18 @@ export function remarkIslands(registry: IslandRegistry) {
       const definition = registry.get(name);
       const data = definition?.extract ? definition.extract(directive) : undefined;
 
+      // Apply the island's declared schema here, once, at compile time: the
+      // component then receives coerced, defaulted values. Problems are not
+      // thrown — a bad attribute falls back to its default so a typo cannot
+      // break a page for a reader. The content linter is what reports them.
+      const { values } = resolveAttributes(definition?.attributes, attributes);
+
       directive.data = directive.data ?? {};
       directive.data.hName = 'island';
       directive.data.hProperties = {
         type: name,
         id: attributes.id ?? '',
-        config: JSON.stringify({ attributes, data }),
+        config: JSON.stringify({ attributes: values, data }),
       };
 
       // Islands render from `config`; drop the original children so prose

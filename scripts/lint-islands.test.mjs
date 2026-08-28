@@ -101,4 +101,41 @@ describe('checkDirectives', () => {
     const problems = checkDirectives(book(), file(':::nonsense\n\nhi\n\n:::'));
     assert.equal(problems[0].severity, 'error');
   });
+
+  // The runtime falls back to a default so a reader never loses a page; the
+  // author is told here instead (SPEC001 P1.2).
+  test('rejects a value outside an enum', () => {
+    const descriptor = book({ packs: { chess: {} } });
+    const problems = checkDirectives(descriptor, file('::chess-board{theme="hot-pink"}'));
+    assert.deepEqual(rules(problems), ['attribute-invalid']);
+    assert.match(problems[0].message, /must be one of brown, blue, green, grey/);
+  });
+
+  test('accepts every value the enum allows', () => {
+    const descriptor = book({ packs: { chess: {} } });
+    for (const theme of ['brown', 'blue', 'green', 'grey']) {
+      assert.deepEqual(checkDirectives(descriptor, file(`::chess-board{theme="${theme}"}`)), []);
+    }
+  });
+
+  test('rejects a missing required attribute', () => {
+    const problems = checkDirectives(book(), file('::video{title="No source"}'));
+    assert.deepEqual(rules(problems), ['attribute-invalid']);
+    assert.match(problems[0].message, /"src" is required/);
+  });
+
+  test('accepts a bare boolean flag', () => {
+    const descriptor = book({ packs: { chess: {} } });
+    assert.deepEqual(checkDirectives(descriptor, file('::chess-board{analysis}')), []);
+  });
+
+  test('rejects a boolean it cannot read', () => {
+    const descriptor = book({ packs: { chess: {} } });
+    const problems = checkDirectives(descriptor, file('::chess-board{analysis="maybe"}'));
+    assert.deepEqual(rules(problems), ['attribute-invalid']);
+  });
+
+  test('says nothing about attributes an island never declared', () => {
+    assert.deepEqual(checkDirectives(book(), file('::video{src="a.mp4" data-x="y"}')), []);
+  });
 });

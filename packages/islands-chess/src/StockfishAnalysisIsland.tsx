@@ -1,4 +1,4 @@
-import type { IslandComponentProps } from '@smart-ebooks/engine';
+import { attrText, type IslandComponentProps } from '@smart-ebooks/engine';
 import PositionAnalysis from './PositionAnalysis';
 
 /**
@@ -7,7 +7,7 @@ import PositionAnalysis from './PositionAnalysis';
  * board island also embeds to analyze its live position.
  */
 export default function StockfishAnalysisIsland({ attributes }: IslandComponentProps) {
-  const fen = attributes.fen ?? '';
+  const fen = attrText(attributes.fen);
 
   if (!fen) {
     return (

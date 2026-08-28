@@ -14,10 +14,32 @@ import { extractFlashcard, extractJsonConfig, extractQuiz } from '../markdown/ex
  */
 export const defaultIslands: IslandDefinition[] = [
   { name: 'quiz', component: QuizIsland, extract: (node) => extractQuiz(node) },
-  { name: 'checkpoint', component: CheckpointIsland },
-  { name: 'video', component: VideoIsland },
+  {
+    name: 'checkpoint',
+    component: CheckpointIsland,
+    attributes: {
+      label: { type: 'string', default: 'Mark this section as complete' },
+    },
+  },
+  {
+    name: 'video',
+    component: VideoIsland,
+    // `src` is required: a video island with no source is an authoring mistake
+    // worth catching at build time rather than rendering an empty player.
+    attributes: {
+      src: { type: 'string', required: true },
+      title: { type: 'string', default: 'Video' },
+    },
+  },
   { name: 'flashcard', component: FlashcardIsland, extract: (node) => extractFlashcard(node) },
-  { name: 'audio', component: AudioIsland },
+  {
+    name: 'audio',
+    component: AudioIsland,
+    attributes: {
+      src: { type: 'string', required: true },
+      title: { type: 'string', default: 'Audio' },
+    },
+  },
   {
     name: 'matching-pairs',
     aliases: ['matchingpairs'],
