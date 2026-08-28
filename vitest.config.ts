@@ -19,5 +19,11 @@ export default defineConfig({
     // instead — they need no DOM, and running them under jsdom workers is
     // needless machinery. See `npm run test:scripts`.
     include: ['packages/**/src/**/*.{test,spec}.{ts,tsx}', 'apps/**/src/**/*.{test,spec}.{ts,tsx}'],
+    // ...with one exception: `exportParity.test.ts` imports those scripts to
+    // check the CLI packager and the browser exporter still agree. They must be
+    // loaded by Node, not transformed by Vite, because they derive the repo
+    // root from `import.meta.url` — which is no longer a `file:` URL once Vite
+    // has rewritten it.
+    server: { deps: { external: [/[\\/]scripts[\\/].*\.mjs$/] } },
   },
 });

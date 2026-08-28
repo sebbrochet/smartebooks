@@ -64,6 +64,57 @@ export function readDescriptor(folder) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
+/** The first level-1 heading, or a fallback. Mirrors the engine's `extractTitle`. */
+function extractTitle(markdown, fallback) {
+  const match = markdown.match(/^#\s+(.+?)\s*$/m);
+  return match ? match[1].trim() : fallback;
+}
+
+/**
+ * The book's chapters in order, as `SmartbookChapterEntry` values.
+ *
+ * **This must agree with the engine's `makeBook` / `makeChapters`**, because a
+ * package built here and one exported from the browser have to describe the
+ * same book. The rules are: a declared `chapters` array wins; otherwise order
+ * comes from a numeric filename prefix (999 without one) and the title from the
+ * first `#` heading. Duplicated rather than imported because these scripts
+ * cannot load the engine's TypeScript — the same tax `island-contract.json`
+ * pays, and `package.test.mjs` is what keeps the two honest.
+ *
+ * @param folder book folder name
+ * @param files  `[{ path, markdown }]` for the book's content
+ */
+export function deriveChapters(descriptor, files) {
+  const byFile = new Map(files.map(({ path, markdown }) => [path.split('/').pop(), markdown]));
+
+  if (Array.isArray(descriptor.chapters) && descriptor.chapters.length > 0) {
+    return descriptor.chapters
+      .map((entry, index) => {
+        const markdown = byFile.get(entry.file) ?? '';
+        const slug = entry.file.replace(/\.md$/, '');
+        const prefix = slug.match(/^(\d+)/);
+        return {
+          file: entry.file,
+          order: entry.order ?? (prefix ? Number.parseInt(prefix[1], 10) : index),
+          title: entry.title ?? extractTitle(markdown, slug),
+        };
+      })
+      .sort((a, b) => a.order - b.order);
+  }
+
+  return [...byFile.entries()]
+    .map(([file, markdown]) => {
+      const slug = file.replace(/\.md$/, '');
+      const match = slug.match(/^(\d+)/);
+      return {
+        file,
+        order: match ? Number.parseInt(match[1], 10) : 999,
+        title: extractTitle(markdown, slug),
+      };
+    })
+    .sort((a, b) => a.order - b.order);
+}
+
 /**
  * Validate one book. Returns a list of problems, each with a stable `rule` id
  * so the output is machine-parseable as well as readable (SPEC006 F1.3).
@@ -144,8 +195,7 @@ export function validateBook(folder) {
  *
  * @param descriptor parsed smartbook.json
  * @param assets     book-relative asset paths that exist
- */
-export function checkDeclaredAssets(descriptor, assets) {
+ */ export function checkDeclaredAssets(descriptor, assets) {
   const problems = [];
   const present = new Set(assets);
   const { cover } = descriptor;

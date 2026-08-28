@@ -242,3 +242,28 @@ export function validateBookContent(folder) {
   }));
   return checkDirectives(descriptor, files, folder, listBookFiles(folder, 'assets'));
 }
+
+/**
+ * The islands a book's content uses, by canonical name, for
+ * `descriptor.islands.required` (SPEC001 P2.1).
+ *
+ * Mirrors the engine's `deriveRequiredIslands`, including the part that is easy
+ * to get wrong: **anything already declared is kept**, even if unrecognised
+ * here, so packaging never strips a requirement it merely fails to understand.
+ *
+ * @param descriptor parsed smartbook.json
+ * @param files      `[{ path, markdown }]`
+ */
+export function usedIslands(descriptor, files) {
+  const { names, aliases } = allowedIslands(descriptor);
+  const required = new Set(descriptor.islands?.required ?? []);
+
+  for (const { markdown } of files) {
+    for (const { name } of directivesIn(markdown)) {
+      const canonical = aliases.get(name) ?? name;
+      if (names.has(canonical)) required.add(canonical);
+    }
+  }
+
+  return [...required].sort();
+}

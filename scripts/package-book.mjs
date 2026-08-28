@@ -17,12 +17,14 @@ import { zipSync, strToU8 } from 'fflate';
 import {
   BOOKS_DIR,
   ROOT,
+  deriveChapters,
   listBookFiles,
   listBookFolders,
   listContentFiles,
   readDescriptor,
   validateBook,
 } from './book-sources.mjs';
+import { checkDirectives, usedIslands } from './lint-islands.mjs';
 
 const OUT_DIR = join(ROOT, 'dist');
 
@@ -36,9 +38,40 @@ function packageBook(folder) {
   }
 
   const descriptor = readDescriptor(folder);
-  const files = { 'smartbook.json': strToU8(`${JSON.stringify(descriptor, null, 2)}\n`) };
+  const contentPaths = listContentFiles(folder);
+  const assetPaths = listBookFiles(folder, 'assets');
+  const contentFiles = contentPaths.map((path) => ({
+    path,
+    markdown: readFileSync(join(BOOKS_DIR, folder, path), 'utf8'),
+  }));
 
-  for (const relPath of [...listContentFiles(folder), ...listBookFiles(folder, 'assets')]) {
+  // Package a book with broken islands and the problem only appears on the
+  // recipient's screen, where nobody can fix it. The descriptor pass above is
+  // not enough on its own.
+  const contentProblems = checkDirectives(descriptor, contentFiles, folder, assetPaths);
+  const errors = contentProblems.filter((problem) => problem.severity !== 'warning');
+  for (const { rule, message, severity } of contentProblems) {
+    const line = `books/${folder}: ${rule}: ${message}`;
+    if (severity === 'warning') console.warn(`warning: ${line}`);
+    else console.error(line);
+  }
+  if (errors.length > 0) {
+    throw new Error(`Cannot package "${folder}": ${errors.length} content problem(s).`);
+  }
+
+  // The browser exporter rewrites the descriptor with resolved chapters (E2.3)
+  // and the islands the content uses (P2.1). This path must do the same, or a
+  // package built here would be quietly poorer than the same book exported from
+  // a tab — and the private-repo workflow can only use this path.
+  const packaged = {
+    ...descriptor,
+    chapters: deriveChapters(descriptor, contentFiles),
+    islands: { ...descriptor.islands, required: usedIslands(descriptor, contentFiles) },
+  };
+
+  const files = { 'smartbook.json': strToU8(`${JSON.stringify(packaged, null, 2)}\n`) };
+
+  for (const relPath of [...contentPaths, ...assetPaths]) {
     files[relPath] = new Uint8Array(readFileSync(join(BOOKS_DIR, folder, relPath)));
   }
 
