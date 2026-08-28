@@ -1,0 +1,19 @@
+{
+  "name": "@smart-ebooks/islands-mermaid",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mermaid diagram island for Smart Ebooks — renders a fenced mermaid body to SVG.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "peerDependencies": {
+    "@smart-ebooks/engine": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dependencies": {
+    "mermaid": "^11.17.0"
+  }
+}

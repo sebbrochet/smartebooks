@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { defaultIslands } from '@smart-ebooks/engine';
 import { chessIslands } from '@smart-ebooks/islands-chess';
+import { mermaidIslands } from '@smart-ebooks/islands-mermaid';
 import contract from '../../../island-contract.json';
+
+/** Every island the platform can provide, from the code rather than the file. */
+const allIslands = () => [...defaultIslands, ...chessIslands(), ...mermaidIslands()];
 
 /**
  * `island-contract.json` is what the content linter validates books against.
@@ -17,6 +21,14 @@ describe('island-contract.json', () => {
   it('lists exactly the chess pack islands', () => {
     expect([...contract.packs.chess].sort()).toEqual(
       chessIslands()
+        .map((i) => i.name)
+        .sort(),
+    );
+  });
+
+  it('lists exactly the mermaid pack islands', () => {
+    expect([...contract.packs.mermaid].sort()).toEqual(
+      mermaidIslands()
         .map((i) => i.name)
         .sort(),
     );
@@ -63,7 +75,7 @@ describe('island-contract.json', () => {
       );
 
     const fromCode = Object.fromEntries(
-      [...defaultIslands, ...chessIslands()]
+      allIslands()
         .filter((island) => island.attributes)
         .map((island) => [
           island.name,

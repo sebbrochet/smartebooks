@@ -2,7 +2,8 @@
   "$comment": "The island vocabulary an author may use. Hand-maintained for now; apps/library/src/islandContract.test.ts fails if it drifts from the real registries. Consumed by scripts/lint-content.mjs, which cannot import the engine's TypeScript directly. See SPEC006 F1.2.",
   "builtIn": ["quiz", "checkpoint", "video", "flashcard", "audio", "matching-pairs"],
   "packs": {
-    "chess": ["chess-board", "chess-puzzle", "chess-analysis"]
+    "chess": ["chess-board", "chess-puzzle", "chess-analysis"],
+    "mermaid": ["mermaid"]
   },
   "aliases": {
     "matchingpairs": "matching-pairs",
@@ -24,6 +25,13 @@
       "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
       "fen": { "type": "string", "required": true }
     },
-    "chess-analysis": { "fen": { "type": "string", "required": true } }
+    "chess-analysis": { "fen": { "type": "string", "required": true } },
+    "mermaid": {
+      "theme": {
+        "type": "enum",
+        "values": ["auto", "default", "neutral", "dark", "forest", "base"]
+      },
+      "title": { "type": "string" }
+    }
   }
 }

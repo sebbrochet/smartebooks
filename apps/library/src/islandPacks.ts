@@ -4,6 +4,7 @@ import {
   type SmartbookDescriptor,
 } from '@smart-ebooks/engine';
 import { chessIslands, type ChessIslandsOptions } from '@smart-ebooks/islands-chess';
+import { mermaidIslands, type MermaidIslandsOptions } from '@smart-ebooks/islands-mermaid';
 
 /**
  * Maps an island **pack name** declared in a book's `smartbook.json` to the
@@ -16,6 +17,7 @@ import { chessIslands, type ChessIslandsOptions } from '@smart-ebooks/islands-ch
  */
 const packs: Record<string, (options: unknown) => IslandDefinition[]> = {
   chess: (options) => chessIslands((options ?? {}) as ChessIslandsOptions),
+  mermaid: (options) => mermaidIslands((options ?? {}) as MermaidIslandsOptions),
 };
 
 /** Pack names this build can provide. */
