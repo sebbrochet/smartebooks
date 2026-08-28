@@ -68,9 +68,12 @@ export async function deleteImportedBook(id: string): Promise<void> {
  * internal import id (not its declared slug) so it can never collide with a
  * bundled book, while the original descriptor is preserved for re-export.
  *
- * Imported packages ship content, not code, so they can't declare islands:
- * they get the built-in set (islands marked `disabledWhenUntrusted` still
- * render as a notice, since imported books are rendered untrusted).
+ * Imported packages ship content, not code, so they cannot *supply* islands —
+ * but they may **declare** the packs they need, and a host that has those packs
+ * should pass them in. The default is the built-in set only; the platform
+ * resolves declared packs via `resolveImportedIslands` (islands marked
+ * `disabledWhenUntrusted` still render as a notice, since imported books are
+ * rendered untrusted).
  */
 export function makeImportedBook(
   stored: StoredImport,

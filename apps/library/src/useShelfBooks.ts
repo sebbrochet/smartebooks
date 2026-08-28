@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listImportedBooks, makeImportedBook } from '@smart-ebooks/engine';
 import { bundledBooks, type ShelfBook } from './books';
+import { resolveImportedIslands } from './islandPacks';
 
 /**
  * The full shelf: bundled books (compiled in) plus imported books (loaded from
@@ -13,7 +14,11 @@ export function useShelfBooks() {
     const stored = await listImportedBooks();
     setImported(
       stored.map((entry) => ({
-        book: makeImportedBook(entry),
+        // An imported book ships content, not code — but it may *declare* the
+        // packs it needs, and this platform should provide the ones it has.
+        // Without this an imported chess book renders placeholders even though
+        // the chess pack is right here.
+        book: makeImportedBook(entry, resolveImportedIslands(entry.descriptor)),
         trusted: false,
         importId: entry.id,
       })),

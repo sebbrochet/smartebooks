@@ -42,13 +42,21 @@ export function pickEnum<T extends string>(
 /**
  * Resolves directive attributes into a fully-validated {@link BoardOptions},
  * layering over `defaults` (which themselves default to the built-ins).
+ *
+ * `attributes` is typed for convenience but **must not be trusted**: it comes
+ * from directive attributes in an imported book, or from that book's declared
+ * pack options. A default parameter only fires on `undefined`, so `null` and
+ * other non-objects are normalised explicitly rather than left to throw.
  */
 export function resolveBoardOptions(
   attributes: Record<string, string> = {},
   defaults: BoardOptions = DEFAULT_BOARD_OPTIONS,
 ): BoardOptions {
+  const source: Partial<Record<string, string>> =
+    attributes !== null && typeof attributes === 'object' ? attributes : {};
+
   return {
-    theme: pickEnum(attributes.theme, BOARD_THEMES, defaults.theme),
-    pieces: pickEnum(attributes.pieces, PIECE_SETS, defaults.pieces),
+    theme: pickEnum(source.theme, BOARD_THEMES, defaults.theme),
+    pieces: pickEnum(source.pieces, PIECE_SETS, defaults.pieces),
   };
 }
