@@ -1,6 +1,7 @@
 import { zipSync, strToU8 } from 'fflate';
 import type { Book } from '../types';
 import type { SmartbookChapterEntry } from './spec';
+import { deriveRequiredIslands } from './islandRequirements';
 
 /**
  * Package a book as a `.smartbook` zip: `smartbook.json` + content, plus any
@@ -10,6 +11,9 @@ import type { SmartbookChapterEntry } from './spec';
  * order and titles survive only if they happen to be encoded in filename
  * prefixes — `makeChapters` otherwise gives every chapter `order: 999`, so a
  * round-trip through export/import could silently reorder a book (SPEC003 D7).
+ *
+ * It is also rewritten with the islands the content uses, so a reader can warn
+ * about missing packs before rendering (SPEC001 P2.1).
  */
 export function exportBookToZip(book: Book): Uint8Array {
   const chapters: SmartbookChapterEntry[] = book.chapters.map((chapter) => ({
@@ -18,7 +22,12 @@ export function exportBookToZip(book: Book): Uint8Array {
     title: chapter.title,
   }));
 
-  const descriptor = { ...book.descriptor, chapters };
+  const required = deriveRequiredIslands(book);
+  const descriptor = {
+    ...book.descriptor,
+    chapters,
+    islands: { ...book.descriptor.islands, required },
+  };
 
   const files: Record<string, Uint8Array> = {
     'smartbook.json': strToU8(`${JSON.stringify(descriptor, null, 2)}\n`),

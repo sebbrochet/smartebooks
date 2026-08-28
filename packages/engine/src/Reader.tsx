@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Book } from './types';
 import { createIslandRegistry } from './islandRegistry';
+import { missingIslands } from './package/islandRequirements';
 import { BookProvider } from './reader/BookContext';
 import { useAssetResolver } from './reader/useAssetResolver';
 import { reading } from './store/store';
@@ -39,6 +40,10 @@ export function Reader({ book, basePath, view, chapterSlug, query, trusted }: Re
   // Every book is scoped to exactly the islands it declares.
   const registry = useMemo(() => createIslandRegistry(book.islands), [book]);
 
+  // Islands the book says it needs but this reader has no implementation for.
+  // Reported once here rather than as scattered placeholders (SPEC001 P2.1).
+  const missing = useMemo(() => missingIslands(book.descriptor, book.islands), [book]);
+
   const activeChapter =
     view === 'chapter'
       ? ((chapterSlug ? book.chapters.find((c) => c.slug === chapterSlug) : book.chapters[0]) ??
@@ -73,6 +78,18 @@ export function Reader({ book, basePath, view, chapterSlug, query, trusted }: Re
           query={query}
         />
         <main id="main" ref={mainRef} tabIndex={-1} className="reader__main">
+          {missing.length > 0 && (
+            <div className="reader__notice" role="note">
+              This book uses interactive blocks this reader cannot display:{' '}
+              {missing.map((name, i) => (
+                <span key={name}>
+                  {i > 0 && ', '}
+                  <code>{name}</code>
+                </span>
+              ))}
+              . The text is complete; those blocks appear as placeholders.
+            </div>
+          )}
           <ProgressDashboard />
           {view === 'search' ? (
             <SearchView book={book} basePath={basePath} query={query ?? ''} />

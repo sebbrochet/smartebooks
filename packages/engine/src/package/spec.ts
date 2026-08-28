@@ -44,6 +44,12 @@ export interface SmartbookIslands {
    * Built-in islands are always available and need not be listed.
    */
   packs?: Record<string, unknown>;
+  /**
+   * Canonical names of the islands this book's content uses (SPEC001 P2.1).
+   * A reader that cannot provide one of these can say so once, up front,
+   * instead of leaving unexplained gaps through the book.
+   */
+  required?: string[];
 }
 
 /**
