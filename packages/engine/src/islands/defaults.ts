@@ -6,6 +6,7 @@ import { FlashcardIsland } from './FlashcardIsland';
 import { AudioIsland } from './AudioIsland';
 import { MatchingPairsIsland } from './MatchingPairsIsland';
 import { extractFlashcard, extractJsonConfig, extractQuiz } from '../markdown/extract';
+import { checkpointFallback, flashcardFallback, quizFallback } from './fallbacks';
 
 /**
  * The built-in island set. A book opts in by listing it in the `islands` it
@@ -13,13 +14,19 @@ import { extractFlashcard, extractJsonConfig, extractQuiz } from '../markdown/ex
  * none of these simply doesn't include them.
  */
 export const defaultIslands: IslandDefinition[] = [
-  { name: 'quiz', component: QuizIsland, extract: (node) => extractQuiz(node) },
+  {
+    name: 'quiz',
+    component: QuizIsland,
+    extract: (node) => extractQuiz(node),
+    fallback: quizFallback,
+  },
   {
     name: 'checkpoint',
     component: CheckpointIsland,
     attributes: {
       label: { type: 'string', default: 'Mark this section as complete' },
     },
+    fallback: checkpointFallback,
   },
   {
     name: 'video',
@@ -31,7 +38,12 @@ export const defaultIslands: IslandDefinition[] = [
       title: { type: 'string', default: 'Video' },
     },
   },
-  { name: 'flashcard', component: FlashcardIsland, extract: (node) => extractFlashcard(node) },
+  {
+    name: 'flashcard',
+    component: FlashcardIsland,
+    extract: (node) => extractFlashcard(node),
+    fallback: flashcardFallback,
+  },
   {
     name: 'audio',
     component: AudioIsland,

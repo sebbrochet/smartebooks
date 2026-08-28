@@ -59,9 +59,14 @@ export function remarkIslands(registry: IslandRegistry) {
         config: JSON.stringify({ attributes: values, data }),
       };
 
-      // Islands render from `config`; drop the original children so prose
-      // fragments aren't duplicated inside the mounted component.
-      directive.children = [];
+      // The authored body is replaced by the island's static form, so the
+      // compiled document still says what this island is when the
+      // interactivity is stripped. `IslandHost` ignores these children and
+      // mounts the component; an exporter does the opposite (SPEC001 P1.1).
+      //
+      // The raw body is *not* kept: for data-bodied islands it is a JSON or PGN
+      // blob, and printing that is worse than printing nothing.
+      directive.children = definition?.fallback?.(directive, data, { attributes: values }) ?? [];
     });
   };
 }

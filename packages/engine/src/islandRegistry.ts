@@ -1,5 +1,18 @@
 import type { IslandComponent } from './types';
-import type { AttributeSpec } from './islands/attributes';
+import type { AttributeSpec, AttributeValue } from './islands/attributes';
+import type { RootContent } from 'mdast';
+
+/**
+ * What a `fallback` is given besides the node and its data.
+ *
+ * Only the resolved attributes for now. Islands whose printed form is an image
+ * (a chess diagram, an engraved score) will need a way to emit a build-time
+ * asset here; that waits on a real exporter to render against (SPEC001 P1.1).
+ */
+export interface FallbackContext {
+  /** Attributes after the island's declared schema has been applied. */
+  attributes: Record<string, AttributeValue>;
+}
 
 /** An mdast directive node passed to an island's `extract` function. */
 export type DirectiveNode = unknown;
@@ -29,6 +42,19 @@ export interface IslandDefinition {
    * heavy dependencies into the parse step.
    */
   extract?: (node: DirectiveNode) => unknown;
+  /**
+   * Static, export-safe content for this island: what it becomes when the
+   * interactivity is stripped (print, EPUB, no-JS, search indexing).
+   *
+   * Runs at compile time; the result is placed in the `<island>` element's
+   * children, which `IslandHost` ignores and an exporter renders. Returning
+   * nothing means the island simply does not appear in exports.
+   */
+  fallback?: (
+    node: DirectiveNode,
+    data: unknown,
+    ctx: FallbackContext,
+  ) => RootContent[] | undefined;
   /** If true, the island is replaced by a notice in untrusted (imported) books. */
   disabledWhenUntrusted?: boolean;
 }
