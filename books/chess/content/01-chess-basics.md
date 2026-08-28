@@ -25,4 +25,15 @@ White to move and mate in one. Think first, then reveal. This puzzle uses the
 Ra8# — a back-rank mate.
 :::
 
+## Analyse one position
+
+`::chess-analysis` is the analysis on its own, without a board to navigate: give it a position
+and it evaluates just that. Useful when the point is the *assessment* rather than the moves —
+here, the Ruy Lopez after 3.Bb5.
+
+::chess-analysis{id="chess-ruy-lopez" fen="r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"}
+
+Stockfish runs **in your browser**, as a WebAssembly worker. Nothing about the position is sent
+anywhere.
+
 ::checkpoint{id="chess-done" label="I explored the chess islands"}

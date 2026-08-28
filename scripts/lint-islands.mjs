@@ -244,6 +244,16 @@ export function validateBookContent(folder) {
 }
 
 /**
+ * The directive names used in one Markdown source, as written.
+ *
+ * Uses the real parser rather than a line-start regex, so a directive shown
+ * *inside* a fenced example block is not mistaken for one the book uses.
+ */
+export function directiveNamesIn(markdown) {
+  return [...new Set(directivesIn(markdown).map((directive) => directive.name))];
+}
+
+/**
  * The islands a book's content uses, by canonical name, for
  * `descriptor.islands.required` (SPEC001 P2.1).
  *

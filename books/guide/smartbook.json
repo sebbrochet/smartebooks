@@ -9,6 +9,11 @@
   "createdAt": "2026-08-22",
   "cover": "assets/cover.svg",
   "engine": { "min": "0.1.0" },
+  "islands": {
+    "packs": {
+      "mermaid": {}
+    }
+  },
   "chapters": [
     { "file": "01-getting-started.md", "order": 1 },
     { "file": "02-interactivity-toolkit.md", "order": 2 },

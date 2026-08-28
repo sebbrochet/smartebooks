@@ -18,7 +18,7 @@ export default function StockfishAnalysisIsland({ attributes }: IslandComponentP
   }
 
   return (
-    <div className="island">
+    <div className="island island--chess-analysis">
       <PositionAnalysis fen={fen} />
     </div>
   );

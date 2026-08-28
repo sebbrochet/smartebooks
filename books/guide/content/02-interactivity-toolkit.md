@@ -54,4 +54,24 @@ new pairs.
 ```
 :::
 
+## Diagrams
+
+Not every island is an activity. `:::mermaid` draws a diagram from a fenced
+[Mermaid](https://mermaid.js.org) block, so a picture stays **text** in the source — reviewable in a
+diff, and translatable like any other prose.
+
+It comes from the optional `mermaid` island pack, which this book declares in its `smartbook.json`.
+Books that draw nothing never download it.
+
+:::mermaid{title="How a directive becomes an island"}
+```mermaid
+flowchart LR
+    MD["Markdown<br/>:::quiz"] --> B["Build step"]
+    B --> I["Island<br/>(React component)"]
+    B --> S["Static fallback<br/>(print, export)"]
+```
+:::
+
+The diagram follows your light/dark setting — switch the theme in the header and it redraws.
+
 ::checkpoint{id="ch2-done" label="I explored the interactivity toolkit"}
