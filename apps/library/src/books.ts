@@ -82,15 +82,25 @@ export const bundledBooks: ShelfBook[] = Object.entries(descriptors)
     // Filtering the shelf is not enough: `import.meta.glob` is eager, so a
     // private book's Markdown would still be embedded in the JS bundle even
     // though nothing linked to it. `books/` therefore means "the published
-    // set", and this fails the build rather than shipping hidden content.
+    // set", and a non-public book here is an error rather than hidden content.
     // Private books belong in a private repo, built with `npm run package`
     // (SPEC003 E1.1 / E1.5).
+    //
+    // Except in dev, where refusing would break the one workflow that needs
+    // it: previewing a private book by linking it in from its own repository.
+    // Nothing is published from a dev server, and the control that actually
+    // protects a *build* is `scripts/check-publishable.mjs`, which refuses
+    // both non-public books and linked ones. This throw was always the weakest
+    // of the three layers — by the time it runs in a browser, a bad build has
+    // already shipped the bytes.
     if (!isPublic(descriptor)) {
-      throw new Error(
+      const detail =
         `books/${parts[0]} is not public (visibility: ${descriptor.visibility ?? 'absent'}). ` +
-          `Everything under books/ is compiled into the site bundle, so a non-public book cannot ` +
-          `live here. Move it to a private repository and use "npm run package -- ${parts[0]}".`,
-      );
+        `Everything under books/ is compiled into the site bundle, so a non-public book cannot ` +
+        `live here. Move it to a private repository and use "npm run package -- ${parts[0]}".`;
+
+      if (!import.meta.env.DEV) throw new Error(detail);
+      console.warn(`[dev] previewing a non-public book — this cannot be built.\n${detail}`);
     }
 
     return [{ book: buildBook(descriptor, parts[0]), trusted: true }];
