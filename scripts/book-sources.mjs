@@ -128,5 +128,42 @@ export function validateBook(folder) {
     }
   }
 
+  // Asset references resolve by exact path at runtime, and a miss is silent:
+  // the reader simply shows nothing. Catch it here, where it can still be fixed.
+  for (const problem of checkDeclaredAssets(descriptor, listBookFiles(folder, 'assets'))) {
+    fail(problem.rule, problem.message);
+  }
+
+  return problems;
+}
+
+/**
+ * Descriptor asset references that the book does not actually ship.
+ *
+ * Pure, so it can be tested without a fixture book on disk.
+ *
+ * @param descriptor parsed smartbook.json
+ * @param assets     book-relative asset paths that exist
+ */
+export function checkDeclaredAssets(descriptor, assets) {
+  const problems = [];
+  const present = new Set(assets);
+  const { cover } = descriptor;
+
+  if (typeof cover === 'string' && cover.startsWith('assets/') && !present.has(cover)) {
+    problems.push({ rule: 'asset-missing', message: `cover "${cover}" does not exist.` });
+  }
+
+  if (Array.isArray(descriptor.assets)) {
+    for (const path of descriptor.assets) {
+      if (typeof path === 'string' && !present.has(path)) {
+        problems.push({
+          rule: 'asset-missing',
+          message: `declared asset "${path}" does not exist.`,
+        });
+      }
+    }
+  }
+
   return problems;
 }

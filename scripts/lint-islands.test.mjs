@@ -7,6 +7,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkDirectives } from './lint-islands.mjs';
+import { checkDeclaredAssets } from './book-sources.mjs';
 
 const book = (islands) => ({ slug: 'demo', islands });
 const file = (markdown) => [{ path: 'content/01.md', markdown }];
@@ -137,5 +138,68 @@ describe('checkDirectives', () => {
 
   test('says nothing about attributes an island never declared', () => {
     assert.deepEqual(checkDirectives(book(), file('::video{src="a.mp4" data-x="y"}')), []);
+  });
+});
+
+/**
+ * A packaged asset that isn't packaged fails silently at runtime — the resolver
+ * returns nothing and the reader gets an empty player or a broken image. The
+ * author is the only one who can still fix it (SPEC001 P2.3 follow-up).
+ */
+describe('packaged assets', () => {
+  const withAssets = (markdown, assets) => checkDirectives(book(), file(markdown), 'demo', assets);
+
+  test('accepts an asset the book ships', () => {
+    const problems = withAssets('::audio{id="a" src="assets/narration.wav"}', [
+      'assets/narration.wav',
+    ]);
+    assert.deepEqual(problems, []);
+  });
+
+  test('rejects an asset the book does not ship', () => {
+    const problems = withAssets('::audio{id="a" src="assets/naration.wav"}', [
+      'assets/narration.wav',
+    ]);
+    assert.deepEqual(rules(problems), ['asset-missing']);
+    assert.match(problems[0].message, /src="assets\/naration\.wav" does not exist/);
+  });
+
+  test('rejects a missing image, which resolves the same way', () => {
+    const problems = withAssets('![A diagram](assets/gone.png)', ['assets/cover.svg']);
+    assert.deepEqual(rules(problems), ['asset-missing']);
+    assert.match(problems[0].message, /content\/01\.md:1: image "assets\/gone\.png"/);
+  });
+
+  test('leaves external URLs alone', () => {
+    const markdown = '::video{id="v" src="https://example.com/a.mp4"}\n\n![x](https://e.com/i.png)';
+    assert.deepEqual(withAssets(markdown, []), []);
+  });
+
+  // Callers that cannot supply the asset list must get silence, not a report
+  // that every asset in the book is missing.
+  test('skips the check when the asset list is unknown', () => {
+    assert.deepEqual(checkDirectives(book(), file('::audio{id="a" src="assets/x.wav"}')), []);
+  });
+});
+
+describe('checkDeclaredAssets', () => {
+  test('accepts a descriptor whose references all exist', () => {
+    const descriptor = { cover: 'assets/cover.svg', assets: ['assets/cover.svg'] };
+    assert.deepEqual(checkDeclaredAssets(descriptor, ['assets/cover.svg']), []);
+  });
+
+  test('rejects a cover that does not exist', () => {
+    const problems = checkDeclaredAssets({ cover: 'assets/cover.png' }, ['assets/cover.svg']);
+    assert.deepEqual(rules(problems), ['asset-missing']);
+    assert.match(problems[0].message, /cover "assets\/cover\.png"/);
+  });
+
+  test('rejects a declared asset that does not exist', () => {
+    const problems = checkDeclaredAssets({ assets: ['assets/gone.wav'] }, []);
+    assert.deepEqual(rules(problems), ['asset-missing']);
+  });
+
+  test('leaves an external cover URL alone', () => {
+    assert.deepEqual(checkDeclaredAssets({ cover: 'https://example.com/c.png' }, []), []);
   });
 });

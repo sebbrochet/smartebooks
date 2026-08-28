@@ -16,7 +16,7 @@ import remarkGfm from 'remark-gfm';
 import remarkDirective from 'remark-directive';
 import { visit } from 'unist-util-visit';
 
-import { BOOKS_DIR, listContentFiles, readDescriptor } from './book-sources.mjs';
+import { BOOKS_DIR, listBookFiles, listContentFiles, readDescriptor } from './book-sources.mjs';
 
 const CONTRACT = JSON.parse(
   readFileSync(new URL('../island-contract.json', import.meta.url), 'utf8'),
@@ -62,6 +62,17 @@ function directivesIn(markdown) {
   return found;
 }
 
+/** Markdown image references, e.g. `![alt](assets/diagram.png)`. */
+function imagesIn(markdown) {
+  const found = [];
+  visit(parser.parse(markdown), (node) => {
+    if (node.type === 'image' && typeof node.url === 'string') {
+      found.push({ url: node.url, line: node.position?.start?.line ?? 0 });
+    }
+  });
+  return found;
+}
+
 /**
  * Check one directive's attributes against the island's declared schema.
  *
@@ -103,10 +114,20 @@ const BOOLEANS = new Set(['', 'true', 'yes', 'on', '1', 'false', 'no', 'off', '0
  *
  * @param descriptor parsed smartbook.json
  * @param files      `[{ path, markdown }]`
+ * @param folder     book folder name, used to label problems
+ * @param assets     book-relative asset paths that exist (e.g. `assets/x.png`).
+ *                   Omit when the asset list is unknown; the existence check is
+ *                   then skipped rather than reporting everything as missing.
  */
-export function checkDirectives(descriptor, files, folder = descriptor.slug) {
+export function checkDirectives(descriptor, files, folder = descriptor.slug, assets) {
   const problems = [];
   const { names, aliases, declaredPacks } = allowedIslands(descriptor);
+  const packaged = assets ? new Set(assets) : undefined;
+
+  // A reference into the book's own package that the package does not contain.
+  // Skipped entirely when the asset list is unknown.
+  const isMissingAsset = (value) =>
+    packaged !== undefined && value.startsWith('assets/') && !packaged.has(value);
 
   for (const pack of declaredPacks.filter((p) => !CONTRACT.packs[p])) {
     problems.push({
@@ -179,6 +200,33 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug) {
           message: `${at}: ":::${name}" ${detail}.`,
         });
       }
+
+      // A packaged asset that isn't packaged fails silently at runtime: the
+      // resolver returns nothing and the reader gets an empty player. The
+      // author is the only person who can still fix it (SPEC001 P2.3).
+      for (const [attribute, spec] of Object.entries(CONTRACT.attributes?.[name] ?? {})) {
+        if (spec.type !== 'asset') continue;
+        const raw = attributes[attribute];
+        if (typeof raw === 'string' && isMissingAsset(raw)) {
+          problems.push({
+            folder,
+            severity: 'error',
+            rule: 'asset-missing',
+            message: `${at}: ":::${name}" ${attribute}="${raw}" does not exist in this book.`,
+          });
+        }
+      }
+    }
+
+    // Images resolve through the same mechanism, and fail the same way.
+    for (const { url, line } of imagesIn(markdown)) {
+      if (!isMissingAsset(url)) continue;
+      problems.push({
+        folder,
+        severity: 'error',
+        rule: 'asset-missing',
+        message: `${path}:${line}: image "${url}" does not exist in this book.`,
+      });
     }
   }
 
@@ -192,5 +240,5 @@ export function validateBookContent(folder) {
     path,
     markdown: readFileSync(join(BOOKS_DIR, folder, path), 'utf8'),
   }));
-  return checkDirectives(descriptor, files, folder);
+  return checkDirectives(descriptor, files, folder, listBookFiles(folder, 'assets'));
 }
