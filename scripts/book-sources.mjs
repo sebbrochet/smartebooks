@@ -1,10 +1,32 @@
 import { readFileSync, readdirSync, lstatSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Repo root, derived from this file so the scripts work from any cwd. */
 export const ROOT = fileURLToPath(new URL('..', import.meta.url));
-export const BOOKS_DIR = join(ROOT, 'books');
+
+/**
+ * Where books are read from, and where packages are written.
+ *
+ * Both are overridable so a book kept in a **separate private repository**
+ * (SPEC003 E1.1) can be linted and packaged by these scripts without ever
+ * being copied into this one. That is the safe half of the private-book
+ * workflow: only *previewing* needs a link into `books/`, and a link there
+ * blocks the build (see `check-publishable.mjs`).
+ *
+ *   SMARTBOOK_BOOKS_DIR   directory containing book folders (default `books/`)
+ *   SMARTBOOK_DIST_DIR    where `.smartbook` files are written (default `dist/`)
+ *
+ * Resolved against the current working directory, so a relative value means
+ * what it looks like from the private repo, not from this file.
+ */
+export const BOOKS_DIR = process.env.SMARTBOOK_BOOKS_DIR
+  ? resolve(process.env.SMARTBOOK_BOOKS_DIR)
+  : join(ROOT, 'books');
+
+export const DIST_DIR = process.env.SMARTBOOK_DIST_DIR
+  ? resolve(process.env.SMARTBOOK_DIST_DIR)
+  : join(ROOT, 'dist');
 
 /** Kept in step with `SMARTBOOK_SCHEMA_VERSION` / `MIN_SUPPORTED_SCHEMA`. */
 const CURRENT_SCHEMA = 2;

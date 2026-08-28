@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 import {
   BOOKS_DIR,
-  ROOT,
+  DIST_DIR,
   deriveChapters,
   listBookFiles,
   listBookFolders,
@@ -25,8 +25,6 @@ import {
   validateBook,
 } from './book-sources.mjs';
 import { checkDirectives, usedIslands } from './lint-islands.mjs';
-
-const OUT_DIR = join(ROOT, 'dist');
 
 function packageBook(folder) {
   const problems = validateBook(folder);
@@ -76,9 +74,9 @@ function packageBook(folder) {
   }
 
   const zipped = zipSync(files, { level: 6 });
-  mkdirSync(OUT_DIR, { recursive: true });
+  mkdirSync(DIST_DIR, { recursive: true });
 
-  const out = join(OUT_DIR, `${descriptor.slug}.smartbook`);
+  const out = join(DIST_DIR, `${descriptor.slug}.smartbook`);
   writeFileSync(out, zipped);
 
   const kb = (zipped.length / 1024).toFixed(1);
