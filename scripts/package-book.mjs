@@ -19,6 +19,7 @@ import {
   ROOT,
   listBookFiles,
   listBookFolders,
+  listContentFiles,
   readDescriptor,
   validateBook,
 } from './book-sources.mjs';
@@ -37,7 +38,7 @@ function packageBook(folder) {
   const descriptor = readDescriptor(folder);
   const files = { 'smartbook.json': strToU8(`${JSON.stringify(descriptor, null, 2)}\n`) };
 
-  for (const relPath of [...listBookFiles(folder, 'content'), ...listBookFiles(folder, 'assets')]) {
+  for (const relPath of [...listContentFiles(folder), ...listBookFiles(folder, 'assets')]) {
     files[relPath] = new Uint8Array(readFileSync(join(BOOKS_DIR, folder, relPath)));
   }
 

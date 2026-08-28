@@ -15,6 +15,9 @@ export default defineConfig({
     // Worker startup can still be slow on constrained machines; keep a generous
     // timeout so a cold run doesn't fail spuriously. The suite itself is tiny.
     testTimeout: 30000,
+    // Node-side scripts (the content linter) are tested with `node --test`
+    // instead — they need no DOM, and running them under jsdom workers is
+    // needless machinery. See `npm run test:scripts`.
     include: ['packages/**/src/**/*.{test,spec}.{ts,tsx}', 'apps/**/src/**/*.{test,spec}.{ts,tsx}'],
   },
 });

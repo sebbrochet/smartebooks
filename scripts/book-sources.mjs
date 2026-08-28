@@ -47,6 +47,18 @@ export function listBookFiles(folder, subdir) {
   return out.sort();
 }
 
+/**
+ * A book's chapters: `content/**` filtered to Markdown.
+ *
+ * Deliberately not "everything under content/". Import keeps only `content/*.md`
+ * (see `parseSmartbook`), so anything else would be linted for no reason and
+ * packaged only to be discarded — and a stray editor backup or draft could be
+ * shipped inside a `.smartbook` without anyone noticing.
+ */
+export function listContentFiles(folder) {
+  return listBookFiles(folder, 'content').filter((path) => path.endsWith('.md'));
+}
+
 export function readDescriptor(folder) {
   const path = join(BOOKS_DIR, folder, 'smartbook.json');
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -105,7 +117,7 @@ export function validateBook(folder) {
     );
   }
 
-  const files = listBookFiles(folder, 'content');
+  const files = listContentFiles(folder);
   if (files.length === 0) fail('content-empty', 'no chapters found under content/.');
 
   if (Array.isArray(chapters)) {

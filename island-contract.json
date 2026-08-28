@@ -1,0 +1,7 @@
+{
+  "$comment": "The island vocabulary an author may use. Hand-maintained for now; apps/library/src/islandContract.test.ts fails if it drifts from the real registries. Consumed by scripts/lint-content.mjs, which cannot import the engine's TypeScript directly. See SPEC006 F1.2.",
+  "builtIn": ["quiz", "checkpoint", "video", "flashcard", "audio", "matchingpairs"],
+  "packs": {
+    "chess": ["chessboard", "chesspuzzle", "chessanalysis"]
+  }
+}

@@ -1,19 +1,26 @@
 /**
  * Validates every bundled book before it can be built or published.
  *
- * The rule that matters most is `visibility-missing`: publication has to be a
- * decision an author made, not a consequence of where a folder sits
- * (SPEC003 D1 / E1.1).
+ * Two passes: the descriptor (does this book declare what it is?) and the
+ * content (does it use islands it actually has?). The rule that matters most is
+ * `visibility-missing`: publication has to be a decision an author made, not a
+ * consequence of where a folder sits (SPEC003 D1 / E1.1).
  *
  *   npm run lint:content
  */
 import { listBookFolders, readDescriptor, validateBook } from './book-sources.mjs';
+import { validateBookContent } from './lint-islands.mjs';
 
 const folders = listBookFolders();
-const problems = folders.flatMap(validateBook);
+
+// Content checks read the descriptor, so only run them where it is sound.
+const problems = folders.flatMap((folder) => {
+  const descriptorProblems = validateBook(folder);
+  return descriptorProblems.length > 0 ? descriptorProblems : validateBookContent(folder);
+});
 
 for (const { folder, rule, message } of problems) {
-  console.error(`books/${folder}/smartbook.json: ${rule}: ${message}`);
+  console.error(`books/${folder}: ${rule}: ${message}`);
 }
 
 if (problems.length > 0) {
