@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, lstatSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,13 +12,45 @@ const MIN_SCHEMA = 1;
 
 const SAFE_SLUG = /^[a-z0-9][a-z0-9-]*$/;
 
-/** Every folder under `books/` that has a descriptor. */
+/**
+ * Every folder under `books/` that has a descriptor.
+ *
+ * Deliberately follows symlinks and Windows junctions. An author previewing a
+ * book kept in a *private* repository points a link at it, and Vite's glob
+ * follows that link and bundles the content — so if this did not, the linter
+ * and the publication gate would be blind to a book the build happily ships.
+ * That was verified, not assumed: a junctioned private book leaked into
+ * `dist/assets/index-*.js` while `check-publishable` reported nothing wrong.
+ */
 export function listBookFolders() {
   return readdirSync(BOOKS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
+    .filter((name) => isDirectory(join(BOOKS_DIR, name)))
     .filter((name) => fileExists(join(BOOKS_DIR, name, 'smartbook.json')))
     .sort();
+}
+
+/**
+ * Whether a book folder is a symlink or junction rather than real content.
+ *
+ * Such a book exists only on this machine, so the site could never be rebuilt
+ * from the repository alone — which is why `check-publishable` refuses to build
+ * when one is present, whatever its `visibility` says.
+ */
+export function isLinkedBookFolder(folder) {
+  try {
+    return lstatSync(join(BOOKS_DIR, folder)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+function isDirectory(path) {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 function fileExists(path) {

@@ -9,7 +9,12 @@
  *
  * Runs automatically via the `prebuild` script.
  */
-import { listBookFolders, readDescriptor, validateBook } from './book-sources.mjs';
+import {
+  isLinkedBookFolder,
+  listBookFolders,
+  readDescriptor,
+  validateBook,
+} from './book-sources.mjs';
 
 const folders = listBookFolders();
 const problems = folders.flatMap(validateBook);
@@ -18,6 +23,26 @@ if (problems.length > 0) {
   for (const { folder, rule, message } of problems) {
     console.error(`books/${folder}/smartbook.json: ${rule}: ${message}`);
   }
+  process.exit(1);
+}
+
+// A linked book exists only on this machine, so a site built from it could
+// never be reproduced from the repository. It is also the sharpest version of
+// the D1 risk: the link is how a *private* book gets previewed, and Vite's glob
+// follows it into the bundle. Refuse regardless of what `visibility` claims,
+// because a link is never a legitimate thing to publish from.
+const linked = folders.filter(isLinkedBookFolder);
+
+if (linked.length > 0) {
+  for (const folder of linked) {
+    console.error(
+      `books/${folder}: is a symlink/junction, and everything under books/ is compiled\n` +
+        `  into the site bundle. Remove the link before building:\n` +
+        `      Remove-Item books/${folder}     # PowerShell (the link only, not the target)\n` +
+        `      rm books/${folder}              # macOS / Linux`,
+    );
+  }
+  console.error(`\nRefusing to build: ${linked.length} linked book(s) under books/.`);
   process.exit(1);
 }
 
