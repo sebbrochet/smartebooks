@@ -39,7 +39,7 @@ function run(script, args, env) {
 
 describe('books outside this repository', () => {
   before(() => {
-    workspace = mkdtempSync(join(tmpdir(), 'smartbook-external-'));
+    workspace = mkdtempSync(join(tmpdir(), 'smart-ebooks-external-'));
     booksDir = join(workspace, 'books');
     distDir = join(workspace, 'dist');
     mkdirSync(join(booksDir, 'album', 'content'), { recursive: true });
@@ -60,7 +60,7 @@ describe('books outside this repository', () => {
 
   after(() => rmSync(workspace, { recursive: true, force: true }));
 
-  const env = () => ({ SMARTBOOK_BOOKS_DIR: booksDir, SMARTBOOK_DIST_DIR: distDir });
+  const env = () => ({ SMART_EBOOKS_BOOKS_DIR: booksDir, SMART_EBOOKS_DIST_DIR: distDir });
 
   test('lints a book this repo does not contain', () => {
     const { code, output } = run('lint-content.mjs', [], env());

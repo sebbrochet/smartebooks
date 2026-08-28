@@ -14,18 +14,18 @@ export const ROOT = fileURLToPath(new URL('..', import.meta.url));
  * workflow: only *previewing* needs a link into `books/`, and a link there
  * blocks the build (see `check-publishable.mjs`).
  *
- *   SMARTBOOK_BOOKS_DIR   directory containing book folders (default `books/`)
- *   SMARTBOOK_DIST_DIR    where `.smartbook` files are written (default `dist/`)
+ *   SMART_EBOOKS_BOOKS_DIR   directory containing book folders (default `books/`)
+ *   SMART_EBOOKS_DIST_DIR    where `.smartbook` files are written (default `dist/`)
  *
  * Resolved against the current working directory, so a relative value means
  * what it looks like from the private repo, not from this file.
  */
-export const BOOKS_DIR = process.env.SMARTBOOK_BOOKS_DIR
-  ? resolve(process.env.SMARTBOOK_BOOKS_DIR)
+export const BOOKS_DIR = process.env.SMART_EBOOKS_BOOKS_DIR
+  ? resolve(process.env.SMART_EBOOKS_BOOKS_DIR)
   : join(ROOT, 'books');
 
-export const DIST_DIR = process.env.SMARTBOOK_DIST_DIR
-  ? resolve(process.env.SMARTBOOK_DIST_DIR)
+export const DIST_DIR = process.env.SMART_EBOOKS_DIST_DIR
+  ? resolve(process.env.SMART_EBOOKS_DIST_DIR)
   : join(ROOT, 'dist');
 
 /** Kept in step with `SMARTBOOK_SCHEMA_VERSION` / `MIN_SUPPORTED_SCHEMA`. */

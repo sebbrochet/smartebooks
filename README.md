@@ -42,17 +42,34 @@ All reader state is **local-only** (IndexedDB via `idb-keyval`, with `localStora
 ## Repository layout (monorepo)
 
 ```text
-packages/engine/        @smart-ebooks/engine — the ONE reusable core
+packages/engine/          @smart-ebooks/engine — the ONE reusable core
   src/ markdown/ islands/ store/ reader/ content/ package/ Reader.tsx index.ts
-packages/islands-chess/  @smart-ebooks/islands-chess — optional domain islands
+packages/islands-chess/   @smart-ebooks/islands-chess — optional domain islands
   src/ ChessBoardIsland ChessPuzzleIsland StockfishAnalysisIsland
-books/<slug>/           a book = data only: smartbook.json + book.config.ts + content/*.md
-apps/library/           @smart-ebooks/library — the bookshelf platform
+packages/islands-mermaid/ @smart-ebooks/islands-mermaid — diagram island
+books/<slug>/             a book = data only: smartbook.json + content/*.md + assets/
+apps/library/             @smart-ebooks/library — the bookshelf platform
   src/ App.tsx router.ts launch.ts books.ts Bookshelf.tsx  index.html
-e2e/                    Playwright tests (run against the platform)
+scripts/                  content linting, publication gate, packaging (plain Node)
+e2e/                      Playwright tests (run against the platform)
 ```
 
-Books are **auto-discovered** — the app globs `books/*/book.config.ts`, so adding a book needs no wiring.
+Books are **auto-discovered** — the app globs `books/*/smartbook.json`, so adding a book needs no
+wiring and no code. Island packs are selected in the descriptor, not in TypeScript.
+
+## Two names, on purpose
+
+Both appear throughout, and they are not interchangeable:
+
+| Name | Means | Seen as |
+| --- | --- | --- |
+| **smartbook** | the portable **package format** | `smartbook.json`, `.smartbook`, `SmartbookDescriptor`, `SMARTBOOK_SCHEMA_VERSION` |
+| **smart-ebooks** | this **product and platform** | `@smart-ebooks/*`, `SMART_EBOOKS_*` env vars, "Smart Ebooks" in the UI |
+
+The split is deliberate. A `.smartbook` is meant to be readable by implementations other than this
+one, so the format carries a name of its own; naming it after the platform would tie the two together.
+When adding something, ask which of the two it belongs to — anything describing the *file* is a
+smartbook, anything describing the *app* is smart-ebooks.
 
 ## Run it locally
 
