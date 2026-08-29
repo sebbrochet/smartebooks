@@ -9,7 +9,8 @@ A *smart ebook* is a static website that reads like a book but behaves like an a
 This repository is an **npm-workspaces monorepo**, not a single book:
 
 1. **`packages/engine` (`@smart-ebooks/engine`)** — the one reusable core (Markdown→island pipeline, islands, per-book store, reader shell). Evolve it once; every book benefits.
-2. **`books/<slug>/`** — a book is pure data: a `smartbook.json` descriptor + `book.config.ts` + `content/*.md`. No architecture inside.
+2. **`books/<slug>/`** — a book is pure data: a `smartbook.json` descriptor + `content/*.md` +
+   `assets/`. No code, no architecture inside.
 3. **`apps/library` (`@smart-ebooks/library`)** — the platform: a **bookshelf** that auto-discovers books and publishes them through **one** chain.
 
 ---
@@ -22,7 +23,11 @@ Markdown chapters                Build pipeline                 Static smart ebo
                                  interactive "islands"          progress + scores in-browser
 ```
 
-Authors write **plain Markdown**. Interactive elements are declared with **fenced container directives** (e.g. `:::quiz`, `:::flashcard`, `:::video`). A build step parses the Markdown, mounts a matching **React component** for each directive, and emits a fully static site that can be hosted anywhere (GitHub Pages, any CDN).
+Authors write **plain Markdown**. Interactive elements are declared with **directives** — either a
+container with a body (`:::quiz`, `:::flashcard`, `:::mermaid`) or a self-contained leaf
+(`::checkpoint`, `::video`, `::audio`). A build step parses the Markdown, mounts a matching **React
+component** for each directive, and emits a fully static site that can be hosted anywhere (GitHub
+Pages, any CDN).
 
 ## What makes an ebook "smart"
 
@@ -30,8 +35,9 @@ Authors write **plain Markdown**. Interactive elements are declared with **fence
 | --- | --- | --- |
 | Quizzes & knowledge checks | `:::quiz` directive → React quiz component | Score saved locally |
 | Flashcards / spaced repetition | `:::flashcard` directive | Review state saved locally |
-| Puzzles & exercises | `:::matchingpairs`, plus domain islands (e.g. chess) | Best scores saved locally |
-| Embedded video / audio | `:::video`, `:::audio` directives | Watched/played flags |
+| Puzzles & exercises | `:::matching-pairs`, plus domain islands (e.g. chess) | Best scores saved locally |
+| Embedded video / audio | `::video`, `::audio` directives | Watched/played flags |
+| Diagrams | `:::mermaid` — a picture that stays text in the source | — |
 | Progress tracking | Per-section checkpoints + reading position | Progress map saved locally |
 | Score tracking | Aggregated across quizzes and exercises | Score store saved locally |
 | Resume where you left off | Last book + chapter, with an optional cover splash | Device preference, local |
@@ -76,31 +82,54 @@ smartbook, anything describing the *app* is smart-ebooks.
 ```powershell
 npm install                      # npm workspaces
 npm run dev                      # platform dev server (bookshelf)
-npm run validate                 # typecheck + lint + format + unit tests
+npm run lint:content             # validate every book's descriptor and directives
+npm run validate                 # typecheck + lint + lint:content + format + unit & script tests
 npm run build                    # static production build → apps/library/dist/
 npm run test:e2e                 # Playwright e2e
+npm run package -- <slug>        # build a portable .smartbook (or --all)
 ```
 
 ## Add a new book
 
-1. Create `books/<slug>/smartbook.json` — the descriptor (title, description, chapter list, optional
-   `cover`). The same descriptor format is used by portable `.smartbook` packages.
-2. Add `books/<slug>/content/*.md` chapters (numbered, e.g. `01-intro.md`).
-3. Create `books/<slug>/book.config.ts` exporting `book`, declaring the islands the book may use:
+1. Create `books/<slug>/smartbook.json`. The folder name must match `slug`, and **`visibility` is
+   required** — `"public"` to publish it with the site, `"private"` to keep it off. There is no
+   default: an absent or unrecognised value counts as private, so a typo can never publish a book.
 
-   ```ts
-   export const book: Book = makeBook(descriptor, modules, defaultIslands);
+   ```jsonc
+   {
+     "schemaVersion": 2,
+     "slug": "my-book",
+     "title": "My Book",
+     "visibility": "public"
+   }
    ```
 
-4. That's it — the bookshelf discovers it automatically. No engine changes.
+2. Add `books/<slug>/content/*.md` chapters. A numeric prefix sets the order (`01-intro.md`), and the
+   first `#` heading becomes the title — or declare `chapters` explicitly in the descriptor.
+3. If the book needs islands beyond the built-ins, declare the **pack** in the descriptor. No
+   TypeScript: the platform maps the name to its implementation.
 
-> Books are scoped to the islands they declare, so a domain package (e.g.
-> `chessIslands()` from `@smart-ebooks/islands-chess`) is only available to books that opt in.
+   ```jsonc
+   "islands": { "packs": { "chess": { "board": { "theme": "blue" } } } }
+   ```
+
+4. Run `npm run lint:content` — it checks the descriptor, unknown or misspelt directives, duplicate
+   `id`s, attribute values, and asset paths that do not exist.
+5. That's it — the bookshelf discovers it automatically. No engine changes.
+
+> Books are scoped to the islands they declare, so a domain pack (e.g. `chess`, from
+> `@smart-ebooks/islands-chess`) is only available to books that opt in. A `.smartbook` records what
+> it used, so a reader missing a pack is told once rather than shown blank placeholders.
+
+> **Private books belong in a separate repository.** Everything under `books/` is compiled into the
+> site bundle, so the build refuses to run when any book there is not public. Package a private book
+> with `npm run package -- <slug>` and share the `.smartbook` file directly.
 
 ## Where to start
 
-Read **`books/guide/`** — a worked example whose chapters document the authoring model while exercising
-every built-in island. `books/chess/` shows how a domain package adds its own islands.
+Read **`books/guide/`** — a worked example whose chapters document the authoring model while
+exercising every built-in island, plus a diagram from the mermaid pack. `books/chess/` shows how a
+domain pack adds its own islands.
 
 ## License
 
