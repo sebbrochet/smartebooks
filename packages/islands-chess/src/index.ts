@@ -33,6 +33,16 @@ export {
   type PieceSet,
 } from './boardOptions';
 export { extractShapes, parseShapes, type MoveShape } from './shapes';
+export {
+  mainline,
+  mainlinePath,
+  nodeAt,
+  parentPath,
+  pgnToTree,
+  type GameNode,
+  type GameTree,
+} from './tree';
+export { moveLabel, pgnScoreText, toScore, type Score, type ScoreSegment } from './score';
 
 function directiveAttributes(node: DirectiveNode): Record<string, string> {
   const attrs =

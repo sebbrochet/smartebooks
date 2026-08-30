@@ -9,6 +9,7 @@ into paragraphs. `moves=on` does the same, and every move is clickable.
 
 This is Légal's Mate, from 1750 — a queen sacrifice that still catches people out.
 Click any move to jump the board to it, or focus the board and use the arrow keys.
+Sidelines are indented under the move they replace, and are clickable too.
 
 :::chess-board{id="chess-legal" moves=on pieces=unicode}
 
@@ -17,8 +18,9 @@ Click any move to jump the board to it, or focus the board and use the arrow key
 1. e4 e5 2. Nf3 Nc6 3. Bc4 d6 4. Nc3 Bg4 {Pinning the knight — or so Black thinks.
 The pin is real, but it is not absolute, and that is the whole game. [%cal Rg4d1]}
 5. Nxe5!! {Ignoring the pin. The queen is hanging, and taking it loses.
-[%cal Gf3e5][%csl Gd1]} Bxd1?? {5...Nxe5 6. Qxg4 Nxg4 was the answer: a pawn down,
-but alive.} 6. Bxf7+ Ke7 7. Nd5# {Mate by two knights and a bishop, with the queen
+[%cal Gf3e5][%csl Gd1]} Bxd1?? ({The refutation, and the reason this is a swindle
+rather than a combination:} 5... Nxe5 6. Qxg4 Nxg4 {A pawn down, but alive.})
+6. Bxf7+ Ke7 7. Nd5# {Mate by two knights and a bishop, with the queen
 still sitting on d1 for Black to admire.}
 ```
 

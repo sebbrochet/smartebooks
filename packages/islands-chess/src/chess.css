@@ -101,6 +101,17 @@
   padding-left: 0.75rem;
 }
 
+/*
+ * A sideline is an alternative to the move above it, not a continuation of it.
+ * Indentation is carrying that meaning, so it gets a rule of its own rather
+ * than being left to the reader to infer from the margin.
+ */
+.chess-moves__line-group.is-sideline {
+  border-left: 2px solid var(--border, #ddd);
+  padding-left: 0.6rem;
+  font-size: 0.95em;
+}
+
 .chesspuzzle__solution {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   margin: 0;

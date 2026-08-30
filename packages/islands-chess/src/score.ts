@@ -1,31 +1,32 @@
-import type { PgnPlies } from './pgn';
+import type { GameNode, GameTree } from './tree';
 import { extractShapes } from './shapes';
 
 /**
  * The game score, grouped the way chess is written down (SPEC008 G2.1/G2.2).
  *
- * Printed chess books run the moves together and break for commentary:
- * `1. e4 e5 2. Bc4`, then a paragraph about f7, then `Nc6 3. Qh5?!`. This
- * module produces that structure twice over, from two different inputs:
+ * Printed chess books run the moves together and break for commentary, and
+ * break again for a sideline: `1. e4 e5`, a paragraph about the centre, then
+ * `2. Bc4 (2. Nf3 is the main line)`. This module produces that structure twice
+ * over, from two different inputs:
  *
- * - {@link toScore} works from a **replayed** game, for the interactive move
- *   list, which needs a ply per move so a click can drive the board.
+ * - {@link toScore} works from a parsed **tree**, for the interactive move
+ *   list, which needs a path per move so a click can drive the board.
  * - {@link pgnScoreText} works from the **PGN text**, for the static fallback.
  *
  * The duplication is deliberate and was measured. The fallback runs at parse
- * time, in the module every reader loads, so replaying the game there would
- * put `chessops` in the main bundle for every book on the shelf — **+45.9 kB,
+ * time, in the module every reader loads, so parsing the game there would put
+ * `chessops` in the main bundle for every book on the shelf — **+45.9 kB,
  * +13.2 kB gzipped**, verified by building it both ways. A fallback does not
- * need legal-move validation: a PGN already interleaves moves and comments in
- * reading order, so splitting on `{…}` reproduces the same blocks, and keeps
- * the author's own notation while it is at it.
+ * need legal-move validation: a PGN already interleaves moves, commentary and
+ * sidelines in reading order, so splitting on `{…}` reproduces the same blocks,
+ * and keeps the author's own notation while it is at it.
  *
  * Pure and dependency-free either way.
  */
 
 export interface ScoreMove {
-  /** Ply this move leads to, i.e. what the board should show. */
-  ply: number;
+  /** Position path this move leads to, i.e. what the board should show. */
+  path: string;
   /** `1.` for White, `1...` for Black. */
   number: string;
   /** SAN with any annotation glyph attached: `Qh5?!`. */
@@ -39,48 +40,80 @@ export interface ScoreBlock {
   comment?: string;
 }
 
-export interface Score {
-  /** A comment written before the first move: the game's introduction. */
-  intro?: string;
+export interface ScoreSegment {
+  /** 0 is the main line; deeper is a sideline of a sideline. */
+  depth: number;
+  /** A note introducing this line, written before its first move. */
+  startingComment?: string;
   blocks: ScoreBlock[];
 }
 
+export interface Score {
+  /** A comment written before the first move: the game's introduction. */
+  intro?: string;
+  /** Lines in reading order: a sideline follows the move it replaces. */
+  segments: ScoreSegment[];
+}
+
 /** `3. Qh5?!`, or `Start` for the initial position. */
-export function moveLabel(plies: PgnPlies, ply: number): string {
-  if (ply <= 0) return 'Start';
-  const index = ply - 1;
-  return `${plies.numbers[index] ?? ''} ${plies.sans[index] ?? ''}${plies.nags[index] ?? ''}`.trim();
+export function moveLabel(node: GameNode | undefined): string {
+  if (!node) return 'Start';
+  return `${node.number} ${node.san}${node.nag ?? ''}`.trim();
 }
 
 /**
- * Groups a replayed game into runs of moves punctuated by commentary.
+ * Walks one line and everything that branches off it, in reading order.
  *
- * A block is closed by the comment that belongs to its last move, so a game
- * with no comments at all is a single block — which is the right rendering for
- * a bare move list.
+ * `nodes` is a sibling list: `nodes[0]` continues the line and `nodes[1..]` are
+ * alternatives to it. An alternative interrupts the line at exactly the move it
+ * replaces, which is where a printed book puts it, so the current segment is
+ * closed and the line resumes in a new one afterwards.
  */
-export function toScore(plies: PgnPlies): Score {
-  const blocks: ScoreBlock[] = [];
-  let current: ScoreMove[] = [];
+function lineSegments(nodes: GameNode[], depth: number): ScoreSegment[] {
+  const out: ScoreSegment[] = [];
+  let blocks: ScoreBlock[] = [];
+  let moves: ScoreMove[] = [];
+  let intro = nodes[0]?.startingComment;
 
-  for (let ply = 1; ply < plies.fens.length; ply++) {
-    const index = ply - 1;
-    current.push({
-      ply,
-      number: plies.numbers[index] ?? '',
-      san: `${plies.sans[index] ?? ''}${plies.nags[index] ?? ''}`,
-    });
-
-    const comment = plies.comments[ply];
-    if (comment) {
-      blocks.push({ moves: current, comment });
-      current = [];
+  const flush = () => {
+    if (moves.length > 0) {
+      blocks.push({ moves });
+      moves = [];
     }
+    if (blocks.length > 0) {
+      out.push({ depth, startingComment: intro, blocks });
+      blocks = [];
+      intro = undefined;
+    }
+  };
+
+  let siblings = nodes;
+  while (siblings.length > 0) {
+    const node = siblings[0];
+    moves.push({ path: node.path, number: node.number, san: `${node.san}${node.nag ?? ''}` });
+
+    if (node.comment) {
+      blocks.push({ moves, comment: node.comment });
+      moves = [];
+    }
+
+    if (siblings.length > 1) {
+      flush();
+      for (const alternative of siblings.slice(1)) {
+        out.push(...lineSegments([alternative], depth + 1));
+      }
+    }
+
+    siblings = node.children;
   }
 
-  if (current.length > 0) blocks.push({ moves: current });
+  flush();
+  return out;
+}
 
-  return { intro: plies.comments[0], blocks };
+/** Groups a parsed game into lines punctuated by commentary. */
+export function toScore(tree: GameTree): Score {
+  return { intro: tree.comment, segments: lineSegments(tree.children, 0) };
 }
 
 /** A run of moves as the author typed them, and the comment that closes it. */
@@ -99,6 +132,9 @@ const collapse = (value: string) => value.replace(/\s+/g, ' ').trim();
  * The same grouping as {@link toScore}, taken straight from the PGN text so it
  * costs no parser. Shape tags are stripped from the comments, exactly as the
  * board strips them, or an export would print `[%cal Gd1h5]` mid-sentence.
+ *
+ * Sidelines need no special handling: they are parenthesised in the source and
+ * stay parenthesised in the output, which is how a book prints them.
  */
 export function pgnScoreText(pgn: string): { intro?: string; blocks: TextBlock[] } {
   const body = pgn.replace(HEADER, '');

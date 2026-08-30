@@ -154,6 +154,34 @@ test('the move list shows the whole game and drives the board', async ({ page })
   await expect(page.getByTestId('chess-comment')).toHaveCount(1);
 });
 
+test('a sideline is shown, and can be stepped into', async ({ page }) => {
+  await page.goto('/#/chess/02-reading-an-annotated-game');
+
+  const list = page.getByTestId('chess-move-list');
+  const status = page.getByTestId('chess-move');
+
+  // The sideline is present at all — a flat list of positions dropped it.
+  const sideline = list.locator('.is-sideline');
+  await expect(sideline).toBeVisible();
+  await expect(sideline.getByText(/The refutation/)).toBeVisible();
+
+  // Its moves are alternatives to the mainline move above, and they are
+  // reachable: a ply index could not have named them.
+  await sideline.getByRole('button', { name: '5... Nxe5' }).click();
+  await expect(status).toHaveText('5... Nxe5');
+
+  // Stepping forward stays inside the sideline rather than snapping back to
+  // the main line.
+  await page.getByRole('button', { name: 'Next move' }).click();
+  await expect(status).toHaveText('6. Qxg4');
+
+  // And stepping back leaves it the way it came.
+  await page.getByRole('button', { name: 'Previous move' }).click();
+  await expect(status).toHaveText('5... Nxe5');
+  await page.getByRole('button', { name: 'Previous move' }).click();
+  await expect(status).toHaveText('5. Nxe5!!');
+});
+
 test('a focused board steps with the arrow keys', async ({ page }) => {
   await page.goto('/#/chess/02-reading-an-annotated-game');
 

@@ -7,7 +7,7 @@ import {
   usePersistentState,
   type IslandComponentProps,
 } from '@smart-ebooks/engine';
-import { pgnToPlies } from './pgn';
+import { mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
 import { moveLabel } from './score';
 import MoveList from './MoveList';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
@@ -23,10 +23,10 @@ const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
 
 /**
  * Displays a chess game from PGN with move navigation. Read-only board
- * (Chessground); the current ply is persisted per book. Visual options
+ * (Chessground); the position is persisted per book. Visual options
  * (`theme`, `pieces`, `orientation`) are resolved and validated at parse time.
  * With `analysis=on`, an on-demand Stockfish evaluation of the current position
- * is offered below the board.
+ * is offered below the board; with `moves`, the whole score is shown.
  */
 export default function ChessBoardIsland({ id, attributes, data }: IslandComponentProps) {
   const parsed = (data as { pgn?: string; board?: BoardOptions }) ?? {};
@@ -35,46 +35,56 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
   const analysisOn = attrFlag(attributes.analysis);
   const shapesOn = attrFlag(attributes.shapes, true);
   const movesMode = attrText(attributes.moves, 'off');
-  const plies = useMemo(() => pgnToPlies(pgn), [pgn]);
-  const { fens, comments, shapes } = plies;
-  const [ply, setPly] = usePersistentState<number>(`chessply:${id}`, 0);
+  const tree = useMemo(() => pgnToTree(pgn), [pgn]);
+  const [stored, setStored] = usePersistentState<string | number>(`chessply:${id}`, '');
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
 
-  const lastPly = Math.max(fens.length - 1, 0);
-  const clampedPly = Math.max(0, Math.min(ply, lastPly));
-  const fen = fens[clampedPly];
+  // Positions used to be addressed by ply, and readers have that number saved.
+  // It still names the same move of the same game, so it is migrated rather
+  // than discarded — losing someone's place in a book is not an upgrade.
+  const requested = typeof stored === 'number' ? mainlinePath(tree, stored) : stored;
+  // A path from a position that no longer exists — an edited game, a deleted
+  // sideline — must land somewhere real rather than blank the board.
+  const path = requested && nodeAt(tree, requested) ? requested : '';
+  const node = nodeAt(tree, path);
+
+  const fen = node?.fen ?? tree.fen;
+  const shapes = node?.shapes ?? tree.shapes;
+  const comment = node?.comment ?? (path === '' ? tree.comment : undefined);
 
   // `auto` is read from the starting position, not the current one: resolving
-  // it per ply would spin the board round every time Black moves.
-  const side = orientationFor(orientation, fens[0]);
+  // it per move would spin the board round every time Black plays.
+  const side = orientationFor(orientation, tree.fen);
 
-  // The annotator's note about the position on the board. Indexed by ply, so
-  // index 0 is whatever was written before the first move.
-  const comment = comments[clampedPly];
-  const move = moveLabel(plies, clampedPly);
+  // Navigation follows the line the reader is on, not the main line: stepping
+  // forward inside a sideline must stay inside it.
+  const next = (node ? node.children[0] : tree.children[0])?.path;
+  const previous = node ? parentPath(node.path) : undefined;
+  const endOfLine = () => {
+    let last = node ?? tree.children[0];
+    while (last?.children[0]) last = last.children[0];
+    return last?.path ?? '';
+  };
 
-  // Arrow keys are how anyone reads a game; four buttons and a mouse are not.
-  // Bound to the board itself, so a reader who tabs to it can step without
-  // reaching for the controls (SPEC008 G2.4).
   function onKeyDown(event: React.KeyboardEvent) {
-    const to = {
-      ArrowLeft: clampedPly - 1,
-      ArrowRight: clampedPly + 1,
-      Home: 0,
-      End: lastPly,
+    const to: string | undefined = {
+      ArrowLeft: previous,
+      ArrowRight: next,
+      Home: '',
+      End: endOfLine(),
     }[event.key];
     if (to === undefined) return;
     event.preventDefault();
-    setPly(Math.max(0, Math.min(to, lastPly)));
+    setStored(to);
   }
 
   useEffect(() => {
-    if (!boardRef.current || fens.length === 0) return;
+    if (!boardRef.current || !tree.fen) return;
     const api = Chessground(boardRef.current, {
       viewOnly: true,
       coordinates: true,
-      fen: fens[0],
+      fen: tree.fen,
       orientation: side,
       // The reader may not draw, but the annotator's shapes must still render.
       drawable: { enabled: false, visible: true },
@@ -84,17 +94,17 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
       api.destroy();
       apiRef.current = null;
     };
-  }, [fens, side]);
+  }, [tree, side]);
 
   useEffect(() => {
     if (!fen) return;
     apiRef.current?.set({ fen });
     // Set unconditionally, including to `[]`: shapes belong to a position, and
-    // leaving the previous ply's arrows up would annotate the wrong move.
-    apiRef.current?.setShapes(shapesOn ? (shapes[clampedPly] ?? []) : []);
-  }, [fen, shapes, shapesOn, clampedPly]);
+    // leaving the previous move's arrows up would annotate the wrong move.
+    apiRef.current?.setShapes(shapesOn ? shapes : []);
+  }, [fen, shapes, shapesOn]);
 
-  if (fens.length === 0) {
+  if (tree.children.length === 0) {
     return (
       <div className="island island--unknown" role="note">
         No valid PGN to display.
@@ -117,47 +127,42 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
           <button
             type="button"
             aria-label="First move"
-            onClick={() => setPly(0)}
-            disabled={clampedPly === 0}
+            onClick={() => setStored('')}
+            disabled={path === ''}
           >
             ⏮
           </button>
           <button
             type="button"
             aria-label="Previous move"
-            onClick={() => setPly(clampedPly - 1)}
-            disabled={clampedPly === 0}
+            onClick={() => setStored(previous ?? '')}
+            disabled={previous === undefined}
           >
             ◀
           </button>
           <button
             type="button"
             aria-label="Next move"
-            onClick={() => setPly(clampedPly + 1)}
-            disabled={clampedPly >= lastPly}
+            onClick={() => setStored(next ?? path)}
+            disabled={next === undefined}
           >
             ▶
           </button>
           <button
             type="button"
             aria-label="Last move"
-            onClick={() => setPly(lastPly)}
-            disabled={clampedPly >= lastPly}
+            onClick={() => setStored(endOfLine())}
+            disabled={next === undefined}
           >
             ⏭
           </button>
         </div>
         <span className="chessboard-island__status" data-testid="chess-move">
-          {move}
+          {moveLabel(node)}
         </span>
       </div>
       {movesMode !== 'off' && (
-        <MoveList
-          plies={plies}
-          ply={clampedPly}
-          onSelect={setPly}
-          scroll={movesMode === 'scroll'}
-        />
+        <MoveList tree={tree} path={path} onSelect={setStored} scroll={movesMode === 'scroll'} />
       )}
       {movesMode === 'off' && comment && (
         // `role="status"` because stepping through a game changes this text
