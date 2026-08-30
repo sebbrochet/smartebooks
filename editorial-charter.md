@@ -1,0 +1,231 @@
+# Editorial Charter & Authoring Guide — Smart Ebooks
+
+> How to write smart-ebook content consistently and how to embed interactivity with directives.
+> Follow this for every chapter.
+>
+> **This file is also the constraint file for an authoring agent.** It is committed, and kept in step
+> with `island-contract.json`, precisely so that a human and an agent are held to the same rules.
+> If the two ever disagree, the contract is what the linter enforces — fix the charter.
+>
+> Last updated: 2026-08-30
+
+---
+
+## 1. Principles
+
+- **Prose first, interactivity second.** A chapter must read well as plain Markdown even if every
+  interactive island failed to load. Directives are *progressive enhancement*.
+- **One vocabulary.** Use only the directives defined in §4. New interactivity means a new directive added
+  here *and* a matching component in the app registry — never an ad-hoc block.
+- **Local-only mindset.** Interactive elements must work with no network and no account. Never assume a
+  server or fetch remote user data.
+- **Accessible by default.** Everything usable by keyboard; every media element has a text alternative;
+  color is never the only signal.
+
+## 2. Tone & structure
+
+- **Second person, direct** ("you"), pedagogical and precise; no hype.
+- Reuse a **consistent chapter anatomy** where it fits the book (adapt from the certification books):
+  intro → key concepts → how it works → practice (interactive) → recap.
+- **Callouts** (blockquote, greppable) for emphasis:
+
+  | Callout | Format |
+  | --- | --- |
+  | 📌 Key concept | `> 📌 **Key concept**: …` |
+  | 🔍 How it works | `> 🔍 **How it works**: …` |
+  | 💡 Tip | `> 💡 **Tip**: …` |
+  | ⚠️ Pitfall | `> ⚠️ **Pitfall**: …` |
+  | 📖 Definition | `> 📖 **Definition — Term**: …` |
+
+## 3. Directive syntax (how interactivity is declared)
+
+Interactivity uses [`remark-directive`](https://github.com/remarkjs/remark-directive) in two forms:
+
+- **Container** (has a body of nested Markdown): three colons open and close.
+
+  ````markdown
+  :::name{key="value" key2="value2"}
+  … nested Markdown / options …
+  :::
+  ````
+
+- **Leaf** (a single line, no body): two colons.
+
+  ```markdown
+  ::name{key="value"}
+  ```
+
+Which form a directive takes is fixed per directive, not a choice — see §4.
+
+**Rules:**
+
+- `name` must be one of the registered directives in §4. Anything else **fails the build**
+  (`directive-unknown`), it does not degrade to a placeholder.
+- Names are **kebab-case** (`matching-pairs`, `chess-board`). The old concatenated spellings still
+  render but the linter warns (`directive-alias`) — do not write new content with them.
+- Attributes go in `{…}` as `key="value"` pairs, and are **validated against a declared schema**: an
+  unknown value falls back to its default at runtime and is an error at lint time
+  (`attribute-invalid`).
+- `id` is **required on any stateful directive** (quiz, flashcard, checkpoint, media, games) so its
+  progress can be persisted deterministically. Duplicates are an error (`id-duplicate`).
+- `id` values are **stable and unique within the book** (kebab-case, prefixed by chapter, e.g.
+  `ch1-tokens-quiz`). Changing an `id` resets that element's saved state.
+- The **body** of a directive is normal Markdown, so the block still reads acceptably without the
+  runtime.
+
+## 4. Interactive directive taxonomy
+
+> Legend: **State** = what the local persistence layer stores. **Pack** marks directives that are not
+> built in: the book must declare the pack in `smartbook.json` before it may use them.
+>
+> This list must match [`island-contract.json`](island-contract.json), which is what the linter reads.
+
+### `:::quiz` — Multiple-choice knowledge check (container)
+
+Task-list syntax marks the answer(s); a blockquote after a question is its explanation.
+
+````markdown
+:::quiz{id="ch1-tokens-quiz"}
+### What does a token represent?
+
+- [ ] A full sentence
+- [x] A chunk of text (sub-word)
+- [ ] A single character
+
+> Explanation: LLMs operate on tokens, typically sub-word units.
+:::
+````
+
+- Multiple `###` questions allowed in one quiz block.
+- `[x]` = correct option(s); more than one `[x]` = multi-select.
+- **State:** best score, attempts, last answers, completed flag.
+
+### `:::flashcard` — Flip card / spaced repetition (container)
+
+````markdown
+:::flashcard{id="ch1-token-def"}
+**Front:** What is a token?
+
+**Back:** A sub-word unit of text an LLM processes.
+:::
+````
+
+- Group cards by placing several `:::flashcard` blocks together.
+- **State:** review progress, stored locally.
+
+### `::checkpoint` — Mark-as-complete / progress marker (leaf)
+
+```markdown
+::checkpoint{id="ch1-done" label="I finished the fundamentals"}
+```
+
+- Attributes: `label` (string).
+- Renders a checkbox the reader ticks; feeds the global progress dashboard.
+- **State:** complete flag.
+
+### `::video` — Embedded video (leaf)
+
+```markdown
+::video{id="ch1-intro-vid" src="https://youtu.be/…" title="Intro to tokens"}
+```
+
+- Attributes: `src` (**required**), `title`.
+- `src` may be a YouTube URL, an `https:` URL, or a **packaged asset** (`assets/clip.mp4`). A packaged
+  path that the book does not ship is a lint error (`asset-missing`).
+- In an imported (untrusted) book, only packaged assets, YouTube embeds and `https:` sources play.
+- Provide a caption or summary in the surrounding prose, for the non-video fallback.
+- **State:** watched flag. (Playback position is not stored — see SPEC001 L16.)
+
+### `::audio` — Embedded audio (leaf)
+
+```markdown
+::audio{id="ch2-pronunciation" src="assets/term.mp3" title="How to say it"}
+```
+
+- Attributes: `src` (**required**), `title`. Same source rules as `::video`.
+- **State:** played flag.
+
+### `:::matching-pairs` — Match-the-pairs exercise (container)
+
+````markdown
+:::matching-pairs{id="ch3-matching"}
+```json
+{
+  "pairs": [["token", "sub-word unit"], ["context window", "token budget"]]
+}
+```
+:::
+````
+
+- The body is a JSON object with a `pairs` array of `[left, right]` tuples.
+- **State:** best (fewest) number of moves.
+
+### `:::mermaid` — Diagram (container) — **pack: `mermaid`**
+
+````markdown
+:::mermaid{title="How a directive becomes an island"}
+```mermaid
+flowchart LR
+    MD["Markdown"] --> B["Build step"] --> I["Island"]
+```
+:::
+````
+
+- Attributes: `theme` (`auto` | `default` | `neutral` | `dark` | `forest` | `base`, default `auto`,
+  which follows the reader's light/dark setting), `title` (used as the caption).
+- The body is a fenced ` ```mermaid ` block — a picture that stays **text** in the source, so it is
+  reviewable in a diff and translatable like prose.
+- No `id`: the island stores nothing.
+- **State:** none.
+
+### Chess directives — **pack: `chess`**
+
+````markdown
+:::chess-board{id="ch1-game" pieces="unicode" analysis="on"}
+```pgn
+1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
+```
+:::
+
+:::chess-puzzle{id="ch1-puzzle" fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
+Ra8# — a back-rank mate.
+:::
+
+::chess-analysis{id="ch1-eval" fen="…"}
+````
+
+- `chess-board` (container, body is a fenced ` ```pgn ` block): `theme`, `pieces`, `analysis`.
+- `chess-puzzle` (container, body is the solution prose): `theme`, `pieces`, `fen` (**required**).
+- `chess-analysis` (leaf): `fen` (**required**) — evaluation of one position, with no board.
+- `theme` is one of `brown` | `blue` | `green` | `grey`; `pieces` is `cburnett` | `unicode`. A book can
+  set its own defaults in `smartbook.json`.
+- **State:** current ply per board; solved flag per puzzle.
+
+### Roadmap directives (not yet available)
+
+`:::playground` (sandboxed runnable snippet) and `:::contribution` (reader-submitted content) are
+**planned but not implemented**. Using one today is a **lint error** that fails the build — it does
+not degrade to a placeholder. Do not write content against them.
+
+## 5. Authoring checklist
+
+- [ ] Chapter reads correctly as plain Markdown (directives degrade gracefully).
+- [ ] Every stateful directive has a unique, stable `id`.
+- [ ] Only directives from §4 are used, in their canonical kebab-case spelling.
+- [ ] Any pack a directive belongs to is declared in `smartbook.json`.
+- [ ] Every `assets/…` reference exists in the book folder.
+- [ ] `visibility` is set on the book — `public` to publish, `private` to keep it off the site.
+- [ ] Media has a text alternative / caption.
+- [ ] Correct answers and explanations are provided for quizzes.
+- [ ] No directive assumes network access, a server, or a user account.
+- [ ] `npm run lint:content` passes.
+
+## 6. Adding a new directive (governance)
+
+1. Propose the directive name, attributes, body format, and stored state **here** (§4).
+2. Implement the matching React component and register it (`directive → component`).
+3. Mirror it in `island-contract.json`, which the linter reads.
+4. Add unit tests (parsing + component) and, if user-facing, an e2e path.
+5. **Demonstrate it in a bundled book** — `island-coverage.test.mjs` fails otherwise.
+
+Content and components must always agree: **the charter is the contract.**

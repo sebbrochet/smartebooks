@@ -21,7 +21,6 @@ playwright-report/
 # Local working notes (not part of the published project)
 memory-bank/
 plan.md
-editorial-charter.md
 
 # TS build info
 *.tsbuildinfo
