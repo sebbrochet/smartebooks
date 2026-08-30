@@ -15,6 +15,34 @@ test('chess board island renders and navigates moves', async ({ page }) => {
   await expect(page.locator('.chessboard-island .cg-wrap').first()).toBeVisible();
 });
 
+test('the board shows the annotation for the move you are on', async ({ page }) => {
+  await page.goto('/#/chess/01-chess-basics');
+
+  const status = page.getByTestId('chess-move');
+  const comment = page.getByTestId('chess-comment');
+  const next = page.getByRole('button', { name: 'Next move' });
+
+  // A comment written before the first move introduces the game.
+  await expect(comment).toContainText(/Scholar's Mate/);
+
+  // Chess numbers moves, not plies: Black's reply to 1. e4 is still move one.
+  await next.click();
+  await expect(status).toHaveText('1. e4');
+  await next.click();
+  await expect(status).toHaveText('1... e5');
+
+  // An unannotated move shows no note at all, rather than an empty box.
+  await expect(comment).toHaveCount(0);
+
+  await next.click();
+  await expect(comment).toContainText(/White eyes f7/);
+
+  // NAGs render as chess writing spells them, beside the move.
+  await next.click();
+  await next.click();
+  await expect(status).toHaveText('3. Qh5?!');
+});
+
 test('chess puzzle island reveals its solution', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
   await page.getByRole('button', { name: 'Reveal solution' }).click();

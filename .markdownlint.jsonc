@@ -11,7 +11,7 @@
     // the rule useful without that.
     "line_length": 120,
     "code_blocks": false,
-    "tables": false
+    "tables": false,
   },
 
   // Headings inside a container directive are structural, not document
@@ -20,5 +20,5 @@
   "MD024": { "siblings_only": true },
 
   // The first line of a chapter is its title, and `makeChapters` reads it.
-  "MD041": true
+  "MD041": true,
 }

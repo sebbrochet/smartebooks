@@ -43,6 +43,15 @@
   color: var(--muted, #666);
 }
 
+/* The annotator's note on the current position. Reads as prose, not chrome. */
+.chessboard-island__comment {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border-left: 3px solid var(--border, #ddd);
+  padding-left: 0.75rem;
+}
+
 .chesspuzzle__solution {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   margin: 0;

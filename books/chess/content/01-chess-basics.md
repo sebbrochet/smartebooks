@@ -10,10 +10,17 @@ Step through the game with the controls under the board. This book sets `theme=b
 as its board default; this directive adds `pieces=unicode`, and `analysis=on` gives an
 on-demand **Stockfish** evaluation of whatever position you've navigated to.
 
+The PGN carries the annotator's `{…}` comments and `$` glyphs, and the board shows them
+as you step — so a game can be *read*, not just replayed.
+
 :::chess-board{id="chess-scholars" pieces=unicode analysis=on}
 
 ```pgn
-1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
+{Scholar's Mate: the four-move trap every beginner meets once, from either side.}
+1. e4 e5 2. Bc4 {White eyes f7, the square only the king defends.} Nc6
+3. Qh5?! {A second attacker on f7 — but bringing the queen out this early is
+dubious, and Black has a clean answer in 3...g6.} Nf6?? {The natural developing
+move loses on the spot.} 4. Qxf7# {Mate: the bishop guards the queen.}
 ```
 
 :::
