@@ -124,18 +124,23 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
   const { names, aliases, declaredPacks } = allowedIslands(descriptor);
   const packaged = assets ? new Set(assets) : undefined;
 
+  // `file` and `line` are separate fields rather than a prefix inside the
+  // message, so a caller can render `path:line: message` — which is what an
+  // editor's problem matcher and an agent both need.
+  const report = (severity, rule, message, file = 'smartbook.json', line = 1) =>
+    problems.push({ folder, file, line, severity, rule, message });
+
   // A reference into the book's own package that the package does not contain.
   // Skipped entirely when the asset list is unknown.
   const isMissingAsset = (value) =>
     packaged !== undefined && value.startsWith('assets/') && !packaged.has(value);
 
   for (const pack of declaredPacks.filter((p) => !CONTRACT.packs[p])) {
-    problems.push({
-      folder,
-      severity: 'error',
-      rule: 'pack-unknown',
-      message: `smartbook.json declares unknown island pack "${pack}". Known: ${Object.keys(CONTRACT.packs).join(', ')}.`,
-    });
+    report(
+      'error',
+      'pack-unknown',
+      `smartbook.json declares unknown island pack "${pack}". Known: ${Object.keys(CONTRACT.packs).join(', ')}.`,
+    );
   }
 
   // An id is the key a book's saved progress hangs on, so two islands sharing
@@ -153,12 +158,13 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
 
         if (canonical && names.has(canonical)) {
           // Available to this book: it still renders, so nudge rather than fail.
-          problems.push({
-            folder,
-            severity: 'warning',
-            rule: 'directive-alias',
-            message: `${at}: ":::${name}" is an old name for ":::${canonical}" — still works, but rename it.`,
-          });
+          report(
+            'warning',
+            'directive-alias',
+            `":::${name}" is an old name for ":::${canonical}" — still works, but rename it.`,
+            path,
+            line,
+          );
           continue;
         }
 
@@ -167,38 +173,35 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
         const inAnotherPack = Object.entries(CONTRACT.packs).find(([, list]) =>
           list.includes(target),
         );
-        problems.push({
-          folder,
-          severity: 'error',
-          rule: 'directive-unknown',
-          message: inAnotherPack
-            ? `${at}: ${spelling} needs the "${inAnotherPack[0]}" island pack, which this book does not declare.`
-            : `${at}: ${spelling} is not an island provided by this book.`,
-        });
+        report(
+          'error',
+          'directive-unknown',
+          inAnotherPack
+            ? `${spelling} needs the "${inAnotherPack[0]}" island pack, which this book does not declare.`
+            : `${spelling} is not an island provided by this book.`,
+          path,
+          line,
+        );
         continue;
       }
 
       if (id !== undefined) {
         const previous = seenIds.get(id);
         if (previous) {
-          problems.push({
-            folder,
-            severity: 'error',
-            rule: 'id-duplicate',
-            message: `${at}: id "${id}" is already used at ${previous} — they would share saved progress.`,
-          });
+          report(
+            'error',
+            'id-duplicate',
+            `id "${id}" is already used at ${previous} — they would share saved progress.`,
+            path,
+            line,
+          );
         } else {
           seenIds.set(id, at);
         }
       }
 
       for (const detail of checkAttributes(name, attributes)) {
-        problems.push({
-          folder,
-          severity: 'error',
-          rule: 'attribute-invalid',
-          message: `${at}: ":::${name}" ${detail}.`,
-        });
+        report('error', 'attribute-invalid', `":::${name}" ${detail}.`, path, line);
       }
 
       // A packaged asset that isn't packaged fails silently at runtime: the
@@ -208,12 +211,13 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
         if (spec.type !== 'asset') continue;
         const raw = attributes[attribute];
         if (typeof raw === 'string' && isMissingAsset(raw)) {
-          problems.push({
-            folder,
-            severity: 'error',
-            rule: 'asset-missing',
-            message: `${at}: ":::${name}" ${attribute}="${raw}" does not exist in this book.`,
-          });
+          report(
+            'error',
+            'asset-missing',
+            `":::${name}" ${attribute}="${raw}" does not exist in this book.`,
+            path,
+            line,
+          );
         }
       }
     }
@@ -221,12 +225,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
     // Images resolve through the same mechanism, and fail the same way.
     for (const { url, line } of imagesIn(markdown)) {
       if (!isMissingAsset(url)) continue;
-      problems.push({
-        folder,
-        severity: 'error',
-        rule: 'asset-missing',
-        message: `${path}:${line}: image "${url}" does not exist in this book.`,
-      });
+      report('error', 'asset-missing', `image "${url}" does not exist in this book.`, path, line);
     }
   }
 

@@ -19,9 +19,22 @@ const problems = folders.flatMap((folder) => {
   return descriptorProblems.length > 0 ? descriptorProblems : validateBookContent(folder);
 });
 
-for (const { folder, rule, message, severity } of problems) {
-  const line = `books/${folder}: ${rule}: ${message}`;
-  if (severity === 'warning') console.warn(`warning: ${line}`);
+/**
+ * One diagnostic, as `path:line: severity rule: message`.
+ *
+ * The path is **workspace-relative** and the line is its own field, so the
+ * output is a location an editor can jump to (see `.vscode/tasks.json`) rather
+ * than prose a reader has to decode. The same shape is what an agent needs to
+ * act on its own feedback (SPEC007 G4).
+ */
+function format({ folder, file, line, rule, message, severity }) {
+  const where = `books/${folder}/${file ?? 'smartbook.json'}:${line ?? 1}`;
+  return `${where}: ${severity === 'warning' ? 'warning' : 'error'} ${rule}: ${message}`;
+}
+
+for (const problem of problems) {
+  const line = format(problem);
+  if (problem.severity === 'warning') console.warn(line);
   else console.error(line);
 }
 

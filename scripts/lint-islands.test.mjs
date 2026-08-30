@@ -66,7 +66,11 @@ describe('checkDirectives', () => {
 
   test('reports the line a problem is on', () => {
     const markdown = '# Title\n\nSome prose.\n\n:::nonsense\n\nhi\n\n:::';
-    assert.match(checkDirectives(book(), file(markdown))[0].message, /content\/01\.md:5/);
+    // Location is structured, not embedded in the message, so an editor's
+    // problem matcher and an agent can both use it.
+    const [problem] = checkDirectives(book(), file(markdown));
+    assert.equal(problem.file, 'content/01.md');
+    assert.equal(problem.line, 5);
   });
 
   // A rename must not break already-published books, so an old spelling still
@@ -167,7 +171,9 @@ describe('packaged assets', () => {
   test('rejects a missing image, which resolves the same way', () => {
     const problems = withAssets('![A diagram](assets/gone.png)', ['assets/cover.svg']);
     assert.deepEqual(rules(problems), ['asset-missing']);
-    assert.match(problems[0].message, /content\/01\.md:1: image "assets\/gone\.png"/);
+    assert.match(problems[0].message, /image "assets\/gone\.png"/);
+    assert.equal(problems[0].file, 'content/01.md');
+    assert.equal(problems[0].line, 1);
   });
 
   test('leaves external URLs alone', () => {

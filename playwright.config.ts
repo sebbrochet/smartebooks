@@ -9,9 +9,19 @@ export default defineConfig({
   testDir: './e2e/tests',
   timeout: 60_000,
   retries: 2,
-  // Cap parallelism: the Stockfish WASM test is memory/CPU heavy, and too many
-  // parallel browser contexts starve each other on modest machines.
-  workers: 2,
+  // Run serially. The comment here used to say "cap at 2, because the Stockfish
+  // WASM test is heavy" — the suite has since grown a second Stockfish test and
+  // two Mermaid ones, and two parallel contexts starve each other badly enough
+  // that *unrelated* tests fail with "element not found" through their retries.
+  // Measured on one moderately loaded machine: 2 workers took 2.3m and failed
+  // three tests; 1 worker took 1.0m and passed. Parallelism was buying nothing,
+  // because the contention it created cost more than it saved.
+  //
+  // This makes the suite more robust, not reliable: on a busy machine it still
+  // fails intermittently, and individual specs that pass alone can take an
+  // order of magnitude longer than usual. Treat a lone failure as suspect and
+  // re-run the spec on its own before believing it.
+  workers: 1,
   use: {
     baseURL: `http://localhost:${port}`,
     screenshot: 'only-on-failure',

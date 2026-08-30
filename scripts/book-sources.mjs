@@ -178,7 +178,10 @@ export function deriveChapters(descriptor, files) {
  */
 export function validateBook(folder) {
   const problems = [];
-  const fail = (rule, message) => problems.push({ folder, rule, message });
+  // Every descriptor problem points at the same file, so callers can render a
+  // clickable `path:line` without parsing the message.
+  const fail = (rule, message) =>
+    problems.push({ folder, file: 'smartbook.json', line: 1, rule, message });
 
   let descriptor;
   try {

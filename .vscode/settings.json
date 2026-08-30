@@ -1,0 +1,13 @@
+{
+  "// smartbook.json": "Mapped here rather than with a $schema key inside each book: the descriptor is copied verbatim into every exported .smartbook, so a $schema key would travel with it and point at a path that does not exist in the package. This also picks up new books with no per-book wiring.",
+  "json.schemas": [
+    {
+      "fileMatch": ["/books/*/smartbook.json"],
+      "url": "./smartbook.schema.json"
+    }
+  ],
+  "files.associations": {
+    "*.smartbook": "zip"
+  },
+  "markdown.validate.enabled": true
+}

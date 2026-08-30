@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://smartebooks.sebbrochet.com/smartbook.schema.json",
+  "title": "smartbook.json",
+  "description": "A smart ebook's descriptor. The same format backs a bundled book under books/<slug>/ and a portable .smartbook package. A book is data only — there is no code file.",
+  "type": "object",
+  "required": ["schemaVersion", "slug", "title", "visibility"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2,
+      "description": "Schema version this descriptor is written against. This build writes 2 and reads 1–2."
+    },
+    "minReaderSchema": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Oldest reader schema able to render this package. Defaults to schemaVersion. Set it when a newer package is still readable by an older reader."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "maxLength": 64,
+      "description": "Stable identifier, lowercase with hyphens. Must match the book's folder name."
+    },
+    "title": { "type": "string", "minLength": 1, "description": "Display title." },
+    "description": { "type": "string", "description": "One-line summary, shown on the shelf." },
+    "authors": { "type": "array", "items": { "type": "string" }, "description": "Display names." },
+    "createdAt": {
+      "type": "string",
+      "description": "ISO date, e.g. 2026-08-30.",
+      "format": "date"
+    },
+    "cover": {
+      "type": "string",
+      "description": "Cover image as a packaged asset path, e.g. assets/cover.png. The file must exist in the book folder.",
+      "pattern": "^assets/"
+    },
+    "engine": {
+      "type": "object",
+      "description": "Engine compatibility range. Advisory only — nothing enforces it.",
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "string" },
+        "max": { "type": "string" }
+      }
+    },
+    "chapters": {
+      "type": "array",
+      "description": "Chapters in order. If omitted, they are derived from content/: a numeric filename prefix sets the order and the first heading sets the title.",
+      "items": {
+        "type": "object",
+        "required": ["file"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "type": "string",
+            "pattern": "\\.md$",
+            "description": "Filename relative to content/, e.g. 01-intro.md."
+          },
+          "order": { "type": "integer", "description": "Display order." },
+          "title": { "type": "string", "description": "Overrides the first heading." }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^assets/" },
+      "description": "Declared asset paths. Each must exist in the book folder."
+    },
+    "islands": {
+      "type": "object",
+      "description": "The interactive islands this book uses.",
+      "additionalProperties": false,
+      "properties": {
+        "packs": {
+          "type": "object",
+          "description": "Island packs beyond the built-ins, keyed by pack name, with per-book options. The platform maps a name to its implementation; the book carries only data.",
+          "additionalProperties": { "type": "object" },
+          "properties": {
+            "chess": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "board": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "theme": { "enum": ["brown", "blue", "green", "grey"] },
+                    "pieces": { "enum": ["cburnett", "unicode"] }
+                  }
+                }
+              }
+            },
+            "mermaid": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "theme": { "enum": ["auto", "default", "neutral", "dark", "forest", "base"] }
+              }
+            }
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Canonical island names the content uses. Written automatically on export — you do not need to maintain this by hand."
+        }
+      }
+    },
+    "visibility": {
+      "enum": ["public", "private"],
+      "description": "Publication intent. Required: absent or unrecognised counts as private, and the build refuses to run when anything under books/ is not public. 'private' books belong in a separate repository and ship as .smartbook packages."
+    }
+  }
+}

@@ -29,8 +29,10 @@ import { checkDirectives, usedIslands } from './lint-islands.mjs';
 function packageBook(folder) {
   const problems = validateBook(folder);
   if (problems.length > 0) {
-    for (const { rule, message } of problems) {
-      console.error(`books/${folder}/smartbook.json: ${rule}: ${message}`);
+    for (const { file, line, rule, message } of problems) {
+      console.error(
+        `books/${folder}/${file ?? 'smartbook.json'}:${line ?? 1}: ${rule}: ${message}`,
+      );
     }
     throw new Error(`Cannot package "${folder}": ${problems.length} problem(s).`);
   }
@@ -48,10 +50,11 @@ function packageBook(folder) {
   // not enough on its own.
   const contentProblems = checkDirectives(descriptor, contentFiles, folder, assetPaths);
   const errors = contentProblems.filter((problem) => problem.severity !== 'warning');
-  for (const { rule, message, severity } of contentProblems) {
-    const line = `books/${folder}: ${rule}: ${message}`;
-    if (severity === 'warning') console.warn(`warning: ${line}`);
-    else console.error(line);
+  for (const { file, line, rule, message, severity } of contentProblems) {
+    const at = `books/${folder}/${file ?? 'smartbook.json'}:${line ?? 1}`;
+    const text = `${at}: ${severity === 'warning' ? 'warning' : 'error'} ${rule}: ${message}`;
+    if (severity === 'warning') console.warn(text);
+    else console.error(text);
   }
   if (errors.length > 0) {
     throw new Error(`Cannot package "${folder}": ${errors.length} content problem(s).`);
