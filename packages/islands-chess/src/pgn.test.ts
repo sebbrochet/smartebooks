@@ -17,6 +17,7 @@ describe('pgnToPlies', () => {
       comments: expect.any(Array),
       nags: [],
       numbers: [],
+      shapes: expect.any(Array),
     });
   });
 });
@@ -84,5 +85,38 @@ describe('annotations', () => {
 
   it('ignores an empty comment rather than showing a blank note', () => {
     expect(pgnToPlies('1. e4 {   }').comments[1]).toBeUndefined();
+  });
+});
+
+/**
+ * Annotators draw on the board as well as writing about it. The tags live
+ * inside the comment text, so keeping the shapes and keeping the prose readable
+ * are the same problem.
+ */
+describe('board shapes', () => {
+  it('lifts arrows out of a move comment and onto its ply', () => {
+    const { shapes } = pgnToPlies('1. e4 e5 2. Bc4 {Eyeing f7. [%cal Gc4f7]}');
+    expect(shapes[3]).toEqual([{ orig: 'c4', dest: 'f7', brush: 'green' }]);
+  });
+
+  it('removes the tag from the comment the reader is shown', () => {
+    const { comments } = pgnToPlies('1. e4 e5 2. Bc4 {Eyeing f7. [%cal Gc4f7]}');
+    expect(comments[3]).toBe('Eyeing f7.');
+  });
+
+  it('reads shapes written before the first move onto the starting position', () => {
+    expect(pgnToPlies('{[%csl Re4]} 1. e4').shapes[0]).toEqual([{ orig: 'e4', brush: 'red' }]);
+  });
+
+  // A caller clears the board's shapes from this array, so a ply with none must
+  // still have an entry rather than a hole.
+  it('gives every ply an array, aligned with the comments', () => {
+    const { comments, shapes } = pgnToPlies('1. e4 e5 2. Bc4 {[%cal Gc4f7]}');
+    expect(shapes).toHaveLength(comments.length);
+    expect(shapes[1]).toEqual([]);
+  });
+
+  it('leaves a comment that is only a tag with no text at all', () => {
+    expect(pgnToPlies('1. e4 {[%cal Ge2e4]}').comments[1]).toBeUndefined();
   });
 });

@@ -3,7 +3,7 @@ import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import { attrFlag, usePersistentState, type IslandComponentProps } from '@smart-ebooks/engine';
 import { pgnToPlies } from './pgn';
-import { DEFAULT_BOARD_OPTIONS, type BoardOptions } from './boardOptions';
+import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
 import 'chessground/assets/chessground.cburnett.css';
@@ -17,16 +17,17 @@ const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
 /**
  * Displays a chess game from PGN with move navigation. Read-only board
  * (Chessground); the current ply is persisted per book. Visual options
- * (`theme`, `pieces`) are resolved and validated at parse time. With
- * `analysis=on`, an on-demand Stockfish evaluation of the current position is
- * offered below the board.
+ * (`theme`, `pieces`, `orientation`) are resolved and validated at parse time.
+ * With `analysis=on`, an on-demand Stockfish evaluation of the current position
+ * is offered below the board.
  */
 export default function ChessBoardIsland({ id, attributes, data }: IslandComponentProps) {
   const parsed = (data as { pgn?: string; board?: BoardOptions }) ?? {};
   const pgn = parsed.pgn ?? '';
-  const { theme, pieces } = parsed.board ?? DEFAULT_BOARD_OPTIONS;
+  const { theme, pieces, orientation } = parsed.board ?? DEFAULT_BOARD_OPTIONS;
   const analysisOn = attrFlag(attributes.analysis);
-  const { fens, sans, comments, nags, numbers } = useMemo(() => pgnToPlies(pgn), [pgn]);
+  const shapesOn = attrFlag(attributes.shapes, true);
+  const { fens, sans, comments, nags, numbers, shapes } = useMemo(() => pgnToPlies(pgn), [pgn]);
   const [ply, setPly] = usePersistentState<number>(`chessply:${id}`, 0);
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
@@ -34,6 +35,10 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
   const lastPly = Math.max(fens.length - 1, 0);
   const clampedPly = Math.max(0, Math.min(ply, lastPly));
   const fen = fens[clampedPly];
+
+  // `auto` is read from the starting position, not the current one: resolving
+  // it per ply would spin the board round every time Black moves.
+  const side = orientationFor(orientation, fens[0]);
 
   // The annotator's note about the position on the board. Indexed by ply, so
   // index 0 is whatever was written before the first move.
@@ -45,17 +50,28 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
 
   useEffect(() => {
     if (!boardRef.current || fens.length === 0) return;
-    const api = Chessground(boardRef.current, { viewOnly: true, coordinates: true, fen: fens[0] });
+    const api = Chessground(boardRef.current, {
+      viewOnly: true,
+      coordinates: true,
+      fen: fens[0],
+      orientation: side,
+      // The reader may not draw, but the annotator's shapes must still render.
+      drawable: { enabled: false, visible: true },
+    });
     apiRef.current = api;
     return () => {
       api.destroy();
       apiRef.current = null;
     };
-  }, [fens]);
+  }, [fens, side]);
 
   useEffect(() => {
-    if (fen) apiRef.current?.set({ fen });
-  }, [fen]);
+    if (!fen) return;
+    apiRef.current?.set({ fen });
+    // Set unconditionally, including to `[]`: shapes belong to a position, and
+    // leaving the previous ply's arrows up would annotate the wrong move.
+    apiRef.current?.setShapes(shapesOn ? (shapes[clampedPly] ?? []) : []);
+  }, [fen, shapes, shapesOn, clampedPly]);
 
   if (fens.length === 0) {
     return (

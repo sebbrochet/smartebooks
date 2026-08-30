@@ -57,6 +57,37 @@
   margin: 0;
 }
 
+/*
+ * A diagram is a figure: a position with a caption, and no controls at all.
+ * Deliberately *not* `.chessboard-island` — that class is how the e2e suite
+ * scopes locators to an interactive board, and a diagram is not one.
+ */
+.chess-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 1rem 0;
+}
+
+.chess-diagram__caption {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted, #666);
+  max-width: 320px;
+}
+
+/* The annotator's own evaluation, shown before any engine runs. */
+.chess-analysis__stated {
+  margin: 0 0 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chess-analysis__source {
+  color: var(--muted, #666);
+  font-variant-numeric: normal;
+}
+
 .chessboard-island.is-solved .chessboard-island__board {
   outline: 2px solid var(--correct, #2e7d32);
 }

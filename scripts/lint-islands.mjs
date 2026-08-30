@@ -94,8 +94,15 @@ function checkAttributes(island, attributes) {
 
     if (spec.type === 'enum' && !spec.values.includes(raw)) {
       problems.push(`"${name}" must be one of ${spec.values.join(', ')} (got "${raw}")`);
-    } else if (spec.type === 'number' && !Number.isFinite(Number(raw))) {
-      problems.push(`"${name}" must be a number (got "${raw}")`);
+    } else if (spec.type === 'number') {
+      const value = Number(raw);
+      if (!Number.isFinite(value)) {
+        problems.push(`"${name}" must be a number (got "${raw}")`);
+      } else if (spec.min !== undefined && value < spec.min) {
+        problems.push(`"${name}" must be at least ${spec.min} (got ${value})`);
+      } else if (spec.max !== undefined && value > spec.max) {
+        problems.push(`"${name}" must be at most ${spec.max} (got ${value})`);
+      }
     } else if (spec.type === 'boolean' && !BOOLEANS.has(raw.toLowerCase())) {
       problems.push(`"${name}" must be true or false (got "${raw}")`);
     }

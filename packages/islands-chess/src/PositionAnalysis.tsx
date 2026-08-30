@@ -9,15 +9,31 @@ export interface PositionAnalysisProps {
   fen: string;
   /** Search depth. */
   depth?: number;
+  /**
+   * The annotator's own evaluation, e.g. `+0.34`. Shown before — and without —
+   * any engine run, which is what makes an evaluation survive print, export and
+   * a reader with no JavaScript.
+   */
+  stated?: string;
+  /** The annotator's best move, shown beside {@link stated}. */
+  statedBest?: string;
 }
 
 /**
  * On-demand Stockfish analysis of a single position. Loads the engine lazily on
- * the first "Analyze" click and disposes it on unmount. Resets whenever `fen`
- * changes, so a stale evaluation is never shown for a new position — this is
- * what lets a live board re-use it as the reader steps through moves.
+ * the first click and disposes it on unmount. Resets whenever `fen` changes, so
+ * a stale evaluation is never shown for a new position — this is what lets a
+ * live board re-use it as the reader steps through moves.
+ *
+ * When the author has stated an evaluation, the engine's role changes from
+ * *producing* an answer to *checking* one, and the button says so.
  */
-export default function PositionAnalysis({ fen, depth = 14 }: PositionAnalysisProps) {
+export default function PositionAnalysis({
+  fen,
+  depth = 14,
+  stated,
+  statedBest,
+}: PositionAnalysisProps) {
   const engineRef = useRef<StockfishEngine | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [info, setInfo] = useState<InfoLine | null>(null);
@@ -62,8 +78,20 @@ export default function PositionAnalysis({ fen, depth = 14 }: PositionAnalysisPr
 
   return (
     <div className="chess-analysis">
+      {stated && (
+        <p className="chess-analysis__stated" data-testid="chess-stated-eval">
+          <strong>{stated}</strong>
+          {statedBest && <span> · best {statedBest}</span>}
+          <span className="chess-analysis__source"> (annotator)</span>
+        </p>
+      )}
+
       <button type="button" onClick={analyze} disabled={status === 'thinking'}>
-        {status === 'thinking' ? 'Analyzing…' : 'Analyze with Stockfish'}
+        {status === 'thinking'
+          ? 'Analyzing…'
+          : stated
+            ? 'Check with Stockfish'
+            : 'Analyze with Stockfish'}
       </button>
 
       {status === 'error' && (

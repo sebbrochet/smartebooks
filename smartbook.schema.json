@@ -88,7 +88,8 @@
                   "additionalProperties": false,
                   "properties": {
                     "theme": { "enum": ["brown", "blue", "green", "grey"] },
-                    "pieces": { "enum": ["cburnett", "unicode"] }
+                    "pieces": { "enum": ["cburnett", "unicode"] },
+                    "orientation": { "enum": ["white", "black", "auto"] }
                   }
                 }
               }

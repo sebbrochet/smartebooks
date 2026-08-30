@@ -2,13 +2,14 @@
   "$comment": "The island vocabulary an author may use. Hand-maintained for now; apps/library/src/islandContract.test.ts fails if it drifts from the real registries. Consumed by scripts/lint-content.mjs, which cannot import the engine's TypeScript directly. See SPEC006 F1.2.",
   "builtIn": ["quiz", "checkpoint", "video", "flashcard", "audio", "matching-pairs"],
   "packs": {
-    "chess": ["chess-board", "chess-puzzle", "chess-analysis"],
+    "chess": ["chess-board", "chess-puzzle", "chess-diagram", "chess-analysis"],
     "mermaid": ["mermaid"]
   },
   "aliases": {
     "matchingpairs": "matching-pairs",
     "chessboard": "chess-board",
     "chesspuzzle": "chess-puzzle",
+    "chessdiagram": "chess-diagram",
     "chessanalysis": "chess-analysis"
   },
   "attributes": {
@@ -18,14 +19,30 @@
     "chess-board": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
       "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
-      "analysis": { "type": "boolean" }
+      "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
+      "analysis": { "type": "boolean" },
+      "shapes": { "type": "boolean" }
     },
     "chess-puzzle": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
       "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
+      "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
       "fen": { "type": "string", "required": true }
     },
-    "chess-analysis": { "fen": { "type": "string", "required": true } },
+    "chess-diagram": {
+      "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
+      "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
+      "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
+      "fen": { "type": "string", "required": true },
+      "caption": { "type": "string" },
+      "shapes": { "type": "string" }
+    },
+    "chess-analysis": {
+      "fen": { "type": "string", "required": true },
+      "depth": { "type": "number", "min": 1, "max": 30 },
+      "eval": { "type": "string" },
+      "best": { "type": "string" }
+    },
     "mermaid": {
       "theme": {
         "type": "enum",

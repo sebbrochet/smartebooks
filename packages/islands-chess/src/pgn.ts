@@ -1,6 +1,7 @@
 import { parsePgn, startingPosition } from 'chessops/pgn';
 import { makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
+import { extractShapes, type MoveShape } from './shapes';
 
 export interface PgnPlies {
   /** FEN after each ply, index 0 = starting position. */
@@ -23,6 +24,12 @@ export interface PgnPlies {
    * Taken from the position, so a game starting from a FEN numbers correctly.
    */
   numbers: string[];
+  /**
+   * Arrows and highlights the annotator drew for each position, indexed by ply
+   * like `comments`. Empty for a ply with none, never `undefined`, so a caller
+   * can clear the board's shapes unconditionally.
+   */
+  shapes: MoveShape[][];
 }
 
 /**
@@ -49,10 +56,24 @@ const NAGS: Record<number, string> = {
   19: '−+',
 };
 
-/** Join a move's comments; PGN allows several in a row. */
-function text(comments: string[] | undefined): string | undefined {
-  const joined = (comments ?? []).map((comment) => comment.trim()).filter(Boolean);
-  return joined.length > 0 ? joined.join(' ') : undefined;
+/**
+ * Join a move's comments (PGN allows several in a row) and split the board
+ * shapes out of them, so the prose and the drawing are never confused.
+ */
+function annotation(comments: string[] | undefined): {
+  text: string | undefined;
+  shapes: MoveShape[];
+} {
+  const shapes: MoveShape[] = [];
+  const parts: string[] = [];
+
+  for (const comment of comments ?? []) {
+    const split = extractShapes(comment);
+    shapes.push(...split.shapes);
+    if (split.text) parts.push(split.text);
+  }
+
+  return { text: parts.length > 0 ? parts.join(' ') : undefined, shapes };
 }
 
 /**
@@ -63,7 +84,14 @@ function text(comments: string[] | undefined): string | undefined {
  * annotated games are worth reading, and chessops already parses them.
  */
 export function pgnToPlies(pgn: string): PgnPlies {
-  const empty: PgnPlies = { fens: [], sans: [], comments: [], nags: [], numbers: [] };
+  const empty: PgnPlies = {
+    fens: [],
+    sans: [],
+    comments: [],
+    nags: [],
+    numbers: [],
+    shapes: [],
+  };
 
   try {
     const game = parsePgn(pgn)[0];
@@ -75,11 +103,14 @@ export function pgnToPlies(pgn: string): PgnPlies {
     const comments: (string | undefined)[] = [];
     const nags: (string | undefined)[] = [];
     const numbers: string[] = [];
+    const shapes: MoveShape[][] = [];
 
     // A comment before the first move is a *game* comment in PGN, not a
     // property of the first move — chessops keeps it on the game. It describes
     // the starting position, which is ply 0.
-    comments.push(text(game.comments));
+    const opening = annotation(game.comments);
+    comments.push(opening.text);
+    shapes.push(opening.shapes);
 
     let node = game.moves;
     while (node.children.length > 0) {
@@ -91,15 +122,17 @@ export function pgnToPlies(pgn: string): PgnPlies {
       numbers.push(pos.turn === 'white' ? `${pos.fullmoves}.` : `${pos.fullmoves}...`);
       pos.play(move);
 
+      const annotated = annotation(child.data.comments);
       sans.push(child.data.san);
       fens.push(makeFen(pos.toSetup()));
-      comments.push(text(child.data.comments));
+      comments.push(annotated.text);
+      shapes.push(annotated.shapes);
       nags.push(child.data.nags?.map((nag) => NAGS[nag] ?? '').join('') || undefined);
 
       node = child;
     }
 
-    return { fens, sans, comments, nags, numbers };
+    return { fens, sans, comments, nags, numbers, shapes };
   } catch {
     return empty;
   }

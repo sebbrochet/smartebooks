@@ -61,12 +61,69 @@ test('stockfish analysis of the current board position', async ({ page }) => {
   await expect(board.getByTestId('chess-eval')).toBeVisible({ timeout: 90_000 });
 });
 
+test('a diagram is a position with a caption and nothing to click', async ({ page }) => {
+  await page.goto('/#/chess/01-chess-basics');
+
+  const diagram = page.locator('.chess-diagram');
+  await expect(diagram.locator('.cg-wrap')).toBeVisible();
+  await expect(diagram.getByText(/the bishop guards the queen/i)).toBeVisible();
+
+  // The point of a separate island: no controls, no reveal, no checkbox.
+  await expect(diagram.getByRole('button')).toHaveCount(0);
+  await expect(diagram.getByRole('checkbox')).toHaveCount(0);
+
+  // `orientation` defaults to `auto`, and it is Black to move in this position,
+  // so the board is drawn from Black's side.
+  await expect(diagram.locator('coords.ranks')).toHaveClass(/black/);
+
+  // The `shapes` attribute draws two arrows, in PGN's own token syntax.
+  await expect(diagram.locator('svg.cg-shapes g line')).toHaveCount(2);
+});
+
+test('the annotator drew on the board, and the tags are not in the prose', async ({ page }) => {
+  await page.goto('/#/chess/01-chess-basics');
+
+  const board = page.locator('.chessboard-island').first();
+  const next = page.getByRole('button', { name: 'Next move' });
+
+  // Nothing drawn on the starting position.
+  await expect(board.locator('svg.cg-shapes g *')).toHaveCount(0);
+
+  // 2. Bc4 carries one arrow and one highlighted square.
+  await next.click();
+  await next.click();
+  await next.click();
+  await expect(page.getByTestId('chess-move')).toHaveText('2. Bc4');
+  await expect(board.locator('svg.cg-shapes g line')).toHaveCount(1);
+  await expect(board.locator('svg.cg-shapes g circle')).toHaveCount(1);
+
+  // The reader gets the prose, not "[%cal Gc4f7]".
+  const comment = page.getByTestId('chess-comment');
+  await expect(comment).toHaveText('White eyes f7, the square only the king defends.');
+
+  // Shapes belong to a position: stepping on must clear them.
+  await next.click();
+  await expect(board.locator('svg.cg-shapes g *')).toHaveCount(0);
+});
+
+test("an annotator's evaluation is shown before any engine runs", async ({ page }) => {
+  await page.goto('/#/chess/01-chess-basics');
+
+  const analysis = page.locator('.island--chess-analysis');
+  await expect(analysis.getByTestId('chess-stated-eval')).toContainText('+0.20');
+  await expect(analysis.getByTestId('chess-stated-eval')).toContainText('a6');
+
+  // With a stated evaluation the engine checks an answer rather than producing
+  // one, and the button says so.
+  await expect(analysis.getByRole('button')).toHaveText(/Check with Stockfish/);
+});
+
 test('standalone analysis island evaluates its own position', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
   // `::chess-analysis` has no board to navigate — it evaluates the FEN it was
   // given. Covered because an island that ships undemonstrated and untested is
   // how this one sat unused for a release.
   const analysis = page.locator('.island--chess-analysis');
-  await analysis.getByRole('button', { name: /Analyze with Stockfish/ }).click();
+  await analysis.getByRole('button', { name: /with Stockfish/ }).click();
   await expect(analysis.getByTestId('chess-eval')).toBeVisible({ timeout: 90_000 });
 });

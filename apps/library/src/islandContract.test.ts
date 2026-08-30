@@ -61,7 +61,9 @@ describe('island-contract.json', () => {
   // either false errors or attributes silently going unchecked.
   it('describes the same attributes the islands declare', () => {
     // `default` is deliberately excluded: chess defaults come from each book's
-    // pack options, so they are not a property of the shared contract.
+    // pack options, so they are not a property of the shared contract. `min`
+    // and `max` are included — the linter checks ranges, so a contract that
+    // dropped them would let an out-of-range value through unreported.
     const shape = (specs: Record<string, Record<string, unknown>>) =>
       Object.fromEntries(
         Object.entries(specs).map(([name, spec]) => [
@@ -70,6 +72,8 @@ describe('island-contract.json', () => {
             type: spec.type,
             ...(spec.required === true ? { required: true } : {}),
             ...(spec.values ? { values: [...(spec.values as string[])] } : {}),
+            ...(spec.min !== undefined ? { min: spec.min } : {}),
+            ...(spec.max !== undefined ? { max: spec.max } : {}),
           },
         ]),
       );

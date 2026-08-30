@@ -6,10 +6,13 @@
   // charter. Two rules are adjusted rather than obeyed:
   "MD013": {
     // Prose targets Prettier's printWidth of 100. Directive lines cannot wrap:
-    // a chess FEN or a long URL is one unbreakable token plus attributes, so a
-    // hard 100 would force suppression comments into book content. 120 keeps
-    // the rule useful without that.
-    "line_length": 120,
+    // the whole `{…}` attribute block must sit on one line, and a chess FEN is
+    // 69 characters of it before anything else. Measured 2026-08-30: a
+    // `chess-analysis` carrying a FEN, an id, a stated evaluation, a best move
+    // and a depth is 146 characters. 120 was set before those attributes
+    // existed and would now silently push authors into dropping content to
+    // satisfy a linter, which is the wrong way round.
+    "line_length": 160,
     "code_blocks": false,
     "tables": false,
   },

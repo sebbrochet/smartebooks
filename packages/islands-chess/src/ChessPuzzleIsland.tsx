@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Chessground } from 'chessground';
 import { usePersistentState, type IslandComponentProps } from '@smart-ebooks/engine';
-import { DEFAULT_BOARD_OPTIONS, type BoardOptions } from './boardOptions';
+import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
 import 'chessground/assets/chessground.cburnett.css';
@@ -11,7 +11,9 @@ import './themes.css';
 /**
  * A "think, then reveal" chess puzzle: shows a position (FEN), lets the reader
  * reveal the solution and self-mark it solved (persisted per book). Shares the
- * board's `theme`/`pieces` config.
+ * board's `theme`/`pieces`/`orientation` config — and with the default
+ * `orientation=auto`, shows the position from the side that has to find the
+ * move, which is how a puzzle book prints it.
  */
 export default function ChessPuzzleIsland({ id, data }: IslandComponentProps) {
   const {
@@ -19,7 +21,8 @@ export default function ChessPuzzleIsland({ id, data }: IslandComponentProps) {
     solution,
     board = DEFAULT_BOARD_OPTIONS,
   } = (data as { fen?: string; solution?: string; board?: BoardOptions }) ?? {};
-  const { theme, pieces } = board;
+  const { theme, pieces, orientation } = board;
+  const side = orientationFor(orientation, fen);
   const boardRef = useRef<HTMLDivElement>(null);
   const [revealed, setRevealed] = useState(false);
   const [state, setState] = usePersistentState<{ solved: boolean }>(`chesspuzzle:${id}`, {
@@ -28,9 +31,14 @@ export default function ChessPuzzleIsland({ id, data }: IslandComponentProps) {
 
   useEffect(() => {
     if (!boardRef.current || !fen) return;
-    const api = Chessground(boardRef.current, { viewOnly: true, coordinates: true, fen });
+    const api = Chessground(boardRef.current, {
+      viewOnly: true,
+      coordinates: true,
+      fen,
+      orientation: side,
+    });
     return () => api.destroy();
-  }, [fen]);
+  }, [fen, side]);
 
   if (!fen) {
     return (

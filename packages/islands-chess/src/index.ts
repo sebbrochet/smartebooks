@@ -9,6 +9,7 @@ import {
 import {
   BOARD_THEMES,
   DEFAULT_BOARD_OPTIONS,
+  ORIENTATIONS,
   PIECE_SETS,
   resolveBoardOptions,
   type BoardOptions,
@@ -17,12 +18,16 @@ import {
 export {
   BOARD_THEMES,
   PIECE_SETS,
+  ORIENTATIONS,
   DEFAULT_BOARD_OPTIONS,
+  orientationFor,
   resolveBoardOptions,
   type BoardOptions,
   type BoardTheme,
+  type Orientation,
   type PieceSet,
 } from './boardOptions';
+export { extractShapes, parseShapes, type MoveShape } from './shapes';
 
 function directiveAttributes(node: DirectiveNode): Record<string, string> {
   const attrs =
@@ -62,6 +67,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
   const boardAttributes = {
     theme: { type: 'enum', values: BOARD_THEMES, default: defaults.theme },
     pieces: { type: 'enum', values: PIECE_SETS, default: defaults.pieces },
+    orientation: { type: 'enum', values: ORIENTATIONS, default: defaults.orientation },
   } as const;
 
   return [
@@ -71,6 +77,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       attributes: {
         ...boardAttributes,
         analysis: { type: 'boolean', default: false },
+        // On by default: the arrows are already in the PGN, and silently
+        // dropping an annotator's work is the worse failure.
+        shapes: { type: 'boolean', default: true },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -99,17 +108,85 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       }),
     },
     {
+      // A position and nothing else. Distinct from `chess-board` rather than a
+      // mode of it: no controls, no state, no engine, and a different static
+      // form. See SPEC008 QC2.
+      name: 'chess-diagram',
+      aliases: ['chessdiagram'],
+      attributes: {
+        ...boardAttributes,
+        fen: { type: 'string', required: true },
+        caption: { type: 'string', default: '' },
+        // A token list in PGN's own `%cal`/`%csl` spelling, e.g. "Gd1h5 Rf7".
+        shapes: { type: 'string', default: '' },
+      },
+      component: lazy(
+        (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
+          import('./ChessDiagramIsland'),
+      ),
+      // A caption reads better as prose in the body than as a quoted attribute,
+      // and a FEN already spends 69 of a line's characters. Both spellings
+      // work; the attribute wins, so the leaf form stays usable mid-flow.
+      extract: (node) => ({
+        fen: directiveAttributes(node).fen ?? '',
+        caption: directiveAttributes(node).caption ?? mdastToText(node).trim(),
+        board: board(node),
+      }),
+      // A diagram is the one genuinely picture-shaped thing in this pack, so a
+      // faithful fallback needs build-time image emission (SPEC001 P1.1). Until
+      // then the FEN and caption are emitted as text: a search indexer can read
+      // them, a screen reader can announce them, and a chess reader can set the
+      // position up. That beats the blank space they export as today.
+      fallback: (_node, data) => {
+        const { fen = '', caption = '' } = (data as { fen?: string; caption?: string }) ?? {};
+        if (!fen) return undefined;
+        return [
+          {
+            type: 'paragraph',
+            children: [
+              ...(caption ? [{ type: 'text' as const, value: `${caption} ` }] : []),
+              { type: 'text', value: 'Position: ' },
+              { type: 'inlineCode', value: fen },
+            ],
+          },
+        ];
+      },
+    },
+    {
       // Stockfish (WASM) analysis of a position. `fen` comes straight from the
       // directive attributes, so no extractor is needed.
       name: 'chess-analysis',
       aliases: ['chessanalysis'],
       attributes: {
         fen: { type: 'string', required: true },
+        depth: { type: 'number', default: 14, min: 1, max: 30 },
+        // The annotator's own assessment. Unlike the engine's, it survives
+        // export, print and a reader with no JavaScript.
+        eval: { type: 'string', default: '' },
+        best: { type: 'string', default: '' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./StockfishAnalysisIsland'),
       ),
+      // Only a *stated* evaluation can appear in an export — running an engine
+      // at build time is a different feature. With none, there is nothing
+      // honest to say, so nothing is emitted.
+      fallback: (_node, _data, ctx) => {
+        const stated = typeof ctx.attributes.eval === 'string' ? ctx.attributes.eval : '';
+        if (!stated) return undefined;
+        const best = typeof ctx.attributes.best === 'string' ? ctx.attributes.best : '';
+        return [
+          {
+            type: 'paragraph',
+            children: [
+              { type: 'text', value: 'Evaluation: ' },
+              { type: 'strong', children: [{ type: 'text', value: stated }] },
+              ...(best ? [{ type: 'text' as const, value: ` · best ${best}` }] : []),
+            ],
+          },
+        ];
+      },
     },
   ];
 }
