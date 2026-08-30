@@ -52,6 +52,55 @@
   padding-left: 0.75rem;
 }
 
+/*
+ * The game score: runs of moves broken by commentary, the way chess books set
+ * it. Moves are inline buttons so a line wraps like the text it is.
+ */
+.chess-moves {
+  align-self: stretch;
+  border-top: 1px solid var(--border, #ddd);
+  padding-top: 0.6rem;
+}
+
+.chess-moves--scroll {
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.chess-moves__line {
+  margin: 0.35rem 0;
+  line-height: 1.9;
+}
+
+.chess-moves__move {
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg, inherit);
+  padding: 0.05rem 0.35rem;
+  margin-right: 0.15rem;
+  cursor: pointer;
+}
+
+.chess-moves__move:hover {
+  border-color: var(--border, #ccc);
+}
+
+.chess-moves__move[aria-current='true'] {
+  border-color: var(--border, #ccc);
+  background: var(--surface-2, rgba(127, 127, 127, 0.18));
+  font-weight: 600;
+}
+
+.chess-moves__comment {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border-left: 3px solid var(--border, #ddd);
+  padding-left: 0.75rem;
+}
+
 .chesspuzzle__solution {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   margin: 0;

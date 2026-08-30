@@ -53,8 +53,8 @@ test('stockfish analysis of the current board position', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
   // Navigate a move so we analyze a live position, then ask the engine.
   await page.getByRole('button', { name: 'Next move' }).click();
-  // Scoped to the board: the chapter also has a standalone analysis island,
-  // and an unscoped locator matches both.
+  // Scoped to the board: the chapter also has a puzzle board, and an unscoped
+  // locator matches both.
   const board = page.locator('.chessboard-island');
   await board.getByRole('button', { name: /Analyze with Stockfish/ }).click();
   // The 7 MB WASM engine loads then searches — give it room on a loaded machine.
@@ -62,7 +62,7 @@ test('stockfish analysis of the current board position', async ({ page }) => {
 });
 
 test('a diagram is a position with a caption and nothing to click', async ({ page }) => {
-  await page.goto('/#/chess/01-chess-basics');
+  await page.goto('/#/chess/02-reading-an-annotated-game');
 
   const diagram = page.locator('.chess-diagram');
   await expect(diagram.locator('.cg-wrap')).toBeVisible();
@@ -107,7 +107,7 @@ test('the annotator drew on the board, and the tags are not in the prose', async
 });
 
 test("an annotator's evaluation is shown before any engine runs", async ({ page }) => {
-  await page.goto('/#/chess/01-chess-basics');
+  await page.goto('/#/chess/02-reading-an-annotated-game');
 
   const analysis = page.locator('.island--chess-analysis');
   await expect(analysis.getByTestId('chess-stated-eval')).toContainText('+0.20');
@@ -119,11 +119,61 @@ test("an annotator's evaluation is shown before any engine runs", async ({ page 
 });
 
 test('standalone analysis island evaluates its own position', async ({ page }) => {
-  await page.goto('/#/chess/01-chess-basics');
+  await page.goto('/#/chess/02-reading-an-annotated-game');
   // `::chess-analysis` has no board to navigate — it evaluates the FEN it was
   // given. Covered because an island that ships undemonstrated and untested is
   // how this one sat unused for a release.
   const analysis = page.locator('.island--chess-analysis');
   await analysis.getByRole('button', { name: /with Stockfish/ }).click();
   await expect(analysis.getByTestId('chess-eval')).toBeVisible({ timeout: 90_000 });
+});
+
+test('the move list shows the whole game and drives the board', async ({ page }) => {
+  await page.goto('/#/chess/02-reading-an-annotated-game');
+
+  const list = page.getByTestId('chess-move-list');
+  const status = page.getByTestId('chess-move');
+
+  // The whole score is on the page, not one move at a time.
+  await expect(list.getByRole('button', { name: '1. e4' })).toBeVisible();
+  await expect(list.getByRole('button', { name: '7. Nd5#' })).toBeVisible();
+
+  // Commentary breaks the score into paragraphs, the way a chess book sets it.
+  await expect(list.getByText(/Ignoring the pin/)).toBeVisible();
+
+  // Clicking a move jumps the board to it — the point of the list.
+  await list.getByRole('button', { name: '5. Nxe5!!' }).click();
+  await expect(status).toHaveText('5. Nxe5!!');
+  await expect(list.getByRole('button', { name: '5. Nxe5!!' })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+
+  // And the annotation for that move is the live region, not a second copy of
+  // the same sentence beneath the board.
+  await expect(page.getByTestId('chess-comment')).toHaveCount(1);
+});
+
+test('a focused board steps with the arrow keys', async ({ page }) => {
+  await page.goto('/#/chess/02-reading-an-annotated-game');
+
+  const status = page.getByTestId('chess-move');
+  await expect(status).toHaveText('Start');
+
+  // By role, not by class: a diagram reuses the board's sizing class, so
+  // `.chessboard-island__board` matches two elements on this page.
+  const board = page.getByRole('group', { name: /Chess board/ });
+  await board.focus();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(status).toHaveText('1. e4');
+  await page.keyboard.press('ArrowRight');
+  await expect(status).toHaveText('1... e5');
+  await page.keyboard.press('ArrowLeft');
+  await expect(status).toHaveText('1. e4');
+
+  await page.keyboard.press('End');
+  await expect(status).toHaveText('7. Nd5#');
+  await page.keyboard.press('Home');
+  await expect(status).toHaveText('Start');
 });

@@ -1,8 +1,15 @@
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
-import { attrFlag, usePersistentState, type IslandComponentProps } from '@smart-ebooks/engine';
+import {
+  attrFlag,
+  attrText,
+  usePersistentState,
+  type IslandComponentProps,
+} from '@smart-ebooks/engine';
 import { pgnToPlies } from './pgn';
+import { moveLabel } from './score';
+import MoveList from './MoveList';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
@@ -27,7 +34,9 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
   const { theme, pieces, orientation } = parsed.board ?? DEFAULT_BOARD_OPTIONS;
   const analysisOn = attrFlag(attributes.analysis);
   const shapesOn = attrFlag(attributes.shapes, true);
-  const { fens, sans, comments, nags, numbers, shapes } = useMemo(() => pgnToPlies(pgn), [pgn]);
+  const movesMode = attrText(attributes.moves, 'off');
+  const plies = useMemo(() => pgnToPlies(pgn), [pgn]);
+  const { fens, comments, shapes } = plies;
   const [ply, setPly] = usePersistentState<number>(`chessply:${id}`, 0);
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
@@ -43,10 +52,22 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
   // The annotator's note about the position on the board. Indexed by ply, so
   // index 0 is whatever was written before the first move.
   const comment = comments[clampedPly];
-  const move =
-    clampedPly === 0
-      ? 'Start'
-      : `${numbers[clampedPly - 1]} ${sans[clampedPly - 1]}${nags[clampedPly - 1] ?? ''}`;
+  const move = moveLabel(plies, clampedPly);
+
+  // Arrow keys are how anyone reads a game; four buttons and a mouse are not.
+  // Bound to the board itself, so a reader who tabs to it can step without
+  // reaching for the controls (SPEC008 G2.4).
+  function onKeyDown(event: React.KeyboardEvent) {
+    const to = {
+      ArrowLeft: clampedPly - 1,
+      ArrowRight: clampedPly + 1,
+      Home: 0,
+      End: lastPly,
+    }[event.key];
+    if (to === undefined) return;
+    event.preventDefault();
+    setPly(Math.max(0, Math.min(to, lastPly)));
+  }
 
   useEffect(() => {
     if (!boardRef.current || fens.length === 0) return;
@@ -86,7 +107,10 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
       <div
         className={`chessboard-island__board cg-wrap cg-theme--${theme} cg-pieces--${pieces}`}
         ref={boardRef}
-        aria-label="Chess board"
+        tabIndex={0}
+        role="group"
+        aria-label="Chess board — arrow keys step through the game"
+        onKeyDown={onKeyDown}
       />
       <div className="chessboard-island__controls">
         <div className="chessboard-island__buttons" role="group" aria-label="Move navigation">
@@ -127,10 +151,20 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
           {move}
         </span>
       </div>
-      {comment && (
+      {movesMode !== 'off' && (
+        <MoveList
+          plies={plies}
+          ply={clampedPly}
+          onSelect={setPly}
+          scroll={movesMode === 'scroll'}
+        />
+      )}
+      {movesMode === 'off' && comment && (
         // `role="status"` because stepping through a game changes this text
         // without moving focus — a screen-reader user would otherwise never
-        // hear the annotation they are navigating to.
+        // hear the annotation they are navigating to. With the move list on,
+        // that job moves into the list, which already shows every comment;
+        // rendering both would print the same sentence twice.
         <p className="chessboard-island__comment" role="status" data-testid="chess-comment">
           {comment}
         </p>

@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from 'react';
+import type { RootContent } from 'mdast';
 import {
   extractDirectiveCode,
   mdastToText,
@@ -14,6 +15,10 @@ import {
   resolveBoardOptions,
   type BoardOptions,
 } from './boardOptions';
+import { pgnScoreText } from './score';
+
+/** `moves` on a board: hidden, full height, or capped with its own scrollport. */
+export const MOVE_LIST_MODES = ['off', 'on', 'scroll'] as const;
 
 export {
   BOARD_THEMES,
@@ -80,6 +85,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         // On by default: the arrows are already in the PGN, and silently
         // dropping an annotator's work is the worse failure.
         shapes: { type: 'boolean', default: true },
+        // Off by default: a 60-move game would otherwise put a wall of text
+        // under every board, and every existing chapter would change shape.
+        moves: { type: 'enum', values: MOVE_LIST_MODES, default: 'off' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -89,6 +97,31 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         pgn: extractDirectiveCode(node) ?? mdastToText(node),
         board: board(node),
       }),
+      // A game printed the way chess books print it: runs of moves broken by
+      // the annotator's commentary. Chess was filed as picture-shaped and so
+      // exported as blank space; only the *diagram* is a picture, and a score
+      // is text (SPEC008 C2).
+      //
+      // Built from the PGN text rather than from a replayed game, because this
+      // runs at parse time in the module every reader loads — see the note in
+      // `score.ts` for what replaying it here costs.
+      fallback: (_node, data) => {
+        const pgn = (data as { pgn?: string } | undefined)?.pgn ?? '';
+        if (!pgn.trim()) return undefined;
+
+        const { intro, blocks } = pgnScoreText(pgn);
+        const paragraph = (value: string): RootContent => ({
+          type: 'paragraph',
+          children: [{ type: 'text', value }],
+        });
+
+        const out: RootContent[] = intro ? [paragraph(intro)] : [];
+        for (const block of blocks) {
+          out.push(paragraph(block.moves));
+          if (block.comment) out.push(paragraph(block.comment));
+        }
+        return out.length > 0 ? out : undefined;
+      },
     },
     {
       name: 'chess-puzzle',
@@ -106,6 +139,37 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         solution: extractDirectiveCode(node) ?? mdastToText(node),
         board: board(node),
       }),
+      // Like a diagram, a puzzle's position needs `emitAsset` to print
+      // properly. Its *solution*, though, is already prose, and losing that on
+      // export is the worse half of the loss — a reader gets the position from
+      // the FEN and the answer from the text.
+      fallback: (_node, data) => {
+        const { fen = '', solution = '' } = (data as { fen?: string; solution?: string }) ?? {};
+        if (!fen) return undefined;
+        return [
+          {
+            type: 'paragraph',
+            children: [
+              { type: 'text', value: 'Puzzle position: ' },
+              { type: 'inlineCode', value: fen },
+            ],
+          },
+          ...(solution.trim()
+            ? [
+                {
+                  type: 'paragraph' as const,
+                  children: [
+                    {
+                      type: 'strong' as const,
+                      children: [{ type: 'text' as const, value: 'Solution: ' }],
+                    },
+                    { type: 'text' as const, value: solution.trim() },
+                  ],
+                },
+              ]
+            : []),
+        ];
+      },
     },
     {
       // A position and nothing else. Distinct from `chess-board` rather than a

@@ -13,5 +13,8 @@
       "chess": { "board": { "theme": "blue" } }
     }
   },
-  "chapters": [{ "file": "01-chess-basics.md", "order": 1 }]
+  "chapters": [
+    { "file": "01-chess-basics.md", "order": 1 },
+    { "file": "02-reading-an-annotated-game.md", "order": 2 }
+  ]
 }
