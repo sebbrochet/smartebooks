@@ -20,6 +20,7 @@ where it matters.
 Try the quiz below. Your best score is saved locally and restored when you come back.
 
 :::quiz{id="ch1-basics"}
+
 ### What does a "token" represent for a language model?
 
 - [ ] A full sentence
@@ -34,6 +35,7 @@ Try the quiz below. Your best score is saved locally and restored when you come 
 - [x] Reader progress is stored locally in the browser
 - [ ] A backend server is required to track scores
 - [x] Interactivity is added via directives
+
 :::
 
 ## Watch it in action
@@ -57,6 +59,7 @@ Match each term on the left to its meaning on the right. Your best (fewest) numb
 moves is remembered.
 
 :::matching-pairs{id="ch1-match"}
+
 ```json
 {
   "pairs": [
@@ -66,19 +69,20 @@ moves is remembered.
   ]
 }
 ```
+
 :::
 
 ## Listen along
 
-Audio clips work the same way — this one points to a sample path you would supply in
-`public/`.
+Audio clips work the same way. This one is a **packaged asset**: it lives in the book's
+own `assets/` folder, so it travels with a `.smartbook` and works offline.
 
 ::audio{id="ch1-audio" src="assets/narration.wav" title="Chapter narration (sample)"}
 
 ## Still on the roadmap
 
-Runnable code and reader-contributed content are part of the directive taxonomy and
-render as friendly placeholders until their islands ship:
+Runnable code (`:::playground`) and reader-contributed content (`:::contribution`) are
+described in the editorial charter but have no island yet. Until they ship they are not
+part of the vocabulary, so using one is an authoring error rather than a placeholder.
 
 ::checkpoint{id="ch1-done" label="I finished chapter 1"}
-

@@ -1,0 +1,24 @@
+{
+  // Shared markdownlint rules, so the editor extension and any CLI run agree.
+  //
+  // Book content is Markdown first and directives second, so the ordinary rules
+  // apply — a chapter that reads badly as plain Markdown has failed its own
+  // charter. Two rules are adjusted rather than obeyed:
+  "MD013": {
+    // Prose targets Prettier's printWidth of 100. Directive lines cannot wrap:
+    // a chess FEN or a long URL is one unbreakable token plus attributes, so a
+    // hard 100 would force suppression comments into book content. 120 keeps
+    // the rule useful without that.
+    "line_length": 120,
+    "code_blocks": false,
+    "tables": false
+  },
+
+  // Headings inside a container directive are structural, not document
+  // outline: `### question` inside `:::quiz` is a quiz item. Keeping MD024 on
+  // would flag two chapters that legitimately ask a similarly-worded question.
+  "MD024": { "siblings_only": true },
+
+  // The first line of a chapter is its title, and `makeChapters` reads it.
+  "MD041": true
+}

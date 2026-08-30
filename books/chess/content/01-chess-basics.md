@@ -11,9 +11,11 @@ as its board default; this directive adds `pieces=unicode`, and `analysis=on` gi
 on-demand **Stockfish** evaluation of whatever position you've navigated to.
 
 :::chess-board{id="chess-scholars" pieces=unicode analysis=on}
+
 ```pgn
 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
 ```
+
 :::
 
 ## Try a puzzle

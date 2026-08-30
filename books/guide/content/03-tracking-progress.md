@@ -18,6 +18,7 @@ A `:::checkpoint` records that you finished a section. Tick the box and watch th
 Quiz points from every chapter are totaled in the dashboard. Try this one:
 
 :::quiz{id="ch3-tracking"}
+
 ### Where is your progress stored?
 
 - [ ] On a remote server
@@ -25,6 +26,7 @@ Quiz points from every chapter are totaled in the dashboard. Try this one:
 - [ ] In a cookie sent to advertisers
 
 > Explanation: Smart ebooks are local-only by design — your data never leaves the device.
+
 :::
 
 ## Watch, listen, review

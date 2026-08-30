@@ -12,6 +12,7 @@ Use a `:::quiz` block whenever you want the reader to self-test. Answers are sco
 best result is saved locally.
 
 :::quiz{id="ch2-directives"}
+
 ### Which of these is a valid interactive directive?
 
 - [ ] `<Quiz />`
@@ -25,6 +26,7 @@ best result is saved locally.
 - [x] A unique, stable `id`
 - [x] A name from the taxonomy
 - [ ] A server connection
+
 :::
 
 ## Memory practice
@@ -43,6 +45,7 @@ best result is saved locally.
 new pairs.
 
 :::matching-pairs{id="ch2-match"}
+
 ```json
 {
   "pairs": [
@@ -52,6 +55,7 @@ new pairs.
   ]
 }
 ```
+
 :::
 
 ## Diagrams
@@ -64,12 +68,14 @@ It comes from the optional `mermaid` island pack, which this book declares in it
 Books that draw nothing never download it.
 
 :::mermaid{title="How a directive becomes an island"}
+
 ```mermaid
 flowchart LR
     MD["Markdown<br/>:::quiz"] --> B["Build step"]
     B --> I["Island<br/>(React component)"]
     B --> S["Static fallback<br/>(print, export)"]
 ```
+
 :::
 
 The diagram follows your light/dark setting — switch the theme in the header and it redraws.

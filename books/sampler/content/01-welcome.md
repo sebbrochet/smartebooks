@@ -10,6 +10,7 @@ architecture was copied.
 ## A quick check
 
 :::quiz{id="sampler-platform"}
+
 ### What is duplicated when you add a new book?
 
 - [ ] The engine
@@ -17,6 +18,7 @@ architecture was copied.
 - [x] Only content and a small config
 
 > Explanation: Books are data. The engine and the platform's publishing chain are shared.
+
 :::
 
 ::checkpoint{id="sampler-done" label="I see how multiple books share one engine"}
