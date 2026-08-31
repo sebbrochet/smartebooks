@@ -10,6 +10,7 @@ import {
 import { mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
 import { moveLabel } from './score';
 import MoveList from './MoveList';
+import { useGame } from './gameContext';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
@@ -20,6 +21,31 @@ import './themes.css';
 // Loaded only when a board opts into analysis, so the Stockfish client stays
 // out of the board chunk for books that never use it.
 const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
+const ChessBoardInGame = lazy(() => import('./ChessBoardInGame'));
+
+/**
+ * A chess board — in one of two modes.
+ *
+ * On its own it owns a game: `:::chess-board` with a PGN body or a packaged
+ * file, its own controls, its own persisted position. **Inside a
+ * `:::chess-game`** it owns nothing and follows the container, so several
+ * boards and the prose around them stay in step (SPEC001 §4.1).
+ *
+ * The dispatch is a component boundary rather than a branch because the two
+ * modes have entirely different state; sharing one body would mean calling
+ * hooks conditionally.
+ */
+export default function ChessBoardIsland(props: IslandComponentProps) {
+  const game = useGame();
+  if (game) {
+    return (
+      <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
+        <ChessBoardInGame {...props} />
+      </Suspense>
+    );
+  }
+  return <StandaloneBoard {...props} />;
+}
 
 /**
  * Displays a chess game from PGN with move navigation. Read-only board
@@ -31,12 +57,7 @@ const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
  * The game comes from the directive body, or from a packaged `.pgn` file named
  * by the `pgn` attribute, which wins when both are present.
  */
-export default function ChessBoardIsland({
-  id,
-  attributes,
-  packagedAssets,
-  data,
-}: IslandComponentProps) {
+function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandComponentProps) {
   const parsed = (data as { pgn?: string; board?: BoardOptions }) ?? {};
   const body = parsed.pgn ?? '';
   const { theme, pieces, orientation } = parsed.board ?? DEFAULT_BOARD_OPTIONS;

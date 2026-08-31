@@ -1,6 +1,45 @@
 import { describe, it, expect } from 'vitest';
 import { pgnToTree, nodeAt } from './tree';
-import { moveLabel, pgnScoreText, toScore } from './score';
+import { findByLabel, moveLabel, pgnScoreText, toScore } from './score';
+
+describe('findByLabel', () => {
+  const tree = pgnToTree('1. e4 e5 2. Bc4 Nc6 (2... Nf6 3. d3) 3. Qh5?! g6');
+
+  it('resolves a move written the way a chess book writes it', () => {
+    expect(findByLabel(tree, '1. e4')).toBe('0');
+    expect(findByLabel(tree, '2. Bc4')).toBe('0.0.0');
+  });
+
+  it('accepts an unqualified move, and means the main line by it', () => {
+    // `Nf6` exists only in the sideline; `e5` exists on the main line.
+    expect(findByLabel(tree, 'e5')).toBe('0.0');
+    expect(findByLabel(tree, 'Nf6')).toBe('0.0.0.1');
+  });
+
+  it('does not confuse White\u2019s move with Black\u2019s', () => {
+    // Both are move 2, and the dots are the only thing telling them apart.
+    expect(findByLabel(tree, '2. Bc4')).not.toBe(findByLabel(tree, '2... Nc6'));
+    expect(findByLabel(tree, '2... Nc6')).toBe('0.0.0.0');
+  });
+
+  it('ignores the spacing, the case and the annotator\u2019s glyph', () => {
+    const withGlyph = findByLabel(tree, '3. Qh5?!');
+    expect(withGlyph).toBe('0.0.0.0.0');
+    expect(findByLabel(tree, '3.qh5')).toBe(withGlyph);
+    expect(findByLabel(tree, '3. QH5')).toBe(withGlyph);
+  });
+
+  it('reaches a move inside a sideline when the number is given', () => {
+    expect(findByLabel(tree, '3. d3')).toBe('0.0.0.1.0');
+  });
+
+  it('resolves nothing for a move that is not in this game', () => {
+    // The mark then renders as the plain words the author wrote, rather than
+    // as a button that does nothing.
+    expect(findByLabel(tree, '9. Rxh8')).toBeUndefined();
+    expect(findByLabel(tree, '')).toBeUndefined();
+  });
+});
 
 describe('moveLabel', () => {
   const tree = pgnToTree('1. e4 e5 2. Bc4 Nc6 3. Qh5?!');

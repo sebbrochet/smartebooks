@@ -229,15 +229,63 @@ Ra8# — a back-rank mate.
   text the reader sees. `chess-diagram` takes the same tokens in its `shapes` attribute.
 - **State:** current position per board; solved flag per puzzle.
 
+#### `:::chess-game` — a game you lay out yourself
+
+````markdown
+:::chess-game{id="ch4-scholars" pieces="unicode"}
+
+```pgn
+1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6?? 4. Qxf7# {Scholar's mate.}
+```
+
+White opens with :move[1. e4], and Black mirrors with :move[e5].
+
+::chess-board
+
+Now :move[2. Bc4] eyes **f7**, and :move[3. Qh5] threatens mate in one.
+
+::chess-moves
+
+After :move[4. Qxf7#] it is over.
+
+::chess-board{at="4. Qxf7#"}
+
+:::
+````
+
+`chess-board` above is a whole game in a box: board on top, controls under it, commentary elsewhere.
+`chess-game` is the same game **laid out like a printed chess book** — a paragraph, a diagram at the
+critical moment, more prose, the score where you want it. Use it whenever the commentary matters as
+much as the moves; use `chess-board` when you just want a game on the page.
+
+- `chess-game` (container): `pgn`, `shapes`, plus `theme` / `pieces` / `orientation`. It owns the
+  game and the position and **draws nothing itself** — it renders the body you wrote. The fenced
+  ` ```pgn ` block is configuration, not content: it is consumed, not printed.
+- `::chess-board` **inside** a game takes no PGN of its own. Zero, one or a dozen are fine, and they
+  all show the same position.
+  - `at` pins one to a fixed position and takes its controls away, which is what a printed diagram
+    does. Its value is a move, written as you would write it in prose: `at="4. Qxf7#"`.
+- `::chess-moves` (leaf): `scroll` (default `true`) — the game score, placed where you want it.
+- `:move[…]` (**inline**) marks a move in a sentence and jumps every board on the page to it.
+  - The label is a move, matched the way a reader reads it: `2. Bc4`, `2.Bc4` and `Bc4` all work, and
+    annotation glyphs are ignored. An unqualified move means the main line; write the number to
+    reach one inside a variation (`:move[3... g6]`).
+  - A label the game does not contain renders as **the plain words you wrote** — no dead button. The
+    content linter cannot catch this for you, so check your marks against the score.
+- **Static form:** your own body. Strip the interactivity and a `chess-game` is the prose, the moves
+  named in it, and whatever the child islands emit — which is what a chess book is.
+- **State:** the current position, once for the whole game, under the same key a `chess-board` uses.
+  Rewriting a `chess-board` chapter as a `chess-game` keeps the reader's place.
+
 ### `term` — a mark inside a sentence
 
 ```markdown
 A :term[palimpsest]{definition="A manuscript page scraped clean and written on again."} page.
 ```
 
-- The **only** directive written in the inline form `:name[label]{…}`. Everything else is `::` or
-  `:::`, and writing either one the other way is a lint error — the two forms are not
-  interchangeable.
+- Written in the inline form `:name[label]{…}`, which is a different thing from `::` and `:::`:
+  writing an inline directive as a block, or a block one inline, is a lint error. The other inline
+  directive is `:move` (chess pack).
 - The bracketed label is the word as it appears in the sentence. It stays in the prose: no box, no
   block, no change to the line.
 - Attribute: `definition`. Without one the word simply renders as itself, because a term with nothing

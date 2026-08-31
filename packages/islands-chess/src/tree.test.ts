@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mainline, mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
+import { allNodes, mainline, mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
 
 describe('pgnToTree', () => {
   it('reads a mainline into a chain of positions', () => {
@@ -98,6 +98,13 @@ describe('paths', () => {
   it('finds the node a path names, including inside a sideline', () => {
     expect(nodeAt(tree, '0.1')?.san).toBe('d5');
     expect(nodeAt(tree, '0.1.0')?.san).toBe('exd5');
+  });
+
+  // Whole-game order, main line before the branches off it, so a name written
+  // in the prose resolves to the obvious move rather than to a variation.
+  it('walks every node in the game, main line first', () => {
+    expect(allNodes(tree).map((node) => node.san)).toEqual(['e4', 'e5', 'Nf3', 'd5', 'exd5']);
+    expect(allNodes(pgnToTree('~~~'))).toEqual([]);
   });
 
   it('has no node for the starting position or a path that does not exist', () => {

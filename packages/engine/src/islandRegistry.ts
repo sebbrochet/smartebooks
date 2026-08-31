@@ -66,6 +66,22 @@ export interface IslandDefinition {
    * word the author wrote, which is exactly what an export wants.
    */
   inline?: true;
+  /**
+   * This island renders its own body (SPEC001 P2.10a). The authored children
+   * are compiled and handed to the component instead of being replaced by a
+   * `fallback` — so the author, not the island, decides where the prose goes
+   * and what sits between the paragraphs.
+   *
+   * The body is therefore also the static form, which is why such an island
+   * needs no `fallback`. Two rules come with it:
+   *
+   * - **Render children lazily, never hide them with CSS.** A concealed
+   *   `chess-analysis` would still boot a 7 MB engine nobody asked for.
+   * - **Consume any configuration block** (`extractDirectiveCode(node, {
+   *   consume: true })`), or the reader sees the raw PGN or JSON above the
+   *   island that was configured by it.
+   */
+  rendersChildren?: true;
 }
 
 // Islands are never registered globally: every book declares the exact set it

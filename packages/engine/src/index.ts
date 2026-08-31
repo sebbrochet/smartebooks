@@ -95,6 +95,7 @@ export {
   type DirectiveNode,
 } from './islandRegistry';
 export { defaultIslands } from './islands/defaults';
+export { createSequence, type SequenceValue, type SequenceProviderProps } from './islands/sequence';
 export {
   resolveAttributes,
   attrText,

@@ -17,6 +17,7 @@
   "chapters": [
     { "file": "01-chess-basics.md", "order": 1 },
     { "file": "02-reading-an-annotated-game.md", "order": 2 },
-    { "file": "03-a-game-from-a-file.md", "order": 3 }
+    { "file": "03-a-game-from-a-file.md", "order": 3 },
+    { "file": "04-a-game-you-can-lay-out.md", "order": 4 }
   ]
 }

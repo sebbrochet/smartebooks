@@ -34,6 +34,7 @@ export {
 } from './boardOptions';
 export { extractShapes, parseShapes, type MoveShape } from './shapes';
 export { play, playSan, positionFrom, sameMove, solutionMoves } from './puzzle';
+export { useGame, useSequence, type ChessGame } from './gameContext';
 export {
   mainline,
   mainlinePath,
@@ -102,6 +103,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         // A packaged `.pgn` file, which is how real annotated material arrives.
         // Wins over the body when both are present.
         pgn: { type: 'asset' },
+        // Only meaningful inside a `:::chess-game`: pins this board to one
+        // position, so a diagram stays put while the reader moves on.
+        at: { type: 'string', default: '' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -288,6 +292,57 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
           },
         ];
       },
+    },
+    {
+      // One game, several islands. The container owns the game and the
+      // position; the boards, the score and the prose inside it follow
+      // (SPEC001 §4.1, SPEC008 G4).
+      name: 'chess-game',
+      aliases: ['chessgame'],
+      attributes: {
+        ...boardAttributes,
+        shapes: { type: 'boolean', default: true },
+        pgn: { type: 'asset' },
+      },
+      component: lazy(
+        (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
+          import('./ChessGameIsland'),
+      ),
+      // `consume` because the PGN is the container's data, not something to
+      // print twice: without it the code block would render both as the game
+      // and, inside the container's own children, as a code listing.
+      extract: (node) => ({
+        pgn: extractDirectiveCode(node, { consume: true }) ?? '',
+        board: board(node),
+      }),
+      // Renders what the author wrote inside it, so the static form is the
+      // author's own prose and the child islands' fallbacks. There is nothing
+      // for a `fallback` to add.
+      rendersChildren: true,
+    },
+    {
+      // The game's score, driven by the surrounding `:::chess-game`. A leaf:
+      // everything it shows comes from the container.
+      name: 'chess-moves',
+      aliases: ['chessmoves'],
+      attributes: {
+        scroll: { type: 'boolean', default: true },
+      },
+      component: lazy(
+        (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
+          import('./ChessMovesIsland'),
+      ),
+    },
+    {
+      // A move named in a sentence: `:move[19. Bd6]`. Inline, so it can sit
+      // inside a paragraph without breaking it (SPEC001 P2.6).
+      name: 'move',
+      inline: true,
+      attributes: {},
+      component: lazy(
+        (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
+          import('./ChessMoveIsland'),
+      ),
     },
   ];
 }

@@ -169,6 +169,19 @@ export function mainline(tree: GameTree): GameNode[] {
   return line;
 }
 
+/** Every node in the game, main line and sidelines, in reading order. */
+export function allNodes(tree: GameTree): GameNode[] {
+  const out: GameNode[] = [];
+  const visit = (nodes: GameNode[]) => {
+    for (const node of nodes) {
+      out.push(node);
+      visit(node.children);
+    }
+  };
+  visit(tree.children);
+  return out;
+}
+
 /** The node at `path`, or `undefined` — including for the starting position. */
 export function nodeAt(tree: GameTree, path: string): GameNode | undefined {
   if (!path) return undefined;

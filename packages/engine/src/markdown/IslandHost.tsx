@@ -30,7 +30,7 @@ function safeParse(config: string | undefined): ParsedConfig {
  * book's registry render a visible placeholder; components may be lazy (wrapped
  * in Suspense).
  */
-export function IslandHost({ type, id, config }: IslandHostProps) {
+export function IslandHost({ type, id, config, children }: IslandHostProps) {
   const { trusted, registry, resolveAsset } = useBook();
   const definition = type ? registry.get(type) : undefined;
   const parsed = safeParse(config);
@@ -80,7 +80,9 @@ export function IslandHost({ type, id, config }: IslandHostProps) {
           attributes={attributes}
           packagedAssets={packagedAssets}
           data={parsed.data}
-        />
+        >
+          {children}
+        </Component>
       </Suspense>
     </IslandBoundary>
   );

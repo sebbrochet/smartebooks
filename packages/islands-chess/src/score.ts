@@ -1,4 +1,5 @@
 import type { GameNode, GameTree } from './tree';
+import { allNodes } from './tree';
 import { extractShapes } from './shapes';
 
 /**
@@ -59,6 +60,35 @@ export interface Score {
 export function moveLabel(node: GameNode | undefined): string {
   if (!node) return 'Start';
   return `${node.number} ${node.san}${node.nag ?? ''}`.trim();
+}
+
+/**
+ * The position an author named in prose: `:move[2. Bc4]` → the path of that
+ * move (SPEC001 §4.1).
+ *
+ * Matched on what a writer would actually type, which is not one fixed string:
+ * `2. Bc4`, `2.Bc4` and `Bc4` all mean the same move, and the annotation glyph
+ * is the annotator's, not the author's. The main line is searched first, so an
+ * unqualified move means the obvious one; sidelines are reachable by writing
+ * the number too.
+ */
+export function findByLabel(tree: GameTree, label: string): string | undefined {
+  const wanted = normalise(label);
+  if (!wanted) return undefined;
+
+  const nodes = allNodes(tree);
+  const match = (node: GameNode) =>
+    normalise(`${node.number} ${node.san}`) === wanted || normalise(node.san) === wanted;
+
+  // `allNodes` is depth-first from `children[0]`, so the main line comes first.
+  return nodes.find(match)?.path;
+}
+
+/** Compare the way a reader would: no spaces, no glyphs, no case. */
+function normalise(label: string): string {
+  // Dots are kept: `1.` and `1...` are White's and Black's move one, and
+  // collapsing them would make two different moves compare equal.
+  return label.replace(/[+#!?\s]+/g, '').toLowerCase();
 }
 
 /**

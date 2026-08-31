@@ -303,3 +303,75 @@ test('a focused board steps with the arrow keys', async ({ page }) => {
   await page.keyboard.press('Home');
   await expect(status).toHaveText('Start');
 });
+
+/**
+ * SPEC001 P2.10 / SPEC008 G4: a container island owning the position, with the
+ * boards, the score and the prose as its children.
+ */
+test('a move named in a sentence drives every board on the page', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  // `.chess-move` is the inline mark; `.chess-moves__move` is a move in the
+  // score, and the two class names differ by more than they look.
+  const mark = (name: string) => page.locator('.chess-move', { hasText: name });
+  const status = page.getByTestId('chess-move');
+  const list = page.getByTestId('chess-move-list');
+
+  // The marks are inside the prose, not in a box of their own: the paragraph
+  // containing one also contains the sentence around it.
+  await expect(mark('1. e4').first()).toBeVisible();
+  await expect(page.locator('p', { hasText: 'taking the centre' })).toContainText('1. e4');
+
+  await expect(status).toHaveText('Start');
+
+  await mark('2. Bc4').first().click();
+
+  // The live board followed the sentence…
+  await expect(status).toHaveText('2. Bc4');
+  // …and so did the score, which is a separate island reading the same position.
+  await expect(list.getByRole('button', { name: '2. Bc4' })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+});
+
+test('a pinned board stays where it was put', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  // Two boards, one live and one pinned with `at`.
+  await expect(page.locator('.chessboard-island .cg-wrap')).toHaveCount(2);
+
+  // The pinned one is a diagram: a caption naming its move, and no controls.
+  const pinned = page.locator('.chessboard-island', { has: page.locator('.chess-diagram__caption') });
+  await expect(pinned.locator('.chess-diagram__caption')).toHaveText('4. Qxf7#');
+  await expect(pinned.getByRole('button')).toHaveCount(0);
+
+  // Moving the reader does not move it — that is the whole point of a diagram.
+  await page.locator('.chess-move', { hasText: '1. e4' }).first().click();
+  await expect(page.getByTestId('chess-move')).toHaveText('1. e4');
+  await expect(pinned.locator('.chess-diagram__caption')).toHaveText('4. Qxf7#');
+});
+
+test('a board inside a game steps with the arrow keys too', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const status = page.getByTestId('chess-move');
+  await expect(status).toHaveText('Start');
+
+  // Only the live board is a focusable group; the pinned one is a diagram.
+  const board = page.getByRole('group', { name: /Chess board/ });
+  await expect(board).toHaveCount(1);
+  await board.focus();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(status).toHaveText('1. e4');
+  await page.keyboard.press('ArrowRight');
+  await expect(status).toHaveText('1... e5');
+  await page.keyboard.press('ArrowLeft');
+  await expect(status).toHaveText('1. e4');
+
+  await page.keyboard.press('End');
+  await expect(status).toHaveText('4. Qxf7#');
+  await page.keyboard.press('Home');
+  await expect(status).toHaveText('Start');
+});

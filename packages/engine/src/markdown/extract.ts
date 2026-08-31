@@ -15,12 +15,27 @@ export function mdastToText(node: unknown): string {
  * Return the raw value of the first fenced code block in a directive body, if
  * any. Useful for island extractors that carry text bodies (e.g. PGN, JSON)
  * without needing any domain dependency at parse time.
+ *
+ * With `consume`, the block is also **removed** from the body. That matters
+ * only for an island that renders its own children (SPEC001 P2.10a): its body
+ * is prose the reader sees, and the fenced data block is configuration, not
+ * content — leaving it in would print a wall of PGN above the game it
+ * describes. P3.2 is the principled home for this, where an island would
+ * declare `body: 'code+prose'` and the engine would do it; until then an island
+ * asks for it here rather than reaching into the tree itself.
  */
-export function extractDirectiveCode(node: unknown): string | undefined {
-  const children = (node as { children?: unknown[] }).children ?? [];
-  for (const raw of children) {
+export function extractDirectiveCode(
+  node: unknown,
+  options?: { consume?: boolean },
+): string | undefined {
+  const parent = node as { children?: unknown[] };
+  const children = parent.children ?? [];
+  for (const [index, raw] of children.entries()) {
     const child = raw as { type?: string; value?: string };
-    if (child.type === 'code' && typeof child.value === 'string') return child.value;
+    if (child.type === 'code' && typeof child.value === 'string') {
+      if (options?.consume) children.splice(index, 1);
+      return child.value;
+    }
   }
   return undefined;
 }

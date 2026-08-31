@@ -74,6 +74,14 @@ export function remarkIslands(registry: IslandRegistry) {
         return;
       }
 
+      // An island that renders its own body keeps it, for the same reason: the
+      // author placed those paragraphs, and stripping the interactivity should
+      // leave them where they were put (SPEC001 P2.10a). Note this is the whole
+      // body, including any child directives — they are separate `<island>`
+      // elements in the tree, which `remark-rehype` and the sanitiser already
+      // handle.
+      if (definition?.rendersChildren) return;
+
       // The authored body is replaced by the island's static form, so the
       // compiled document still says what this island is when the
       // interactivity is stripped. `IslandHost` ignores these children and

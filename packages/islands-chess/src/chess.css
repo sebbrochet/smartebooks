@@ -206,3 +206,39 @@
   font-size: 0.85rem;
   color: var(--muted, #666);
 }
+
+/*
+ * A game containing several islands. No box, no border: the container is a
+ * coordination device, not a visual one, and the prose the author wrote inside
+ * it should read as prose.
+ */
+.chess-game {
+  display: block;
+}
+
+/*
+ * A move named in a sentence. Styled as text that happens to be clickable
+ * rather than as a button, because it sits mid-paragraph and a button's
+ * chrome would break the line.
+ */
+.chess-move {
+  font-variant-numeric: tabular-nums;
+  border: none;
+  border-bottom: 1px dotted var(--border, #999);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.chess-move:hover {
+  border-bottom-style: solid;
+}
+
+.chess-move[aria-current='true'] {
+  background: var(--surface-2, rgba(127, 127, 127, 0.18));
+  border-bottom-style: solid;
+  font-weight: 600;
+}
