@@ -37,3 +37,24 @@ test('checkpoint completion persists across a reload', async ({ page }) => {
     page.getByText('I understand what a smart ebook is').locator('..').getByRole('checkbox'),
   ).toBeChecked();
 });
+
+test('an inline mark stays in its sentence and opens on request', async ({ page }) => {
+  await page.goto('/#/guide/02-interactivity-toolkit');
+
+  const word = page.getByRole('button', { name: 'palimpsest' });
+  await expect(word).toBeVisible();
+  await expect(word).toHaveAttribute('aria-expanded', 'false');
+
+  // The word is *inside* the paragraph, not a block that broke out of it —
+  // which is what a text directive used to compile to.
+  const paragraph = page.locator('p', { has: word });
+  await expect(paragraph).toContainText('is a\ngood name'.replace('\n', ' '));
+
+  // The explanation appears only when asked for, and goes away again.
+  await expect(page.getByText(/scraped clean and written on again/i)).toHaveCount(0);
+  await word.click();
+  await expect(word).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByText(/scraped clean and written on again/i)).toBeVisible();
+  await word.click();
+  await expect(page.getByText(/scraped clean and written on again/i)).toHaveCount(0);
+});

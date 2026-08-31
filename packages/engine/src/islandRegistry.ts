@@ -57,6 +57,15 @@ export interface IslandDefinition {
   ) => RootContent[] | undefined;
   /** If true, the island is replaced by a notice in untrusted (imported) books. */
   disabledWhenUntrusted?: boolean;
+  /**
+   * This island is authored as a **text directive** — `:term[palimpsest]` — and
+   * renders inside the sentence rather than as a block (SPEC001 P2.6).
+   *
+   * Its bracketed label arrives as `children` and is also its static form, so
+   * an inline island needs no `fallback`: stripped of interactivity it is the
+   * word the author wrote, which is exactly what an export wants.
+   */
+  inline?: true;
 }
 
 // Islands are never registered globally: every book declares the exact set it

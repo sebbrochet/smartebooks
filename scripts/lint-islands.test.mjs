@@ -37,6 +37,28 @@ describe('checkDirectives', () => {
     ]);
   });
 
+  // The two forms are not interchangeable: the engine keeps a text directive's
+  // label and drops a block's body, so writing one as the other renders
+  // something the author did not intend and no error anywhere says so.
+  test('accepts an inline island written inside a sentence', () => {
+    assert.deepEqual(
+      checkDirectives(book(), file('A :term[palimpsest]{definition="Reused."} page.')),
+      [],
+    );
+  });
+
+  test('rejects an inline island written as a block', () => {
+    const problems = checkDirectives(book(), file('::term{definition="Reused."}'));
+    assert.deepEqual(rules(problems), ['directive-form']);
+    assert.match(problems[0].message, /inside a sentence/);
+  });
+
+  test('rejects a block island written inside a sentence', () => {
+    const problems = checkDirectives(book(), file('A :checkpoint[done]{id="c"} page.'));
+    assert.deepEqual(rules(problems), ['directive-form']);
+    assert.match(problems[0].message, /block directive/);
+  });
+
   test('rejects an unknown pack in the descriptor', () => {
     const problems = checkDirectives(book({ packs: { nope: {} } }), file('hello'));
     assert.deepEqual(rules(problems), ['pack-unknown']);

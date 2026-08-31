@@ -56,6 +56,7 @@ function directivesIn(markdown) {
       name: node.name,
       id: typeof attributes.id === 'string' ? attributes.id : undefined,
       attributes,
+      inline: node.type === 'textDirective',
       line: node.position?.start?.line ?? 0,
     });
   });
@@ -155,7 +156,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
   const seenIds = new Map();
 
   for (const { path, markdown } of files) {
-    for (const { name, id, attributes, line } of directivesIn(markdown)) {
+    for (const { name, id, attributes, inline, line } of directivesIn(markdown)) {
       const at = `${path}:${line}`;
 
       if (!names.has(name)) {
@@ -186,6 +187,25 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
           inAnotherPack
             ? `${spelling} needs the "${inAnotherPack[0]}" island pack, which this book does not declare.`
             : `${spelling} is not an island provided by this book.`,
+          path,
+          line,
+        );
+        continue;
+      }
+
+      // An inline island written as a block, or a block one written inside a
+      // sentence, renders nothing useful: the engine keeps a text directive's
+      // label and drops a block's body, so the two forms are not
+      // interchangeable (SPEC001 P2.6).
+      const canonicalName = names.has(name) ? name : (aliases.get(name) ?? name);
+      const wantsInline = (CONTRACT.inline ?? []).includes(canonicalName);
+      if (wantsInline !== inline) {
+        report(
+          'error',
+          'directive-form',
+          wantsInline
+            ? `"${canonicalName}" is written inside a sentence, as ":${canonicalName}[label]".`
+            : `"${canonicalName}" is a block directive — write it as "::${canonicalName}", not ":${canonicalName}[…]".`,
           path,
           line,
         );

@@ -16,11 +16,11 @@ interface DirectiveNode {
 
 /**
  * Remark plugin: rewrites every container/leaf/text directive into a neutral
- * `<island>` hast element carrying `type`, `id`, and a JSON `config`. If the
- * directive's island is declared by the book (and has an `extract`), its
- * structured `data` is computed here; directives outside the book's registry
- * still become islands and render as a clear "unknown" placeholder (so imported
- * books degrade gracefully).
+ * `<island>` (or `<island-inline>`) hast element carrying `type`, `id`, and a
+ * JSON `config`. If the directive's island is declared by the book (and has an
+ * `extract`), its structured `data` is computed here; directives outside the
+ * book's registry still become islands and render as a clear "unknown"
+ * placeholder (so imported books degrade gracefully).
  *
  * Prose is untouched — only directive nodes become interactive islands.
  */
@@ -51,13 +51,28 @@ export function remarkIslands(registry: IslandRegistry) {
       // break a page for a reader. The content linter is what reports them.
       const { values } = resolveAttributes(definition?.attributes, attributes);
 
+      const inline = directive.type === 'textDirective';
+
       directive.data = directive.data ?? {};
-      directive.data.hName = 'island';
+      // A separate element for inline islands, because the two cannot share a
+      // renderer: a block island is a `div` and would be invalid inside the
+      // paragraph a text directive lives in (SPEC001 P2.6 / L12).
+      directive.data.hName = inline ? 'island-inline' : 'island';
       directive.data.hProperties = {
         type: name,
         id: attributes.id ?? '',
         config: JSON.stringify({ attributes: values, data }),
       };
+
+      if (inline) {
+        // The bracketed label **is** the content, and it is also the static
+        // form: `:term[palimpsest]` with the interactivity stripped is the word
+        // "palimpsest", which is exactly what an export wants. So an inline
+        // island keeps its children and needs no `fallback` at all. Clearing
+        // them — which this plugin used to do for all three directive types —
+        // is what made text directives lose their label (L12).
+        return;
+      }
 
       // The authored body is replaced by the island's static form, so the
       // compiled document still says what this island is when the

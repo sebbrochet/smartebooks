@@ -518,6 +518,37 @@ body {
   font-size: 0.9rem;
 }
 
+/*
+ * Inline islands (SPEC001 P2.6). These live inside a sentence, so everything
+ * here is about *not* interrupting it: no box, no block, nothing that changes
+ * the line height of the paragraph it sits in.
+ */
+.island-inline {
+  display: inline;
+}
+
+.island-term__word {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  /* A dotted underline is the printed convention for a glossed word. */
+  border-bottom: 1px dotted currentColor;
+}
+
+.island-term__definition {
+  display: inline;
+  margin-left: 0.35rem;
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+.island-term__definition::before {
+  content: '— ';
+}
+
 /* Checkpoint */
 .island--checkpoint {
   display: flex;

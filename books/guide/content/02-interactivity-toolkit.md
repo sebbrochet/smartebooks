@@ -80,4 +80,18 @@ flowchart LR
 
 The diagram follows your light/dark setting — switch the theme in the header and it redraws.
 
+## Marks inside a sentence
+
+Every directive so far interrupts the prose to do its work — which is right for a quiz and
+wrong for a definition. A `:term[…]` mark stays *in* the sentence: the word keeps its place,
+and the explanation appears only if you ask for it.
+
+A :term[palimpsest]{definition="A manuscript page scraped clean and written on again."} is a
+good name for what an inline island does to a word: it writes something over it without
+taking the page away. Tap it, and tap it again to put it back.
+
+This is the same shape a novel needs for its characters, a travel guide for its places, and a
+chess book for its moves. Strip the interactivity and you get the word the author wrote —
+which is exactly how a printed glossary reads.
+
 ::checkpoint{id="ch2-done" label="I explored the interactivity toolkit"}

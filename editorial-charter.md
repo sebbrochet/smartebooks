@@ -229,8 +229,25 @@ Ra8# — a back-rank mate.
   text the reader sees. `chess-diagram` takes the same tokens in its `shapes` attribute.
 - **State:** current position per board; solved flag per puzzle.
 
-### Roadmap directives (not yet available)
+### `term` — a mark inside a sentence
 
+```markdown
+A :term[palimpsest]{definition="A manuscript page scraped clean and written on again."} page.
+```
+
+- The **only** directive written in the inline form `:name[label]{…}`. Everything else is `::` or
+  `:::`, and writing either one the other way is a lint error — the two forms are not
+  interchangeable.
+- The bracketed label is the word as it appears in the sentence. It stays in the prose: no box, no
+  block, no change to the line.
+- Attribute: `definition`. Without one the word simply renders as itself, because a term with nothing
+  to explain is not worth interrupting a sentence for.
+- No `id`: the island stores nothing.
+- **Static form:** the label. An inline island needs no fallback — stripped of interactivity it is
+  the word the author wrote, which is how a printed glossary term reads.
+- **State:** none.
+
+### Roadmap directives (not yet available)
 `:::playground` (sandboxed runnable snippet) and `:::contribution` (reader-submitted content) are
 **planned but not implemented**. Using one today is a **lint error** that fails the build — it does
 not degrade to a placeholder. Do not write content against them.

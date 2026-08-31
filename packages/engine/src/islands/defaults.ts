@@ -5,6 +5,7 @@ import { VideoIsland } from './VideoIsland';
 import { FlashcardIsland } from './FlashcardIsland';
 import { AudioIsland } from './AudioIsland';
 import { MatchingPairsIsland } from './MatchingPairsIsland';
+import { TermIsland } from './TermIsland';
 import { extractFlashcard, extractJsonConfig, extractQuiz } from '../markdown/extract';
 import { checkpointFallback, flashcardFallback, quizFallback } from './fallbacks';
 
@@ -57,5 +58,16 @@ export const defaultIslands: IslandDefinition[] = [
     aliases: ['matchingpairs'],
     component: MatchingPairsIsland,
     extract: (node) => extractJsonConfig(node),
+  },
+  {
+    // Written inside a sentence: `:term[palimpsest]{definition="…"}`.
+    name: 'term',
+    inline: true,
+    component: TermIsland,
+    attributes: {
+      definition: { type: 'string', default: '' },
+    },
+    // No `fallback`: an inline island's children are its static form, and the
+    // engine keeps them rather than replacing them.
   },
 ];

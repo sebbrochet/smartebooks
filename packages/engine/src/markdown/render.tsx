@@ -10,6 +10,7 @@ import rehypeReact, { type Options as RehypeReactOptions } from 'rehype-react';
 import { remarkIslands } from './remarkIslands';
 import { rehypeResolveAssets } from './rehypeResolveAssets';
 import { IslandHost } from './IslandHost';
+import { IslandHostInline } from './IslandHostInline';
 import type { IslandRegistry } from '../islandRegistry';
 
 const rehypeReactOptions = {
@@ -18,17 +19,22 @@ const rehypeReactOptions = {
   jsxs,
   components: {
     island: IslandHost,
+    'island-inline': IslandHostInline,
   },
 } as unknown as RehypeReactOptions;
 
 // For untrusted (imported) content: sanitize the HTML but keep our neutral
-// <island> element (its interactive component decides how to treat its config).
+// <island> elements (their interactive component decides how to treat its
+// config). `island-inline` carries the authored label as children, so unlike
+// `island` its content survives sanitising — which is fine: it is ordinary
+// phrasing content and is sanitised like any other.
 const untrustedSchema = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'island'],
+  tagNames: [...(defaultSchema.tagNames ?? []), 'island', 'island-inline'],
   attributes: {
     ...defaultSchema.attributes,
     island: ['type', 'id', 'config'],
+    'island-inline': ['type', 'id', 'config'],
   },
 };
 

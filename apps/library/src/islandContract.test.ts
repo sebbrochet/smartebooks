@@ -57,6 +57,18 @@ describe('island-contract.json', () => {
     }
   });
 
+  // The linter checks that an inline island is written as `:name[…]` and a
+  // block one is not, so a drifted list here would let a directive that renders
+  // nothing pass review.
+  it('lists exactly the islands that are written inside a sentence', () => {
+    expect([...contract.inline].sort()).toEqual(
+      allIslands()
+        .filter((island) => island.inline)
+        .map((island) => island.name)
+        .sort(),
+    );
+  });
+
   // The linter validates content against these, so a drifted schema means
   // either false errors or attributes silently going unchecked.
   it('describes the same attributes the islands declare', () => {
