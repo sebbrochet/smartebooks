@@ -139,8 +139,14 @@ Task-list syntax marks the answer(s); a blockquote after a question is its expla
 - `src` may be a YouTube URL, an `https:` URL, or a **packaged asset** (`assets/clip.mp4`). A packaged
   path that the book does not ship is a lint error (`asset-missing`).
 - In an imported (untrusted) book, only packaged assets, YouTube embeds and `https:` sources play.
+- **Nothing is requested until the reader presses play.** A YouTube video shows a local placeholder
+  saying where it is about to load from; the embed is created on click, from
+  `youtube-nocookie.com`. A file gets `preload="none"`. So a chapter with three videos costs the
+  reader nothing — in bytes or in who is told they opened it — until they choose one.
+- `title` is the accessible name of that play control, not decoration. Write it as the video's name.
 - Provide a caption or summary in the surrounding prose, for the non-video fallback.
-- **State:** watched flag. (Playback position is not stored — see SPEC001 L16.)
+- **State:** watched flag, set when the reader presses play. (Playback position is not stored — see
+  SPEC001 L16.)
 
 ### `::audio` — Embedded audio (leaf)
 
