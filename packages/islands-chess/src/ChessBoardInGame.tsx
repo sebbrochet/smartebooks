@@ -70,10 +70,23 @@ export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
     apiRef.current?.setShapes(shapes);
   }, [fen, shapes]);
 
-  if (!game || !tree || tree.children.length === 0) {
+  if (!game || !sequence) {
     return (
       <div className="island island--unknown" role="note">
-        A <code>chess-board</code> here needs to be inside a <code>chess-game</code>.
+        A <code>chess-board</code> with no game of its own has to be inside a{' '}
+        <code>chess-game</code>.
+      </div>
+    );
+  }
+
+  // Three different mistakes used to share one message, and it named the wrong
+  // one: a `chess-game` whose PGN was missing or unparseable told the author
+  // their board was in the wrong place, which sent them to the wrong line.
+  if (!tree || tree.children.length === 0) {
+    return (
+      <div className="island island--unknown" role="note">
+        This <code>chess-game</code> has no moves to show. Give it a <code>pgn</code> code block or
+        a <code>pgn=&quot;assets/…&quot;</code> file.
       </div>
     );
   }
@@ -88,8 +101,9 @@ export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
 
   // The same keys a standalone board answers to. Losing them in the newer
   // authoring form would be an accessibility regression, not a missing feature.
+  const go = sequence.go;
   function onKeyDown(event: React.KeyboardEvent) {
-    if (pinned || !sequence) return;
+    if (pinned) return;
     const to: string | undefined = {
       ArrowLeft: previous,
       ArrowRight: next,
@@ -98,7 +112,7 @@ export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
     }[event.key];
     if (to === undefined) return;
     event.preventDefault();
-    sequence.go(to);
+    go(to);
   }
 
   return (
@@ -115,7 +129,7 @@ export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
         }
         onKeyDown={onKeyDown}
       />
-      {!pinned && sequence && (
+      {!pinned && (
         <div className="chessboard-island__controls">
           <div className="chessboard-island__buttons" role="group" aria-label="Move navigation">
             <button

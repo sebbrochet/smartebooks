@@ -91,6 +91,8 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
     {
       name: 'chess-board',
       aliases: ['chessboard'],
+      // Owns its position when it stands alone; owns nothing inside a game.
+      stateful: { unlessInside: 'chess-game' },
       attributes: {
         ...boardAttributes,
         analysis: { type: 'boolean', default: false },
@@ -162,6 +164,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
     {
       name: 'chess-puzzle',
       aliases: ['chesspuzzle'],
+      stateful: true,
       attributes: {
         ...boardAttributes,
         fen: { type: 'string', required: true },
@@ -299,6 +302,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       // (SPEC001 §4.1, SPEC008 G4).
       name: 'chess-game',
       aliases: ['chessgame'],
+      stateful: true,
       attributes: {
         ...boardAttributes,
         shapes: { type: 'boolean', default: true },

@@ -82,6 +82,22 @@ export interface IslandDefinition {
    *   island that was configured by it.
    */
   rendersChildren?: true;
+  /**
+   * This island saves something for the reader, under a key derived from its
+   * `id` (SPEC001 P1.3 / L3).
+   *
+   * Declared rather than inferred, because the engine cannot see inside a lazy
+   * component to find out — and the fact is needed at *lint* time, where no
+   * component runs at all. What it buys is `id-missing`: an island that
+   * persists and has no `id` writes to a key like `quiz:`, which every other
+   * id-less island of its kind in the book also writes to, so two readers'
+   * answers become one. That is silent at runtime and invisible in review.
+   *
+   * `{ unlessInside }` for an island whose state depends on where it sits: a
+   * `chess-board` owns its position on its own and owns nothing inside a
+   * `chess-game`, where the container keeps one position for every board in it.
+   */
+  stateful?: true | { unlessInside: string };
 }
 
 // Islands are never registered globally: every book declares the exact set it

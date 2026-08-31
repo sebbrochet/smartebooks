@@ -342,7 +342,9 @@ test('a pinned board stays where it was put', async ({ page }) => {
   await expect(page.locator('.chessboard-island .cg-wrap')).toHaveCount(2);
 
   // The pinned one is a diagram: a caption naming its move, and no controls.
-  const pinned = page.locator('.chessboard-island', { has: page.locator('.chess-diagram__caption') });
+  const pinned = page.locator('.chessboard-island', {
+    has: page.locator('.chess-diagram__caption'),
+  });
   await expect(pinned.locator('.chess-diagram__caption')).toHaveText('4. Qxf7#');
   await expect(pinned.getByRole('button')).toHaveCount(0);
 

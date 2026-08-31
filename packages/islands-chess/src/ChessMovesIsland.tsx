@@ -18,7 +18,19 @@ export default function ChessMovesIsland({ attributes }: IslandComponentProps) {
   if (!game || !sequence) {
     return (
       <div className="island island--unknown" role="note">
-        A <code>chess-moves</code> here needs to be inside a <code>chess-game</code>.
+        A <code>chess-moves</code> has to be inside a <code>chess-game</code>.
+      </div>
+    );
+  }
+
+  // Distinct from the message above, because it is a different mistake on a
+  // different line: the board is where the author put it, and the game it is
+  // in has nothing to show.
+  if (game.tree.children.length === 0) {
+    return (
+      <div className="island island--unknown" role="note">
+        This <code>chess-game</code> has no moves to show. Give it a <code>pgn</code> code block or
+        a <code>pgn=&quot;assets/…&quot;</code> file.
       </div>
     );
   }

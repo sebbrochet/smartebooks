@@ -2,6 +2,18 @@
   "$comment": "The island vocabulary an author may use. Hand-maintained for now; apps/library/src/islandContract.test.ts fails if it drifts from the real registries. Consumed by scripts/lint-content.mjs, which cannot import the engine's TypeScript directly. See SPEC006 F1.2.",
   "builtIn": ["quiz", "checkpoint", "video", "flashcard", "audio", "matching-pairs", "term"],
   "inline": ["term", "move"],
+  "$comment-stateful": "Islands that save something for the reader under a key derived from their id. The linter requires an id on these: without one they all write to the same key. An entry with `unlessInside` is stateful only outside that container, which owns the state instead.",
+  "stateful": [
+    "quiz",
+    "checkpoint",
+    "video",
+    "flashcard",
+    "audio",
+    "matching-pairs",
+    "chess-puzzle",
+    "chess-game",
+    { "name": "chess-board", "unlessInside": "chess-game" }
+  ],
   "packs": {
     "chess": [
       "chess-board",

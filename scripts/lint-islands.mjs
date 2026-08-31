@@ -40,27 +40,55 @@ export function allowedIslands(descriptor) {
 /** Every directive in one Markdown source, with its name, id and position. */
 function directivesIn(markdown) {
   const found = [];
-  visit(parser.parse(markdown), (node) => {
-    if (
-      node.type !== 'containerDirective' &&
-      node.type !== 'leafDirective' &&
-      node.type !== 'textDirective'
-    ) {
-      return;
+  // A hand-written walk rather than `visit`, because one rule needs to know
+  // what a directive is *inside*: a `::chess-board` in a `:::chess-game` saves
+  // nothing, the container does. `visit` offers only the immediate parent, and
+  // relying on that would break the moment a directive gained a wrapper.
+  const walk = (node, ancestors) => {
+    const isDirective =
+      node.type === 'containerDirective' ||
+      node.type === 'leafDirective' ||
+      node.type === 'textDirective';
+
+    if (isDirective) {
+      const attributes = {};
+      for (const [key, value] of Object.entries(node.attributes ?? {})) {
+        if (typeof value === 'string') attributes[key] = value;
+      }
+      found.push({
+        name: node.name,
+        id: typeof attributes.id === 'string' ? attributes.id : undefined,
+        attributes,
+        inline: node.type === 'textDirective',
+        ancestors,
+        line: node.position?.start?.line ?? 0,
+      });
     }
-    const attributes = {};
-    for (const [key, value] of Object.entries(node.attributes ?? {})) {
-      if (typeof value === 'string') attributes[key] = value;
-    }
-    found.push({
-      name: node.name,
-      id: typeof attributes.id === 'string' ? attributes.id : undefined,
-      attributes,
-      inline: node.type === 'textDirective',
-      line: node.position?.start?.line ?? 0,
-    });
-  });
+
+    const inner = isDirective ? [...ancestors, node.name] : ancestors;
+    for (const child of node.children ?? []) walk(child, inner);
+  };
+
+  walk(parser.parse(markdown), []);
   return found;
+}
+
+/**
+ * Does this directive save something for the reader under its own id?
+ *
+ * Usually a property of the island alone, but not always: a `::chess-board`
+ * inside a `:::chess-game` saves nothing, because the container owns the
+ * position for every board in it. The contract spells that out per island
+ * (`{ name, unlessInside }`) rather than the linter knowing anything about
+ * chess.
+ */
+function isStateful(canonicalName, ancestors) {
+  const entry = (CONTRACT.stateful ?? []).find((it) =>
+    typeof it === 'string' ? it === canonicalName : it.name === canonicalName,
+  );
+  if (!entry) return false;
+  if (typeof entry === 'string') return true;
+  return !ancestors.includes(entry.unlessInside);
 }
 
 /** Markdown image references, e.g. `![alt](assets/diagram.png)`. */
@@ -156,7 +184,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
   const seenIds = new Map();
 
   for (const { path, markdown } of files) {
-    for (const { name, id, attributes, inline, line } of directivesIn(markdown)) {
+    for (const { name, id, attributes, inline, ancestors, line } of directivesIn(markdown)) {
       const at = `${path}:${line}`;
 
       if (!names.has(name)) {
@@ -225,6 +253,23 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
         } else {
           seenIds.set(id, at);
         }
+      } else if (
+        isStateful(
+          canonicalName,
+          ancestors.map((a) => (names.has(a) ? a : (aliases.get(a) ?? a))),
+        )
+      ) {
+        // An island that saves something and has no id writes to a key like
+        // `quiz:` — which every other id-less island of its kind in the book
+        // also writes to, so two readers' answers become one. Silent at
+        // runtime, invisible in review, and only the author can fix it.
+        report(
+          'error',
+          'id-missing',
+          `":::${name}" saves the reader's progress and needs an id.`,
+          path,
+          line,
+        );
       }
 
       for (const detail of checkAttributes(name, attributes)) {

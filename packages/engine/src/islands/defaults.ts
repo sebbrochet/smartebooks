@@ -18,12 +18,14 @@ export const defaultIslands: IslandDefinition[] = [
   {
     name: 'quiz',
     component: QuizIsland,
+    stateful: true,
     extract: (node) => extractQuiz(node),
     fallback: quizFallback,
   },
   {
     name: 'checkpoint',
     component: CheckpointIsland,
+    stateful: true,
     attributes: {
       label: { type: 'string', default: 'Mark this section as complete' },
     },
@@ -32,6 +34,7 @@ export const defaultIslands: IslandDefinition[] = [
   {
     name: 'video',
     component: VideoIsland,
+    stateful: true,
     // `src` is required: a video island with no source is an authoring mistake
     // worth catching at build time rather than rendering an empty player.
     attributes: {
@@ -42,12 +45,14 @@ export const defaultIslands: IslandDefinition[] = [
   {
     name: 'flashcard',
     component: FlashcardIsland,
+    stateful: true,
     extract: (node) => extractFlashcard(node),
     fallback: flashcardFallback,
   },
   {
     name: 'audio',
     component: AudioIsland,
+    stateful: true,
     attributes: {
       src: { type: 'asset', required: true },
       title: { type: 'string', default: 'Audio' },
@@ -57,6 +62,7 @@ export const defaultIslands: IslandDefinition[] = [
     name: 'matching-pairs',
     aliases: ['matchingpairs'],
     component: MatchingPairsIsland,
+    stateful: true,
     extract: (node) => extractJsonConfig(node),
   },
   {

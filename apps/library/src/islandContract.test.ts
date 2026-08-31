@@ -69,6 +69,22 @@ describe('island-contract.json', () => {
     );
   });
 
+  // The linter requires an `id` on these, so a drifted list would either let an
+  // island silently share a storage key with every other id-less island of its
+  // kind, or demand an id from one that saves nothing.
+  it('lists exactly the islands that save something for the reader', () => {
+    const key = (entry: unknown) => (typeof entry === 'string' ? entry : JSON.stringify(entry));
+    const fromCode = allIslands()
+      .filter((island) => island.stateful)
+      .map((island) =>
+        island.stateful === true
+          ? island.name
+          : { name: island.name, ...(island.stateful as { unlessInside: string }) },
+      );
+
+    expect([...contract.stateful].map(key).sort()).toEqual(fromCode.map(key).sort());
+  });
+
   // The linter validates content against these, so a drifted schema means
   // either false errors or attributes silently going unchecked.
   it('describes the same attributes the islands declare', () => {

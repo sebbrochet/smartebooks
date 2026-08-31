@@ -80,6 +80,53 @@ describe('checkDirectives', () => {
     assert.deepEqual(rules(checkDirectives(book(), across)), ['id-duplicate']);
   });
 
+  // An island that saves something and has no id writes to a key like `quiz:`,
+  // and so does every other id-less quiz in the book, so two readers' answers
+  // become one. Nothing at runtime says so.
+  test('rejects a stateful island with no id', () => {
+    const problems = checkDirectives(book(), file(':::quiz\n\n### A\n\n:::'));
+    assert.deepEqual(rules(problems), ['id-missing']);
+    assert.match(problems[0].message, /needs an id/);
+  });
+
+  test('says nothing about an island that saves nothing', () => {
+    assert.deepEqual(checkDirectives(book(), file('A :term[palimpsest] page.')), []);
+    assert.deepEqual(
+      checkDirectives(book({ packs: { chess: {} } }), file('::chess-analysis{fen="8/8"}')),
+      [],
+    );
+  });
+
+  // Statefulness is not always a property of the island alone: inside a
+  // `chess-game` the container owns one position for every board in it, so
+  // demanding an id from each board would be asking for a key nothing writes.
+  test('does not demand an id from a board whose container owns the state', () => {
+    const markdown = [
+      ':::chess-game{id="g"}',
+      '',
+      '```pgn',
+      '1. e4 e5',
+      '```',
+      '',
+      '::chess-board',
+      '',
+      ':::',
+    ].join('\n');
+    assert.deepEqual(checkDirectives(book({ packs: { chess: {} } }), file(markdown)), []);
+  });
+
+  test('still demands one from the same board standing on its own', () => {
+    const markdown = ':::chess-board\n\n```pgn\n1. e4 e5\n```\n\n:::';
+    const problems = checkDirectives(book({ packs: { chess: {} } }), file(markdown));
+    assert.deepEqual(rules(problems), ['id-missing']);
+  });
+
+  test('and from the container itself', () => {
+    const markdown = ':::chess-game\n\n```pgn\n1. e4 e5\n```\n\n::chess-board\n\n:::';
+    const problems = checkDirectives(book({ packs: { chess: {} } }), file(markdown));
+    assert.deepEqual(rules(problems), ['id-missing']);
+  });
+
   // Why the real parser is used instead of a regex.
   test('ignores directive-looking text inside fenced code', () => {
     const markdown = '```\n:::quiz{id="not-real"}\n```\n\n:::quiz{id="real"}\n\n### Q\n\n:::';
@@ -131,9 +178,13 @@ describe('checkDirectives', () => {
 
   // The runtime falls back to a default so a reader never loses a page; the
   // author is told here instead (SPEC001 P1.2).
+  //
+  // These fixtures carry an `id` because the island under test is a stateful
+  // one, and omitting it is now its own error — which would drown the rule
+  // each of these is actually about.
   test('rejects a value outside an enum', () => {
     const descriptor = book({ packs: { chess: {} } });
-    const problems = checkDirectives(descriptor, file('::chess-board{theme="hot-pink"}'));
+    const problems = checkDirectives(descriptor, file('::chess-board{id="b" theme="hot-pink"}'));
     assert.deepEqual(rules(problems), ['attribute-invalid']);
     assert.match(problems[0].message, /must be one of brown, blue, green, grey/);
   });
@@ -141,29 +192,32 @@ describe('checkDirectives', () => {
   test('accepts every value the enum allows', () => {
     const descriptor = book({ packs: { chess: {} } });
     for (const theme of ['brown', 'blue', 'green', 'grey']) {
-      assert.deepEqual(checkDirectives(descriptor, file(`::chess-board{theme="${theme}"}`)), []);
+      assert.deepEqual(
+        checkDirectives(descriptor, file(`::chess-board{id="b" theme="${theme}"}`)),
+        [],
+      );
     }
   });
 
   test('rejects a missing required attribute', () => {
-    const problems = checkDirectives(book(), file('::video{title="No source"}'));
+    const problems = checkDirectives(book(), file('::video{id="v" title="No source"}'));
     assert.deepEqual(rules(problems), ['attribute-invalid']);
     assert.match(problems[0].message, /"src" is required/);
   });
 
   test('accepts a bare boolean flag', () => {
     const descriptor = book({ packs: { chess: {} } });
-    assert.deepEqual(checkDirectives(descriptor, file('::chess-board{analysis}')), []);
+    assert.deepEqual(checkDirectives(descriptor, file('::chess-board{id="b" analysis}')), []);
   });
 
   test('rejects a boolean it cannot read', () => {
     const descriptor = book({ packs: { chess: {} } });
-    const problems = checkDirectives(descriptor, file('::chess-board{analysis="maybe"}'));
+    const problems = checkDirectives(descriptor, file('::chess-board{id="b" analysis="maybe"}'));
     assert.deepEqual(rules(problems), ['attribute-invalid']);
   });
 
   test('says nothing about attributes an island never declared', () => {
-    assert.deepEqual(checkDirectives(book(), file('::video{src="a.mp4" data-x="y"}')), []);
+    assert.deepEqual(checkDirectives(book(), file('::video{id="v" src="a.mp4" data-x="y"}')), []);
   });
 });
 

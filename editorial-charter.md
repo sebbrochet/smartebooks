@@ -67,7 +67,11 @@ Which form a directive takes is fixed per directive, not a choice — see §4.
   unknown value falls back to its default at runtime and is an error at lint time
   (`attribute-invalid`).
 - `id` is **required on any stateful directive** (quiz, flashcard, checkpoint, media, games) so its
-  progress can be persisted deterministically. Duplicates are an error (`id-duplicate`).
+  progress can be persisted deterministically. Omitting one is an error (`id-missing`) and
+  duplicates are an error (`id-duplicate`). Both matter for the same reason: without an id every
+  quiz in the book writes to the same key, which is exactly what two quizzes sharing an id do.
+  The one exception is an island whose state belongs to a container it sits in — a `::chess-board`
+  inside a `:::chess-game` needs no id, because the game holds one position for every board in it.
 - `id` values are **stable and unique within the book** (kebab-case, prefixed by chapter, e.g.
   `ch1-tokens-quiz`). Changing an `id` resets that element's saved state.
 - The **body** of a directive is normal Markdown, so the block still reads acceptably without the
@@ -258,11 +262,21 @@ After :move[4. Qxf7#] it is over.
 critical moment, more prose, the score where you want it. Use it whenever the commentary matters as
 much as the moves; use `chess-board` when you just want a game on the page.
 
+**What you must write, and what you may leave out.** Only two things are required: the
+`:::chess-game` itself with an `id`, and **a game for it to hold** — either a fenced ` ```pgn ` block
+in the body or a `pgn="assets/…"` attribute. Everything inside is optional, including the board:
+a game with prose, `:move` marks and no `::chess-board` at all is valid, and so is one with six
+boards.
+
+**The PGN is the only source of moves.** `:move[2. Bc4]` does not *make* a move — it names one that
+must already be in the game, and renders as the words you typed if it is not. Without a PGN there is
+no game: every mark becomes plain text and every board and score inside says so.
+
 - `chess-game` (container): `pgn`, `shapes`, plus `theme` / `pieces` / `orientation`. It owns the
   game and the position and **draws nothing itself** — it renders the body you wrote. The fenced
   ` ```pgn ` block is configuration, not content: it is consumed, not printed.
-- `::chess-board` **inside** a game takes no PGN of its own. Zero, one or a dozen are fine, and they
-  all show the same position.
+- `::chess-board` **inside** a game takes no PGN and no `id` of its own — the container holds one
+  position for every board in it. Zero, one or a dozen are fine, and they all show that position.
   - `at` pins one to a fixed position and takes its controls away, which is what a printed diagram
     does. Its value is a move, written as you would write it in prose: `at="4. Qxf7#"`.
 - `::chess-moves` (leaf): `scroll` (default `true`) — the game score, placed where you want it.
