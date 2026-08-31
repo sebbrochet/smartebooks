@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from 'react';
 import { useBook } from '../reader/BookContext';
+import { IslandBoundary } from './IslandBoundary';
 import type { AttributeValue } from '../islands/attributes';
 
 interface IslandHostProps {
@@ -72,13 +73,15 @@ export function IslandHost({ type, id, config }: IslandHostProps) {
   }
 
   return (
-    <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
-      <Component
-        id={id ?? ''}
-        attributes={attributes}
-        packagedAssets={packagedAssets}
-        data={parsed.data}
-      />
-    </Suspense>
+    <IslandBoundary type={type ?? 'island'}>
+      <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
+        <Component
+          id={id ?? ''}
+          attributes={attributes}
+          packagedAssets={packagedAssets}
+          data={parsed.data}
+        />
+      </Suspense>
+    </IslandBoundary>
   );
 }

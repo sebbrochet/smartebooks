@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 test('chess board island renders and navigates moves', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
@@ -47,6 +47,80 @@ test('chess puzzle island reveals its solution', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
   await page.getByRole('button', { name: 'Reveal solution' }).click();
   await expect(page.getByText(/Ra8#/)).toBeVisible();
+});
+
+/**
+ * Chessground draws pieces as positioned elements, not per-square nodes, so a
+ * square is a fraction of the board's box rather than a locator. Moves are
+ * dragged rather than click-selected, because dragging is what a reader does
+ * and it does not depend on the library's selection state surviving a redraw.
+ */
+async function playMove(page: Page, board: Locator, from: string, to: string) {
+  // Mouse coordinates are viewport coordinates. The board sits well down a long
+  // chapter, so without this the drag lands outside the window and nothing
+  // happens — silently, because a miss is not an error.
+  await board.scrollIntoViewIfNeeded();
+  const box = await board.boundingBox();
+  if (!box) throw new Error('board has no box');
+  const at = (square: string) => ({
+    x: box.x + (box.width * ('abcdefgh'.indexOf(square[0]) + 0.5)) / 8,
+    y: box.y + (box.height * (8 - (Number(square[1]) - 1) - 0.5)) / 8,
+  });
+
+  const start = at(from);
+  const end = at(to);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 8 });
+  await page.mouse.up();
+}
+
+test('a puzzle with a solution marks the answer instead of asking you to', async ({ page }) => {
+  await page.goto('/#/chess/03-a-game-from-a-file');
+
+  const puzzle = page.getByTestId('chess-puzzle');
+  const board = puzzle.locator('.chessboard-island__board');
+  const state = page.getByTestId('chess-puzzle-state');
+
+  // No self-marking checkbox, and no answer to peek at: the island knows.
+  await expect(puzzle.getByRole('checkbox')).toHaveCount(0);
+  await expect(puzzle.getByRole('button', { name: /Reveal solution/ })).toHaveCount(0);
+  // The lazy island plus three boards on the page make the first paint slow on
+  // a loaded machine.
+  await expect(state).toHaveText('Your move.', { timeout: 20_000 });
+
+  // A wrong move is refused and the position is put back, so the reader is
+  // looking at the same question.
+  await playMove(page, board, 'b2', 'b7');
+  await expect(state).toHaveText(/Not that one/);
+
+  // The hint is there for the asking, and only for the asking.
+  await puzzle.getByRole('button', { name: 'Hint' }).click();
+  await expect(puzzle.getByText(/holds the back rank/)).toBeVisible();
+
+  // The solution is a line: the island plays Black's reply, and the reader
+  // answers the second move too.
+  await playMove(page, board, 'b2', 'b8');
+  await expect(state).toHaveText(/Right/);
+
+  // Black has recaptured on b8, so the mate is the other rook taking it.
+  await playMove(page, board, 'b1', 'b8');
+  await expect(state).toHaveText('Solved');
+  await expect(puzzle.getByText(/only defender of the back rank/)).toBeVisible();
+});
+
+test('a board can take its game from a packaged PGN file', async ({ page }) => {
+  await page.goto('/#/chess/03-a-game-from-a-file');
+
+  const list = page.getByTestId('chess-move-list');
+  // Nothing in the chapter's Markdown carries these moves — they are read from
+  // assets/immortal.pgn at render time.
+  await expect(list.getByRole('button', { name: '1. e4' })).toBeVisible();
+  await expect(list.getByRole('button', { name: '23. Be7#' })).toBeVisible();
+  await expect(list.getByText(/most famous game ever played/)).toBeVisible();
+
+  await list.getByRole('button', { name: '23. Be7#' }).click();
+  await expect(page.getByTestId('chess-move')).toHaveText('23. Be7#');
 });
 
 test('stockfish analysis of the current board position', async ({ page }) => {
@@ -118,14 +192,38 @@ test("an annotator's evaluation is shown before any engine runs", async ({ page 
   await expect(analysis.getByRole('button')).toHaveText(/Check with Stockfish/);
 });
 
-test('standalone analysis island evaluates its own position', async ({ page }) => {
+test('standalone analysis island evaluates its own position, and only on request', async ({
+  page,
+}) => {
+  // SPEC008 C9 claimed an imported book "silently starts" a WASM worker. It
+  // does not, and this is the check that says so: nothing runs until the reader
+  // clicks. What is genuinely missing is a *declaration* a reader could see
+  // before importing the book, which is SPEC001 P2.5's job, not the pack's.
+  await page.addInitScript(() => {
+    const Original = window.Worker;
+    Object.defineProperty(window, '__workersStarted', { value: 0, writable: true });
+    window.Worker = class extends Original {
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options);
+        (window as unknown as { __workersStarted: number }).__workersStarted += 1;
+      }
+    };
+  });
+
   await page.goto('/#/chess/02-reading-an-annotated-game');
+
   // `::chess-analysis` has no board to navigate — it evaluates the FEN it was
   // given. Covered because an island that ships undemonstrated and untested is
   // how this one sat unused for a release.
   const analysis = page.locator('.island--chess-analysis');
+  await expect(analysis.getByTestId('chess-stated-eval')).toBeVisible();
+  const started = () =>
+    page.evaluate(() => (window as unknown as { __workersStarted: number }).__workersStarted);
+  expect(await started()).toBe(0);
+
   await analysis.getByRole('button', { name: /with Stockfish/ }).click();
   await expect(analysis.getByTestId('chess-eval')).toBeVisible({ timeout: 90_000 });
+  expect(await started()).toBeGreaterThan(0);
 });
 
 test('the move list shows the whole game and drives the board', async ({ page }) => {

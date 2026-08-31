@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import {
@@ -27,15 +27,47 @@ const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
  * (`theme`, `pieces`, `orientation`) are resolved and validated at parse time.
  * With `analysis=on`, an on-demand Stockfish evaluation of the current position
  * is offered below the board; with `moves`, the whole score is shown.
+ *
+ * The game comes from the directive body, or from a packaged `.pgn` file named
+ * by the `pgn` attribute, which wins when both are present.
  */
-export default function ChessBoardIsland({ id, attributes, data }: IslandComponentProps) {
+export default function ChessBoardIsland({
+  id,
+  attributes,
+  packagedAssets,
+  data,
+}: IslandComponentProps) {
   const parsed = (data as { pgn?: string; board?: BoardOptions }) ?? {};
-  const pgn = parsed.pgn ?? '';
+  const body = parsed.pgn ?? '';
   const { theme, pieces, orientation } = parsed.board ?? DEFAULT_BOARD_OPTIONS;
   const analysisOn = attrFlag(attributes.analysis);
   const shapesOn = attrFlag(attributes.shapes, true);
   const movesMode = attrText(attributes.moves, 'off');
-  const tree = useMemo(() => pgnToTree(pgn), [pgn]);
+
+  // Only a *packaged* file is read. `IslandHost` resolves `assets/…` values and
+  // reports which attributes it resolved; anything else — an absolute URL in an
+  // imported book, say — is left alone, and fetching it would let a book pull
+  // arbitrary content from the network on the reader's behalf.
+  const assetUrl = packagedAssets.includes('pgn') ? attrText(attributes.pgn) : '';
+  const [fromFile, setFromFile] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!assetUrl) return;
+    let cancelled = false;
+    fetch(assetUrl)
+      .then((response) => response.text())
+      // An empty string, not null: the difference is "still loading" versus
+      // "loaded, and there is no game in it".
+      .then((text) => !cancelled && setFromFile(text))
+      .catch(() => !cancelled && setFromFile(''));
+    return () => {
+      cancelled = true;
+    };
+  }, [assetUrl]);
+
+  const loading = assetUrl !== '' && fromFile === null;
+  const source = assetUrl ? (fromFile ?? '') : body;
+  const tree = useMemo(() => pgnToTree(source), [source]);
   const [stored, setStored] = usePersistentState<string | number>(`chessply:${id}`, '');
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
@@ -105,7 +137,9 @@ export default function ChessBoardIsland({ id, attributes, data }: IslandCompone
   }, [fen, shapes, shapesOn]);
 
   if (tree.children.length === 0) {
-    return (
+    return loading ? (
+      <div className="island island--loading" aria-busy="true" />
+    ) : (
       <div className="island island--unknown" role="note">
         No valid PGN to display.
       </div>

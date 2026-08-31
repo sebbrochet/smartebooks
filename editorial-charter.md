@@ -181,25 +181,53 @@ flowchart LR
 ### Chess directives — **pack: `chess`**
 
 ````markdown
-:::chess-board{id="ch1-game" pieces="unicode" analysis="on"}
+:::chess-board{id="ch1-game" pieces="unicode" analysis="on" moves="on"}
 ```pgn
-1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
+{Scholar's Mate.} 1. e4 e5 2. Bc4 {Eyeing f7. [%cal Gc4f7]} Nc6 3. Qh5?! Nf6?? 4. Qxf7#
 ```
 :::
 
-:::chess-puzzle{id="ch1-puzzle" fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
+:::chess-board{id="ch1-immortal" moves="scroll" pgn="assets/immortal.pgn"}
+:::
+
+::chess-diagram{fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1" caption="White to move."}
+
+:::chess-puzzle{id="ch1-puzzle" fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1" solution="Ra8#"}
 Ra8# — a back-rank mate.
 :::
 
-::chess-analysis{id="ch1-eval" fen="…"}
+::chess-analysis{id="ch1-eval" fen="…" eval="+0.20" best="a6"}
 ````
 
-- `chess-board` (container, body is a fenced ` ```pgn ` block): `theme`, `pieces`, `analysis`.
-- `chess-puzzle` (container, body is the solution prose): `theme`, `pieces`, `fen` (**required**).
-- `chess-analysis` (leaf): `fen` (**required**) — evaluation of one position, with no board.
-- `theme` is one of `brown` | `blue` | `green` | `grey`; `pieces` is `cburnett` | `unicode`. A book can
-  set its own defaults in `smartbook.json`.
-- **State:** current ply per board; solved flag per puzzle.
+- `chess-board` (container, body is a fenced ` ```pgn ` block): `theme`, `pieces`, `orientation`,
+  `analysis`, `shapes`, `moves`, `pgn`.
+  - `moves` is `off` (default) | `on` | `scroll` — show the whole game score, every move clickable.
+    `scroll` caps its height, which a long game needs.
+  - `pgn` names a **packaged** `.pgn` file and wins over the body. Declare it in `assets` like any
+    other asset. Note the cost: a board whose game lives in a file cannot produce a full static
+    form, so prefer the body unless the game is long or came from a real PGN.
+  - The PGN may contain **variations** — `1. e4 e5 (1... d5 2. exd5) 2. Nf3` — and they are shown,
+    indented, under the move they replace.
+- `chess-diagram` (leaf **or** container): `fen` (**required**), `caption`, `orientation`, `shapes`,
+  plus `theme` / `pieces`. A position and nothing else: no controls, no engine, no saved state. The
+  caption may be the container body instead of the attribute, which reads better and keeps the
+  directive line short.
+- `chess-puzzle` (container, body is the solution **prose**): `theme`, `pieces`, `orientation`,
+  `fen` (**required**), `solution`, `hint`.
+  - With `solution` — SAN, one move or a whole line, e.g. `solution="Rb8 Rxb8 Rxb8#"` — the reader
+    **plays** the move on the board and the island marks it, playing the opponent's replies. Without
+    one it stays "reveal the answer and tick the box yourself".
+  - Move numbers in a solution are tolerated and ignored. Write the moves the way you would in prose.
+- `chess-analysis` (leaf): `fen` (**required**), `depth`, `eval`, `best` — evaluation of one position,
+  with no board. `eval` and `best` state *your* assessment; they are shown before any engine runs, and
+  they are the only part that survives an export. The engine never starts until the reader clicks.
+- `theme` is one of `brown` | `blue` | `green` | `grey`; `pieces` is `cburnett` | `unicode`;
+  `orientation` is `white` | `black` | `auto` (the default — the side to move). A book can set its own
+  defaults in `smartbook.json`.
+- Comments may carry board drawings in PGN's own syntax: `[%cal Gd1h5]` for an arrow, `[%csl Rf7]`
+  for a highlighted square, colours `G`/`R`/`Y`/`B`. They are drawn on the board and removed from the
+  text the reader sees. `chess-diagram` takes the same tokens in its `shapes` attribute.
+- **State:** current position per board; solved flag per puzzle.
 
 ### Roadmap directives (not yet available)
 

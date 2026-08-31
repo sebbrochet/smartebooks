@@ -13,8 +13,10 @@
       "chess": { "board": { "theme": "blue" } }
     }
   },
+  "assets": ["assets/immortal.pgn"],
   "chapters": [
     { "file": "01-chess-basics.md", "order": 1 },
-    { "file": "02-reading-an-annotated-game.md", "order": 2 }
+    { "file": "02-reading-an-annotated-game.md", "order": 2 },
+    { "file": "03-a-game-from-a-file.md", "order": 3 }
   ]
 }

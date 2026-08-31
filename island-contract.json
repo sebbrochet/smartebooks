@@ -22,13 +22,16 @@
       "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
       "analysis": { "type": "boolean" },
       "shapes": { "type": "boolean" },
-      "moves": { "type": "enum", "values": ["off", "on", "scroll"] }
+      "moves": { "type": "enum", "values": ["off", "on", "scroll"] },
+      "pgn": { "type": "asset" }
     },
     "chess-puzzle": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
       "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
       "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
-      "fen": { "type": "string", "required": true }
+      "fen": { "type": "string", "required": true },
+      "solution": { "type": "string" },
+      "hint": { "type": "string" }
     },
     "chess-diagram": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },

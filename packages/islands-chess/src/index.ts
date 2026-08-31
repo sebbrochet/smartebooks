@@ -33,6 +33,7 @@ export {
   type PieceSet,
 } from './boardOptions';
 export { extractShapes, parseShapes, type MoveShape } from './shapes';
+export { play, playSan, positionFrom, sameMove, solutionMoves } from './puzzle';
 export {
   mainline,
   mainlinePath,
@@ -98,6 +99,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         // Off by default: a 60-move game would otherwise put a wall of text
         // under every board, and every existing chapter would change shape.
         moves: { type: 'enum', values: MOVE_LIST_MODES, default: 'off' },
+        // A packaged `.pgn` file, which is how real annotated material arrives.
+        // Wins over the body when both are present.
+        pgn: { type: 'asset' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -115,9 +119,27 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       // Built from the PGN text rather than from a replayed game, because this
       // runs at parse time in the module every reader loads — see the note in
       // `score.ts` for what replaying it here costs.
-      fallback: (_node, data) => {
+      //
+      // A game that lives in a packaged file cannot be reached from here at
+      // all: a fallback runs at parse time and an asset is bytes on the book,
+      // resolved per reader and per session. Such a board says where its game
+      // is instead of pretending it has none (SPEC008 C13).
+      fallback: (_node, data, ctx) => {
         const pgn = (data as { pgn?: string } | undefined)?.pgn ?? '';
-        if (!pgn.trim()) return undefined;
+        if (!pgn.trim()) {
+          const file = typeof ctx.attributes.pgn === 'string' ? ctx.attributes.pgn : '';
+          return file
+            ? [
+                {
+                  type: 'paragraph',
+                  children: [
+                    { type: 'text', value: 'Game: ' },
+                    { type: 'inlineCode', value: file },
+                  ],
+                },
+              ]
+            : undefined;
+        }
 
         const { intro, blocks } = pgnScoreText(pgn);
         const paragraph = (value: string): RootContent => ({
@@ -139,6 +161,11 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       attributes: {
         ...boardAttributes,
         fen: { type: 'string', required: true },
+        // SAN, so the island can mark the answer. An attribute rather than a
+        // body micro-format: the body stays the author's explanation, and
+        // there is no second little language to learn or to lint.
+        solution: { type: 'string', default: '' },
+        hint: { type: 'string', default: '' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>

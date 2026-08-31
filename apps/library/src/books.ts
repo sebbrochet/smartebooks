@@ -31,7 +31,7 @@ const content = import.meta.glob('../../../books/*/content/*.md', {
 // Assets travel as bytes on the book, exactly like an imported `.smartbook`:
 // resolved to Blob URLs at render and included on export. Text assets
 // round-trip through `?raw`; binaries come in as data URLs.
-const textAssets = import.meta.glob('../../../books/*/assets/*.svg', {
+const textAssets = import.meta.glob('../../../books/*/assets/*.{svg,pgn}', {
   query: '?raw',
   import: 'default',
   eager: true,

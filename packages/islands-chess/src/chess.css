@@ -117,6 +117,17 @@
   margin: 0;
 }
 
+.chesspuzzle__hint {
+  margin: 0;
+  font-size: 0.95rem;
+  border-left: 3px solid var(--border, #ddd);
+  padding-left: 0.75rem;
+}
+
+.chesspuzzle__state {
+  color: var(--muted, #666);
+}
+
 /*
  * A diagram is a figure: a position with a caption, and no controls at all.
  * Deliberately *not* `.chessboard-island` — that class is how the e2e suite

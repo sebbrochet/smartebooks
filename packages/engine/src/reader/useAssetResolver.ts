@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export type AssetResolver = (src: string) => string | undefined;
 
@@ -15,6 +15,8 @@ function mimeForPath(path: string): string {
       return 'image/webp';
     case 'svg':
       return 'image/svg+xml';
+    case 'pgn':
+      return 'application/x-chess-pgn';
     case 'mp3':
       return 'audio/mpeg';
     case 'ogg':
@@ -32,25 +34,36 @@ function mimeForPath(path: string): string {
 
 /**
  * Turn a book's packaged asset bytes into a resolver from `assets/…` paths to
- * Blob URLs. Object URLs are created once per asset set and revoked on change or
- * unmount so nothing leaks.
+ * Blob URLs.
+ *
+ * The URLs are created **in the effect that revokes them**, not in a memo.
+ * That looks like a detail and is not: under `StrictMode` React mounts, unmounts
+ * and remounts, so a memo-created map is revoked by the first unmount and never
+ * rebuilt — every URL is dead by the time anything asks for it. Creating and
+ * revoking in the same effect makes the pair symmetric. Found 2026-08-31, when
+ * a `fetch` of a packaged file failed with `ERR_FILE_NOT_FOUND`; an `<img>` had
+ * been failing the same way, silently.
  */
 export function useAssetResolver(assets?: Record<string, Uint8Array>): AssetResolver | undefined {
-  const urls = useMemo(() => {
-    if (!assets || Object.keys(assets).length === 0) return undefined;
+  const [urls, setUrls] = useState<Map<string, string>>();
+
+  useEffect(() => {
+    if (!assets || Object.keys(assets).length === 0) {
+      setUrls(undefined);
+      return;
+    }
+
     const map = new Map<string, string>();
     for (const [path, bytes] of Object.entries(assets)) {
       const blob = new Blob([bytes], { type: mimeForPath(path) });
       map.set(path, URL.createObjectURL(blob));
     }
-    return map;
-  }, [assets]);
+    setUrls(map);
 
-  useEffect(() => {
     return () => {
-      urls?.forEach((url) => URL.revokeObjectURL(url));
+      map.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [urls]);
+  }, [assets]);
 
   return useMemo(() => {
     if (!urls) return undefined;
