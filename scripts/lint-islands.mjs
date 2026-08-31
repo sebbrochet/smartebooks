@@ -226,6 +226,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
       // label and drops a block's body, so the two forms are not
       // interchangeable (SPEC001 P2.6).
       const canonicalName = names.has(name) ? name : (aliases.get(name) ?? name);
+      const canonicalAncestors = ancestors.map((a) => (names.has(a) ? a : (aliases.get(a) ?? a)));
       const wantsInline = (CONTRACT.inline ?? []).includes(canonicalName);
       if (wantsInline !== inline) {
         report(
@@ -253,12 +254,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
         } else {
           seenIds.set(id, at);
         }
-      } else if (
-        isStateful(
-          canonicalName,
-          ancestors.map((a) => (names.has(a) ? a : (aliases.get(a) ?? a))),
-        )
-      ) {
+      } else if (isStateful(canonicalName, canonicalAncestors)) {
         // An island that saves something and has no id writes to a key like
         // `quiz:` — which every other id-less island of its kind in the book
         // also writes to, so two readers' answers become one. Silent at
@@ -274,6 +270,34 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
 
       for (const detail of checkAttributes(name, attributes)) {
         report('error', 'attribute-invalid', `":::${name}" ${detail}.`, path, line);
+      }
+
+      // An attribute nothing reads. Every other attribute rule is about a bad
+      // *value*; this one is about a good value in the wrong place, which the
+      // forgiving runtime cannot report and which therefore did nothing and
+      // said nothing (SPEC001 P1.2, 2026-09-01).
+      for (const [attribute, spec] of Object.entries(CONTRACT.attributes?.[name] ?? {})) {
+        if (attributes[attribute] === undefined) continue;
+
+        if (spec.ignoredInside && canonicalAncestors.includes(spec.ignoredInside)) {
+          report(
+            'error',
+            'attribute-ignored',
+            `"${attribute}" does nothing on a ":::${name}" inside a ":::${spec.ignoredInside}", which owns it.`,
+            path,
+            line,
+          );
+        }
+
+        if (spec.requiresInside && !canonicalAncestors.includes(spec.requiresInside)) {
+          report(
+            'error',
+            'attribute-ignored',
+            `"${attribute}" does nothing on a ":::${name}" outside a ":::${spec.requiresInside}".`,
+            path,
+            line,
+          );
+        }
       }
 
       // A packaged asset that isn't packaged fails silently at runtime: the

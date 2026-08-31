@@ -101,13 +101,23 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         shapes: { type: 'boolean', default: true },
         // Off by default: a 60-move game would otherwise put a wall of text
         // under every board, and every existing chapter would change shape.
-        moves: { type: 'enum', values: MOVE_LIST_MODES, default: 'off' },
+        // Inside a game the score is `::chess-moves`, placed where the author
+        // wants it, so this attribute has nothing to do there.
+        moves: {
+          type: 'enum',
+          values: MOVE_LIST_MODES,
+          default: 'off',
+          ignoredInside: 'chess-game',
+        },
         // A packaged `.pgn` file, which is how real annotated material arrives.
-        // Wins over the body when both are present.
-        pgn: { type: 'asset' },
-        // Only meaningful inside a `:::chess-game`: pins this board to one
-        // position, so a diagram stays put while the reader moves on.
-        at: { type: 'string', default: '' },
+        // Wins over the body when both are present. Inside a game the container
+        // holds the game, so a child board has none of its own to name.
+        pgn: { type: 'asset', ignoredInside: 'chess-game' },
+        // Pins this board to one position, so a diagram stays put while the
+        // reader moves on. There is no position to pin to without a container
+        // publishing one, which is why SPEC008 §4.1.3 rejected `at` on a
+        // standalone board rather than inventing a second meaning for it.
+        at: { type: 'string', default: '', requiresInside: 'chess-game' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>

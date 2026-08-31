@@ -91,7 +91,9 @@ describe('island-contract.json', () => {
     // `default` is deliberately excluded: chess defaults come from each book's
     // pack options, so they are not a property of the shared contract. `min`
     // and `max` are included — the linter checks ranges, so a contract that
-    // dropped them would let an out-of-range value through unreported.
+    // dropped them would let an out-of-range value through unreported. So are
+    // `ignoredInside` / `requiresInside`, which exist only for the linter and
+    // would otherwise be the one part of a schema nothing keeps in step.
     const shape = (specs: Record<string, Record<string, unknown>>) =>
       Object.fromEntries(
         Object.entries(specs).map(([name, spec]) => [
@@ -102,6 +104,8 @@ describe('island-contract.json', () => {
             ...(spec.values ? { values: [...(spec.values as string[])] } : {}),
             ...(spec.min !== undefined ? { min: spec.min } : {}),
             ...(spec.max !== undefined ? { max: spec.max } : {}),
+            ...(spec.ignoredInside ? { ignoredInside: spec.ignoredInside } : {}),
+            ...(spec.requiresInside ? { requiresInside: spec.requiresInside } : {}),
           },
         ]),
       );
@@ -111,7 +115,7 @@ describe('island-contract.json', () => {
         .filter((island) => island.attributes)
         .map((island) => [
           island.name,
-          shape(island.attributes as Record<string, Record<string, unknown>>),
+          shape(island.attributes as unknown as Record<string, Record<string, unknown>>),
         ]),
     );
 

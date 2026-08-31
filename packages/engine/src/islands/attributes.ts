@@ -14,17 +14,40 @@
 
 export type AttributeValue = string | number | boolean;
 
-export type AttributeSpec =
-  | { type: 'string'; required?: boolean; default?: string }
-  | { type: 'number'; required?: boolean; default?: number; min?: number; max?: number }
-  | { type: 'boolean'; default?: boolean }
-  | { type: 'enum'; values: readonly string[]; required?: boolean; default?: string }
-  /**
-   * A reference to a packaged asset (`assets/…`) or an external URL. Resolved
-   * to a usable URL at render time, where the book's asset resolver lives —
-   * not here, because Blob URLs are per-reader and per-session.
-   */
-  | { type: 'asset'; required?: boolean; default?: string };
+/**
+ * Where an attribute means anything (SPEC001 P1.2, added 2026-09-01).
+ *
+ * Attribute validity was context-free: an attribute was on an island's schema
+ * or it was not. That is wrong for an island that behaves differently inside a
+ * container — a `chess-board` inside a `chess-game` owns no position, so
+ * `moves` and `at` on it are read by nobody. The runtime cannot complain (it is
+ * forgiving by design) and the linter had no way to, so three valid-looking
+ * attributes in a row did nothing and said nothing.
+ *
+ * Both fields are **lint-only**. The engine coerces the value either way; it is
+ * the content linter that reads a directive's ancestry and reports
+ * `attribute-ignored`.
+ */
+interface AttributeContext {
+  /** Read only *outside* this container; inside it, the container owns it. */
+  ignoredInside?: string;
+  /** Read only *inside* this container; outside it there is nothing to act on. */
+  requiresInside?: string;
+}
+
+export type AttributeSpec = AttributeContext &
+  (
+    | { type: 'string'; required?: boolean; default?: string }
+    | { type: 'number'; required?: boolean; default?: number; min?: number; max?: number }
+    | { type: 'boolean'; default?: boolean }
+    | { type: 'enum'; values: readonly string[]; required?: boolean; default?: string }
+    /**
+     * A reference to a packaged asset (`assets/…`) or an external URL. Resolved
+     * to a usable URL at render time, where the book's asset resolver lives —
+     * not here, because Blob URLs are per-reader and per-session.
+     */
+    | { type: 'asset'; required?: boolean; default?: string }
+  );
 
 export interface AttributeProblem {
   attribute: string;

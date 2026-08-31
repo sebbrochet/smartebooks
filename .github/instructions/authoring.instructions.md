@@ -43,7 +43,7 @@ npm run lint:content
 
 It reports `file:line`, a stable rule id and a severity. Errors fail the build; warnings do not.
 The rules you will meet most: `directive-unknown`, `directive-alias`, `id-missing`, `id-duplicate`,
-`attribute-invalid`, `asset-missing`, `visibility-missing`, `pack-unknown`.
+`attribute-invalid`, `attribute-ignored`, `asset-missing`, `visibility-missing`, `pack-unknown`.
 
 To see a book rendered, run `npm run dev` and open it in the bookshelf.
 

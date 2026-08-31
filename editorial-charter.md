@@ -65,7 +65,9 @@ Which form a directive takes is fixed per directive, not a choice — see §4.
   render but the linter warns (`directive-alias`) — do not write new content with them.
 - Attributes go in `{…}` as `key="value"` pairs, and are **validated against a declared schema**: an
   unknown value falls back to its default at runtime and is an error at lint time
-  (`attribute-invalid`).
+  (`attribute-invalid`). A few attributes are **context-bound** — read only inside, or only outside,
+  a particular container — and writing one in the wrong place is `attribute-ignored`. The rule exists
+  because such an attribute is otherwise accepted, spelled correctly, and read by nobody.
 - `id` is **required on any stateful directive** (quiz, flashcard, checkpoint, media, games) so its
   progress can be persisted deterministically. Omitting one is an error (`id-missing`) and
   duplicates are an error (`id-duplicate`). Both matter for the same reason: without an id every
@@ -277,8 +279,13 @@ no game: every mark becomes plain text and every board and score inside says so.
   ` ```pgn ` block is configuration, not content: it is consumed, not printed.
 - `::chess-board` **inside** a game takes no PGN and no `id` of its own — the container holds one
   position for every board in it. Zero, one or a dozen are fine, and they all show that position.
+  It is otherwise the same board: `analysis` still offers the engine, bound to wherever the reader
+  is, and the arrow keys still step through the game.
   - `at` pins one to a fixed position and takes its controls away, which is what a printed diagram
     does. Its value is a move, written as you would write it in prose: `at="4. Qxf7#"`.
+  - `moves`, `pgn` and `at` are **context-bound** (`attribute-ignored`): the first two mean nothing
+    inside a game, because the container owns the score and the game; `at` means nothing outside one,
+    because there is no published position to pin to. Inside a game, the score is `::chess-moves`.
 - `::chess-moves` (leaf): `scroll` (default `true`) — the game score, placed where you want it.
 - `:move[…]` (**inline**) marks a move in a sentence and jumps every board on the page to it.
   - The label is a move, matched the way a reader reads it: `2. Bc4`, `2.Bc4` and `Bc4` all work, and

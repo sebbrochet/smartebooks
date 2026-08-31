@@ -12,8 +12,16 @@ export default defineConfig({
     // Spawning one worker per file bought nothing and failed intermittently on
     // constrained machines, so share a single worker: faster and reliable.
     fileParallelism: false,
-    // Worker startup can still be slow on constrained machines; keep a generous
-    // timeout so a cold run doesn't fail spuriously. The suite itself is tiny.
+    // Guards a slow *test*, not a slow worker. Worth being explicit, because
+    // this line used to claim it stopped "a cold run failing spuriously" and it
+    // cannot: the pool gives a worker 60s to report for duty
+    // (`START_TIMEOUT = 6e4`, hardcoded in vitest's pool — no config reaches
+    // it), and on a loaded machine one file in ~39 misses that window and is
+    // reported as "Failed to start threads worker", never as a test failure.
+    // Observed on 4 consecutive runs 2026-09-01, a different file each time,
+    // under both `threads` and `forks`. Only lower machine load helps; the
+    // real cost is jsdom, which is ~60% of the wall clock and which most of
+    // these files do not need.
     testTimeout: 30000,
     // Node-side scripts (the content linter) are tested with `node --test`
     // instead — they need no DOM, and running them under jsdom workers is

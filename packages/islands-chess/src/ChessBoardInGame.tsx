@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
-import { attrText, type IslandComponentProps } from '@smart-ebooks/engine';
+import { attrFlag, attrText, type IslandComponentProps } from '@smart-ebooks/engine';
 import { orientationFor } from './boardOptions';
 import { findByLabel, moveLabel } from './score';
 import { nodeAt, parentPath } from './tree';
@@ -11,6 +11,10 @@ import 'chessground/assets/chessground.brown.css';
 import 'chessground/assets/chessground.cburnett.css';
 import './chess.css';
 import './themes.css';
+
+// Same lazy import the standalone board uses, so a game with no `analysis`
+// anywhere in it never pulls the Stockfish client.
+const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
 
 /**
  * A board **inside** a `:::chess-game` (SPEC001 §4.1, SPEC008 G4.1).
@@ -22,11 +26,16 @@ import './themes.css';
  * `at` pins a board to a fixed position and takes its controls away — that is
  * the printed diagram, which stays put while the interactive board follows the
  * reader.
+ *
+ * Everything else a standalone board does, it does. `analysis` is per board
+ * rather than per game on purpose: a chapter may want the engine under the
+ * board at the critical moment and nowhere else.
  */
 export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
   const game = useGame();
   const sequence = useSequence();
   const at = attrText(attributes.at);
+  const analysisOn = attrFlag(attributes.analysis);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
@@ -163,6 +172,13 @@ export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
         </div>
       )}
       {pinned && <p className="chess-diagram__caption">{moveLabel(node)}</p>}
+      {analysisOn && fen && (
+        <div className="chessboard-island__analysis">
+          <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
+            <PositionAnalysis fen={fen} />
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 }

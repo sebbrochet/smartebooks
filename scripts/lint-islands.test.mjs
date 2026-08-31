@@ -127,6 +127,62 @@ describe('checkDirectives', () => {
     assert.deepEqual(rules(problems), ['id-missing']);
   });
 
+  // Every other attribute rule is about a bad *value*. These are about a good
+  // value in the wrong place, which the forgiving runtime cannot report: the
+  // attribute is on the island's schema, it lints clean, and nothing reads it.
+  const chess = book({ packs: { chess: {} } });
+
+  test('rejects an attribute the surrounding container owns', () => {
+    const markdown = [
+      ':::chess-game{id="g"}',
+      '',
+      '```pgn',
+      '1. e4 e5',
+      '```',
+      '',
+      '::chess-board{moves=on}',
+      '',
+      ':::',
+    ].join('\n');
+    const problems = checkDirectives(chess, file(markdown));
+    assert.deepEqual(rules(problems), ['attribute-ignored']);
+    assert.match(problems[0].message, /"moves" does nothing .* inside a ":::chess-game"/);
+  });
+
+  test('rejects an attribute that needs a container it is not in', () => {
+    const markdown = ':::chess-board{id="b" at="1. e4"}\n\n```pgn\n1. e4 e5\n```\n\n:::';
+    const problems = checkDirectives(chess, file(markdown));
+    assert.deepEqual(rules(problems), ['attribute-ignored']);
+    assert.match(problems[0].message, /outside a ":::chess-game"/);
+  });
+
+  test('accepts each of them where it is read', () => {
+    const inside = [
+      ':::chess-game{id="g"}',
+      '',
+      '```pgn',
+      '1. e4 e5',
+      '```',
+      '',
+      '::chess-board{at="1. e4"}',
+      '',
+      '::chess-moves',
+      '',
+      ':::',
+    ].join('\n');
+    assert.deepEqual(checkDirectives(chess, file(inside)), []);
+
+    const outside = ':::chess-board{id="b" moves=on}\n\n```pgn\n1. e4 e5\n```\n\n:::';
+    assert.deepEqual(checkDirectives(chess, file(outside)), []);
+  });
+
+  // Saying nothing when the attribute was not written is the difference between
+  // a rule and a nag.
+  test('says nothing about a context-bound attribute nobody used', () => {
+    const markdown = ':::chess-board{id="b"}\n\n```pgn\n1. e4 e5\n```\n\n:::';
+    assert.deepEqual(checkDirectives(chess, file(markdown)), []);
+  });
+
   // Why the real parser is used instead of a regex.
   test('ignores directive-looking text inside fenced code', () => {
     const markdown = '```\n:::quiz{id="not-real"}\n```\n\n:::quiz{id="real"}\n\n### Q\n\n:::';

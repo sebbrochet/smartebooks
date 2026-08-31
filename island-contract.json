@@ -45,9 +45,13 @@
       "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
       "analysis": { "type": "boolean" },
       "shapes": { "type": "boolean" },
-      "moves": { "type": "enum", "values": ["off", "on", "scroll"] },
-      "pgn": { "type": "asset" },
-      "at": { "type": "string" }
+      "moves": {
+        "type": "enum",
+        "values": ["off", "on", "scroll"],
+        "ignoredInside": "chess-game"
+      },
+      "pgn": { "type": "asset", "ignoredInside": "chess-game" },
+      "at": { "type": "string", "requiresInside": "chess-game" }
     },
     "chess-puzzle": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },

@@ -354,6 +354,26 @@ test('a pinned board stays where it was put', async ({ page }) => {
   await expect(pinned.locator('.chess-diagram__caption')).toHaveText('4. Qxf7#');
 });
 
+// A board inside a game is still a board. The first cut of the container form
+// dropped `analysis` — silently, because it stayed a declared attribute of
+// `chess-board`, so the directive lint-passed and did nothing.
+test('a board inside a game still offers the engine, and follows the reader', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const live = page.getByRole('group', { name: /Chess board/ });
+  const analysis = page.locator('.chessboard-island__analysis');
+
+  // Exactly one board opted in, and it is the live one — not the pinned diagram.
+  await expect(analysis).toHaveCount(1);
+  await expect(analysis.getByRole('button', { name: /Stockfish/ })).toBeVisible();
+
+  // The engine is bound to the position the container publishes, so a move
+  // named in the prose changes what would be analysed.
+  await page.locator('.chess-move', { hasText: '2. Bc4' }).first().click();
+  await expect(page.getByTestId('chess-move')).toHaveText('2. Bc4');
+  await expect(live).toBeVisible();
+});
+
 test('a board inside a game steps with the arrow keys too', async ({ page }) => {
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
