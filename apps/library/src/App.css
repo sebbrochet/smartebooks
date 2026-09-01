@@ -98,7 +98,11 @@ body {
   color: #fff;
   padding: 0.5rem 0.9rem;
   border-radius: 0 0 6px 0;
-  z-index: 20;
+  /* Above everything, including the mobile drawer (21) and its scrim (20).
+     At 20 it tied with the scrim and lost on tree order, so a focused skip
+     link was painted over while the drawer was open. The stacking order is
+     five literals with no scale behind them — SPEC009 T2/V9. */
+  z-index: 30;
 }
 
 .skip-link:focus {
