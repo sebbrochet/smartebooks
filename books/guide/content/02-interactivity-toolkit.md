@@ -94,4 +94,36 @@ This is the same shape a novel needs for its characters, a travel guide for its 
 chess book for its moves. Strip the interactivity and you get the word the author wrote —
 which is exactly how a printed glossary reads.
 
+## Callouts, which are not islands at all
+
+Not everything that stands out needs a component. Five kinds of aside are just **blockquotes
+with an emoji**, and the reader styles them by kind.
+
+Use the first for the one thing a reader should carry away:
+
+> 📌 **Key concept**: a callout is a convention, not a feature — the emoji is the whole of it.
+
+The second is for the reader who wants the mechanism underneath:
+
+> 🔍 **How it works**: the renderer reads the leading emoji, tags the blockquote with its kind,
+> and the stylesheet gives each kind its own colour.
+
+The third earns its place by saving someone ten minutes:
+
+> 💡 **Tip**: keep a callout to one idea. Two paragraphs of aside is a section wearing a hat.
+
+The fourth states the mistake before the reader makes it:
+
+> ⚠️ **Pitfall**: put the emoji first. A blockquote that opens any other way stays an ordinary
+> quotation — which is what a quotation should be.
+
+And the fifth pins a term down:
+
+> 📖 **Definition — Callout**: an aside set apart from the prose, by convention rather than by
+> markup.
+
+That last point is the design. Because the marker is a character in the text rather than a
+directive, a callout is greppable, reads correctly as plain Markdown in any editor, costs an
+author nothing to learn — and survives an export where no stylesheet runs at all.
+
 ::checkpoint{id="ch2-done" label="I explored the interactivity toolkit"}

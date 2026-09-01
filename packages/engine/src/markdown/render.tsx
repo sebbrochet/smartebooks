@@ -8,6 +8,7 @@ import remarkRehype from 'remark-rehype';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeReact, { type Options as RehypeReactOptions } from 'rehype-react';
 import { remarkIslands } from './remarkIslands';
+import { rehypeCallouts } from './rehypeCallouts';
 import { rehypeResolveAssets } from './rehypeResolveAssets';
 import { IslandHost } from './IslandHost';
 import { IslandHostInline } from './IslandHostInline';
@@ -50,6 +51,9 @@ function buildProcessor(
     .use(remarkIslands, registry)
     .use(remarkRehype);
   if (!trusted) processor.use(rehypeSanitize, untrustedSchema);
+  // After sanitising, so a callout's class is something the tree earned rather
+  // than something an imported book could have written for itself.
+  processor.use(rehypeCallouts);
   if (resolveAsset) processor.use(rehypeResolveAssets, resolveAsset);
   return processor.use(rehypeReact, rehypeReactOptions);
 }

@@ -9,6 +9,32 @@
   --wrong: #c62828;
   --wrong-bg: #ffebee;
   --island-bg: #f7f7fb;
+  /* A pitfall is a warning, not a wrong answer, so it does not borrow the red
+     that marks one. `--info` is the neutral counterpart for explanation. */
+  --warn: #b26a00;
+  --info: #00697c;
+
+  /*
+   * Typography, as tokens rather than literals.
+   *
+   * The layer matters more than the values: reading-comfort controls (SPEC002
+   * S8) and a book-declared skin both need somewhere to write, and until now
+   * there was nowhere — every token in this file was a colour. Nothing sets
+   * these yet except this stylesheet.
+   *
+   * `Inter` and `JetBrains Mono` are named first because the design targets
+   * them, but **nothing ships them**: they are used if the reader happens to
+   * have them and the stack falls through to the platform's own UI face
+   * otherwise. Loading them from a font CDN would contradict the rule that
+   * nothing third-party is fetched until the reader asks for it, so shipping
+   * them means self-hosting, which is a separate decision about package size.
+   */
+  --font-text: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, sfmono-regular, menlo, consolas, monospace;
+  --text-size: 1rem;
+  --text-leading: 1.65;
+  /* The measure: how wide a line of prose is allowed to get. */
+  --measure: 44rem;
 }
 
 /* Dark palette, shared by system-dark (no explicit choice) and data-theme="dark". */
@@ -24,6 +50,8 @@
     --wrong: #ef9a9a;
     --wrong-bg: #3a1b1b;
     --island-bg: #1c1c2a;
+    --warn: #e0a458;
+    --info: #5fc9dd;
   }
 }
 
@@ -38,6 +66,8 @@
   --wrong: #ef9a9a;
   --wrong-bg: #3a1b1b;
   --island-bg: #1c1c2a;
+  --warn: #e0a458;
+  --info: #5fc9dd;
 }
 
 * {
@@ -48,12 +78,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
-  line-height: 1.65;
+  font-family: var(--font-text);
+  font-size: var(--text-size);
+  line-height: var(--text-leading);
 }
 
 .reader {
@@ -160,7 +187,7 @@ body {
 
 .reader__main .prose,
 .reader__main .search-view {
-  max-width: 44rem;
+  max-width: var(--measure);
 }
 
 .sidebar {
@@ -508,17 +535,145 @@ body {
   font-size: 0.85rem;
 }
 
+/*
+ * Prose typography.
+ *
+ * Before this, only `h1`, inline `code` and `blockquote` were styled: h2–h6,
+ * tables, lists, images, code blocks and rules all rendered at browser
+ * defaults, so a heading hierarchy an author wrote in Markdown mostly did not
+ * arrive as one. Sizes are a scale off `--text-size` rather than fixed rems,
+ * so changing the base moves the whole page together.
+ */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  line-height: 1.25;
+  /* Text-wrap balance keeps a two-line heading from leaving one orphan word. */
+  text-wrap: balance;
+  scroll-margin-top: 5rem;
+}
+
 .prose h1 {
-  font-size: 2rem;
-  line-height: 1.2;
+  font-size: calc(var(--text-size) * 2);
+  margin: 0 0 1.25rem;
+}
+
+/* Top margin far exceeds bottom, so a heading belongs to what follows it. */
+.prose h2 {
+  font-size: calc(var(--text-size) * 1.5);
+  margin: 2.5rem 0 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.prose h3 {
+  font-size: calc(var(--text-size) * 1.25);
+  margin: 2rem 0 0.6rem;
+}
+
+.prose h4 {
+  font-size: calc(var(--text-size) * 1.1);
+  margin: 1.6rem 0 0.5rem;
+}
+
+.prose h5 {
+  font-size: var(--text-size);
+  margin: 1.4rem 0 0.4rem;
+}
+
+/* Nothing left to shrink at h6, so it separates itself by weight and case. */
+.prose h6 {
+  font-size: calc(var(--text-size) * 0.85);
+  margin: 1.4rem 0 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.prose p {
+  margin: 0 0 1rem;
+}
+
+.prose a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 1rem;
+  padding-left: 1.5rem;
+}
+
+.prose li + li {
+  margin-top: 0.3rem;
+}
+
+.prose li > ul,
+.prose li > ol {
+  margin: 0.3rem 0 0;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.prose hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.prose table {
+  width: 100%;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.prose th,
+.prose td {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose thead th {
+  background: var(--island-bg);
+  font-weight: 600;
 }
 
 .prose code {
   background: var(--island-bg);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.9em;
+}
+
+/* A code block is one box: the <code> inside it drops its own chrome. */
+.prose pre {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--island-bg);
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.prose pre code {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  font-size: 0.85rem;
 }
 
 .prose blockquote {
@@ -526,6 +681,56 @@ body {
   margin: 1rem 0;
   padding: 0.25rem 1rem;
   color: var(--muted);
+}
+
+/*
+ * Callouts (editorial-charter.md §2).
+ *
+ * The charter has defined five kinds since it was written, and all five
+ * rendered as the same undifferentiated blockquote — an author following the
+ * editorial contract got no more than a grey left border. `rehypeCallouts`
+ * reads the emoji the charter already prescribes and adds a class; the type
+ * colour is then one variable, so every rule below is shared.
+ *
+ * The background is mixed from that colour rather than stored as a second
+ * token, which keeps a five-type palette from becoming ten tokens per theme.
+ */
+.prose .callout {
+  --callout: var(--accent);
+
+  margin: 1.25rem 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--callout) 35%, transparent);
+  border-left: 4px solid var(--callout);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--callout) 7%, var(--bg));
+  /* Not `--muted`: a callout is the emphasised sentence on the page, so it
+     must not be the faintest thing on it. */
+  color: var(--fg);
+}
+
+.prose .callout > :last-child {
+  margin-bottom: 0;
+}
+
+.prose .callout strong {
+  color: var(--callout);
+}
+
+.prose .callout--how {
+  --callout: var(--info);
+}
+
+.prose .callout--tip {
+  --callout: var(--correct);
+}
+
+.prose .callout--pitfall {
+  --callout: var(--warn);
+}
+
+.prose .callout--definition {
+  --callout: var(--muted);
 }
 
 /* --- Islands --- */

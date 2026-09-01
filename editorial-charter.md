@@ -37,6 +37,12 @@
   | ⚠️ Pitfall | `> ⚠️ **Pitfall**: …` |
   | 📖 Definition | `> 📖 **Definition — Term**: …` |
 
+  **The emoji is the whole mechanism.** The reader matches it and styles the blockquote by kind —
+  each gets its own accent colour — so the five above are the five that render distinctly. A
+  blockquote starting any other way stays an ordinary quotation, which is what a quotation should
+  be. Keep the emoji as the first thing in the blockquote: it is greppable, it reads correctly as
+  plain Markdown, and it is the only marker that survives an export where no stylesheet runs.
+
 ### Grouping chapters into parts
 
 A long book reads as *Part I → chapters → Part II → …*, and the sidebar can show that. Declare the

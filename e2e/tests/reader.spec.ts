@@ -58,3 +58,29 @@ test('an inline mark stays in its sentence and opens on request', async ({ page 
   await word.click();
   await expect(page.getByText(/scraped clean and written on again/i)).toHaveCount(0);
 });
+
+/**
+ * The charter has defined five callout kinds since it was written, and until
+ * now every one rendered as the same undifferentiated blockquote.
+ */
+test('each kind of callout is told apart, and a plain quote is left alone', async ({ page }) => {
+  await page.goto('/#/guide/02-interactivity-toolkit');
+
+  const prose = page.locator('.prose');
+  // At least one of each: the chapter already carried a definition callout
+  // before the section that demonstrates all five, so kinds are not unique.
+  for (const kind of ['key', 'how', 'tip', 'pitfall', 'definition']) {
+    await expect(prose.locator(`.callout--${kind}`).first()).toBeVisible();
+  }
+
+  // Distinct in the rendering, not merely in the markup: each kind resolves to
+  // its own accent colour, so the classes are doing visible work.
+  const colours = await prose
+    .locator('.callout')
+    .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).borderLeftColor));
+  expect(new Set(colours).size).toBe(5);
+
+  // The author's emoji stays in the text — it is what makes the convention
+  // greppable, and the only marker that survives an export.
+  await expect(prose.locator('.callout--tip')).toContainText('💡');
+});
