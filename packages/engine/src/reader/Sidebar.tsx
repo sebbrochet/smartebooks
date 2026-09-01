@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type MouseEvent } from 'react';
 import type { Book } from '../types';
 import { navSections } from './navSections';
 
@@ -8,22 +8,47 @@ interface SidebarProps {
   view: 'chapter' | 'search';
   activeSlug?: string;
   query?: string;
+  /** Drawn as an open drawer on a narrow screen; ignored on a wide one. */
+  open?: boolean;
+  /** Called when the reader picks a destination, so the drawer can close. */
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ book, basePath, view, activeSlug, query }: SidebarProps) {
+export function Sidebar({
+  book,
+  basePath,
+  view,
+  activeSlug,
+  query,
+  open = false,
+  onNavigate,
+}: SidebarProps) {
   const [text, setText] = useState(view === 'search' ? (query ?? '') : '');
   const currentSlug = view === 'chapter' ? (activeSlug ?? book.chapters[0]?.slug) : undefined;
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const trimmed = text.trim();
+    onNavigate?.();
     window.location.hash = trimmed
       ? `${basePath}/search?q=${encodeURIComponent(trimmed)}`
       : basePath;
   }
 
+  // One listener on the nav rather than a handler threaded through every link
+  // and every part. Picking the chapter you are already reading changes no
+  // route, so closing cannot be left to a route change alone.
+  function dismissIfLink(event: MouseEvent<HTMLElement>) {
+    if ((event.target as HTMLElement).closest('a')) onNavigate?.();
+  }
+
   return (
-    <nav className="sidebar" aria-label="Book navigation">
+    <nav
+      id="book-nav"
+      className={open ? 'sidebar sidebar--open' : 'sidebar'}
+      aria-label="Book navigation"
+      onClick={dismissIfLink}
+    >
       <form className="sidebar__search" role="search" onSubmit={submit}>
         <label htmlFor="book-search" className="visually-hidden">
           Search the book

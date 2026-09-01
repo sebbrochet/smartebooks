@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Book } from './types';
 import { createIslandRegistry } from './islandRegistry';
 import { missingIslands } from './package/islandRequirements';
@@ -9,6 +9,7 @@ import { Sidebar } from './reader/Sidebar';
 import { ChapterView } from './reader/ChapterView';
 import { SearchView } from './reader/SearchView';
 import { TableOfContents } from './reader/TableOfContents';
+import { BackToTop } from './reader/BackToTop';
 import { chapterHeadings, headingHref } from './markdown/headings';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
@@ -47,6 +48,8 @@ export function Reader({
   trusted,
 }: ReaderProps) {
   const mainRef = useRef<HTMLElement>(null);
+  const navToggleRef = useRef<HTMLButtonElement>(null);
+  const [navOpen, setNavOpen] = useState(false);
   const resolveAsset = useAssetResolver(book.assets);
 
   // Every book is scoped to exactly the islands it declares.
@@ -89,6 +92,30 @@ export function Reader({
     if (activeSlug) void reading.set(book.meta.slug, activeSlug);
   }, [book.meta.slug, activeSlug]);
 
+  // Escape closes the drawer, and focus goes back to the control that opened
+  // it — otherwise it is left on a panel that no longer exists and the next
+  // Tab starts from the top of the document.
+  useEffect(() => {
+    if (!navOpen) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setNavOpen(false);
+      navToggleRef.current?.focus();
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    // The drawer covers the page; scrolling the chapter underneath it is
+    // motion the reader did not ask for.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previous;
+    };
+  }, [navOpen]);
+
   return (
     <BookProvider
       slug={book.meta.slug}
@@ -97,12 +124,33 @@ export function Reader({
       registry={registry}
     >
       <div className="reader__body">
+        <button
+          type="button"
+          ref={navToggleRef}
+          className="reader__nav-toggle"
+          aria-expanded={navOpen}
+          aria-controls="book-nav"
+          onClick={() => setNavOpen((open) => !open)}
+        >
+          <span aria-hidden="true">☰</span> Contents
+        </button>
+        {navOpen && (
+          <div
+            className="reader__scrim"
+            // Decoration for the pointer only: Escape and the toggle are the
+            // routes out that assistive technology is told about.
+            aria-hidden="true"
+            onClick={() => setNavOpen(false)}
+          />
+        )}
         <Sidebar
           book={book}
           basePath={basePath}
           view={view}
           activeSlug={activeChapter?.slug}
           query={query}
+          open={navOpen}
+          onNavigate={() => setNavOpen(false)}
         />
         <main id="main" ref={mainRef} tabIndex={-1} className="reader__main">
           {missing.length > 0 && (
@@ -140,6 +188,7 @@ export function Reader({
             activeId={heading}
           />
         )}
+        <BackToTop target={mainRef} />
       </div>
     </BookProvider>
   );

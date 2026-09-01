@@ -83,6 +83,66 @@ test('a section can be linked to directly and survives a reload', async ({ page 
   await expect(heading).toBeInViewport();
 });
 
+test.describe('on a narrow screen', () => {
+  test.use({ viewport: { width: 420, height: 780 } });
+
+  test('the chapter list is a drawer, not a wall in front of the text', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+
+    // The whole point: the reader meets the chapter, not forty links to other
+    // chapters. The heading is on screen without scrolling past navigation.
+    await expect(
+      page.getByRole('heading', { name: 'Getting started with smart ebooks' }),
+    ).toBeInViewport();
+
+    const toggle = page.getByRole('button', { name: /Contents/ });
+    const sidebar = page.locator('.sidebar');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(sidebar).toBeHidden();
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(sidebar).toBeVisible();
+
+    // Choosing a chapter both navigates and puts the text back in front.
+    await sidebar.getByRole('link', { name: 'The interactivity toolkit' }).click();
+    await expect(page).toHaveURL(/02-interactivity-toolkit/);
+    await expect(sidebar).toBeHidden();
+  });
+
+  test('escape closes the drawer and hands focus back', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+
+    const toggle = page.getByRole('button', { name: /Contents/ });
+    await toggle.click();
+    await expect(page.locator('.sidebar')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sidebar')).toBeHidden();
+
+    // Focus left on a panel that no longer exists would send the next Tab back
+    // to the top of the document.
+    await expect(toggle).toBeFocused();
+  });
+});
+
+test('a long chapter offers a way back to the top', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  const button = page.getByRole('button', { name: /Top/ });
+  await expect(button).toBeHidden();
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(button).toBeVisible();
+
+  await button.click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+  // The viewport moving without the focus point moving strands a keyboard
+  // reader: the next Tab would carry on from the bottom of the chapter.
+  await expect(page.locator('#main')).toBeFocused();
+});
+
 test('search finds content and links to a chapter', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
   await page.getByPlaceholder('Search…').fill('matching');
