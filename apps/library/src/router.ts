@@ -18,11 +18,17 @@ export function parseAppHash(hash: string): AppRoute {
     return { view: 'search', bookSlug, query };
   }
 
-  // A section within a chapter is `?h=`, not a second `#`: the route already
+  // A section within a chapter is `?s=`, not a second `#`: the route already
   // lives in the hash, so a fragment cannot be nested inside it. Using the
   // query the search view already established keeps one grammar rather than
   // inventing a second (SPEC002 S3).
-  const heading = new URLSearchParams(queryString ?? '').get('h') ?? undefined;
+  //
+  // `s` for section, deliberately **not** `h`. MkDocs Material — the reference
+  // this reader is being measured against — spends `?h=` on *highlight terms*
+  // for search results. Reserving it keeps that meaning available if in-page
+  // highlighting is ever built, instead of two features fighting over one
+  // parameter (SPEC002 N14).
+  const heading = new URLSearchParams(queryString ?? '').get('s') ?? undefined;
   return { view: 'book', bookSlug, chapterSlug: segments[1], heading };
 }
 

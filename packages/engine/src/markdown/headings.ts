@@ -71,9 +71,13 @@ export interface Heading {
  * hash, so `#section` would replace it and send the reader out of the chapter
  * rather than down it. One helper because two callers need to agree — the
  * contents rail and the anchor beside each heading.
+ *
+ * `s` for section. `h` is deliberately left free: MkDocs Material spends it on
+ * search *highlight terms*, and if in-page highlighting is ever built here the
+ * two meanings would collide in one parameter (SPEC002 N14).
  */
 export function headingHref(basePath: string, chapterSlug: string, id: string): string {
-  return `#${basePath}/${chapterSlug}?h=${encodeURIComponent(id)}`;
+  return `#${basePath}/${chapterSlug}?s=${encodeURIComponent(id)}`;
 }
 
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);

@@ -126,7 +126,7 @@ describe('heading ids in the rendered chapter', () => {
   // navigate the reader out of the chapter instead of down it.
   it('links a heading to itself through the route, not a bare fragment', () => {
     const output = html('## Why islands', (id) => headingHref('/guide', '01-intro', id));
-    expect(output).toContain('href="#/guide/01-intro?h=why-islands"');
+    expect(output).toContain('href="#/guide/01-intro?s=why-islands"');
     expect(output).not.toContain('href="#why-islands"');
   });
 

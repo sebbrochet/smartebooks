@@ -25,7 +25,7 @@ export interface ReaderProps {
   view: 'chapter' | 'search';
   /** Active chapter slug (defaults to the first chapter when omitted). */
   chapterSlug?: string;
-  /** Section within the chapter to open at, from the route's `?h=`. */
+  /** Section within the chapter to open at, from the route's `?s=`. */
   heading?: string;
   /** Search query when `view === 'search'`. */
   query?: string;

@@ -30,4 +30,26 @@ describe('parseAppHash', () => {
       query: 'hello world',
     });
   });
+
+  /**
+   * The parameter name is pinned deliberately. `s` is for section; `h` is left
+   * free because MkDocs Material — the reader this one is measured against —
+   * uses `?h=` for search *highlight terms*. Renaming this later, once books
+   * contain such links, would break every published citation (SPEC002 N14).
+   */
+  it('parses a section within a chapter, from `s` and not `h`', () => {
+    expect(parseAppHash('#/guide/01-getting-started?s=why-islands')).toEqual({
+      view: 'book',
+      bookSlug: 'guide',
+      chapterSlug: '01-getting-started',
+      heading: 'why-islands',
+    });
+
+    expect(parseAppHash('#/guide/01-getting-started?h=why-islands')).toEqual({
+      view: 'book',
+      bookSlug: 'guide',
+      chapterSlug: '01-getting-started',
+      heading: undefined,
+    });
+  });
 });

@@ -60,7 +60,7 @@ test('the contents rail lists the sections and jumps to one', async ({ page }) =
   await expect(toc.getByRole('link', { name: /What does a .token. represent/ })).toHaveCount(0);
 
   await toc.getByRole('link', { name: 'Watch it in action' }).click();
-  await expect(page).toHaveURL(/#\/guide\/01-getting-started\?h=watch-it-in-action$/);
+  await expect(page).toHaveURL(/#\/guide\/01-getting-started\?s=watch-it-in-action$/);
 
   // Still in the chapter, scrolled down it — not navigated away by a bare
   // fragment colliding with the hash route.
@@ -76,10 +76,10 @@ test('a section can be linked to directly and survives a reload', async ({ page 
   const heading = page.locator('h2#watch-it-in-action');
   await expect(heading.locator('a.heading-anchor')).toHaveAttribute(
     'href',
-    '#/guide/01-getting-started?h=watch-it-in-action',
+    '#/guide/01-getting-started?s=watch-it-in-action',
   );
 
-  await page.goto('/#/guide/01-getting-started?h=watch-it-in-action');
+  await page.goto('/#/guide/01-getting-started?s=watch-it-in-action');
   await expect(heading).toBeInViewport();
 });
 
