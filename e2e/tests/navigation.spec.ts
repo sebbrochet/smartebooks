@@ -35,9 +35,10 @@ test('a book with parts groups its chapters, and one without does not', async ({
   const partOne = sidebar.locator('.sidebar__part', { hasText: 'Part I — Reading a game' });
   await expect(partOne.getByRole('link')).toHaveCount(2);
   await expect(partOne.getByRole('link', { name: /A chess game, move by move/ })).toBeVisible();
-
   // Grouping is presentation only — the chapters are still one flat sequence,
-  // so navigation across a part boundary is an ordinary next step.
+  // so navigation across a part boundary is an ordinary next step. Part II is
+  // folded away while Part I is being read, so it has to be opened first.
+  await sidebar.getByRole('button', { name: 'Part II — Writing one' }).click();
   await sidebar.getByRole('link', { name: /A game from a file/ }).click();
   await expect(page).toHaveURL(/03-a-game-from-a-file/);
 
@@ -45,6 +46,38 @@ test('a book with parts groups its chapters, and one without does not', async ({
   await page.goto('/#/guide/01-getting-started');
   await expect(page.locator('.sidebar .sidebar__part')).toHaveCount(0);
   await expect(page.locator('.sidebar__list > li')).toHaveCount(3);
+});
+
+test('only the part being read is unfolded', async ({ page }) => {
+  await page.goto('/#/chess/01-chess-basics');
+  const sidebar = page.locator('.sidebar');
+
+  const one = sidebar.getByRole('button', { name: 'Part I — Reading a game' });
+  const two = sidebar.getByRole('button', { name: 'Part II — Writing one' });
+
+  // Listing every chapter of every part is a wall on a real book: the
+  // comparison book shows 30 of its 44 links, the rest folded away.
+  await expect(one).toHaveAttribute('aria-expanded', 'true');
+  await expect(two).toHaveAttribute('aria-expanded', 'false');
+  await expect(sidebar.getByRole('link', { name: /A game from a file/ })).toBeHidden();
+
+  await two.click();
+  await expect(two).toHaveAttribute('aria-expanded', 'true');
+  await expect(sidebar.getByRole('link', { name: /A game from a file/ })).toBeVisible();
+
+  // Closing the part you are reading is allowed — it is the reader's list —
+  // and it sticks while they stay put.
+  await one.click();
+  await expect(one).toHaveAttribute('aria-expanded', 'false');
+
+  // …but moving to another chapter unfolds the part that chapter is in, even
+  // when it is the same part. The invariant is that the list never hides the
+  // chapter you are on; a next-chapter link inside a closed part would.
+  await page.goto('/#/chess/02-reading-an-annotated-game');
+  await expect(sidebar.getByRole('button', { name: 'Part I — Reading a game' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
 });
 
 test('the contents rail lists the sections and jumps to one', async ({ page }) => {
@@ -123,6 +156,25 @@ test.describe('on a narrow screen', () => {
     // Focus left on a panel that no longer exists would send the next Tab back
     // to the top of the document.
     await expect(toggle).toBeFocused();
+  });
+
+  test('the contents rail is folded away, not stacked on top of the chapter', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+
+    const toggle = page.getByRole('button', { name: 'On this page' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('.toc__list')).toBeHidden();
+
+    // The measurement that motivated this: with the list always open, the
+    // chapter title sat at y=632 of a 780px screen and no prose was visible.
+    const title = await page.locator('.prose h1').boundingBox();
+    expect(title.y).toBeLessThan(420);
+
+    await toggle.click();
+    await expect(page.locator('.toc__list')).toBeVisible();
+    await expect(
+      page.locator('.toc__list').getByRole('link', { name: 'Watch it in action' }),
+    ).toBeVisible();
   });
 });
 

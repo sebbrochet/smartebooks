@@ -218,6 +218,45 @@ body {
   color: var(--muted);
 }
 
+/* Only drawn on a narrow screen, where the rail is above the chapter and has
+   to be foldable. Same disclosure shape as a sidebar part. */
+.toc__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin: -0.25rem 0;
+  padding: 0.25rem 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.toc__marker {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-top: 0.28rem solid transparent;
+  border-bottom: 0.28rem solid transparent;
+  border-left: 0.36rem solid currentcolor;
+  transition: transform 120ms ease-out;
+}
+
+.toc__toggle[aria-expanded='true'] .toc__marker {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toc__marker {
+    transition: none;
+  }
+}
+
 .toc__list {
   list-style: none;
   margin: 0;
@@ -225,6 +264,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+}
+
+/* `hidden` is a presentation hint that any `display` beats, and this list is a
+   flex column — without this the attribute would be silently ignored. */
+.toc__list[hidden] {
+  display: none;
 }
 
 .toc__item--h3 {
@@ -379,7 +424,6 @@ body {
 
 .sidebar__part-title {
   margin: 0;
-  padding: 0 0.6rem;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -387,9 +431,62 @@ body {
   color: var(--muted);
 }
 
+/* The heading is a wrapper for the toggle; all of the padding lives on the
+   button so the whole strip is a click target, not just the words. */
+.sidebar__part-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.25rem 0.6rem;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sidebar__part-toggle:hover {
+  color: var(--fg);
+  background: var(--island-bg);
+}
+
+/* A disclosure triangle drawn in CSS rather than shipped as an icon font or an
+   SVG per part. It rotates to point down when the part is open. */
+.sidebar__part-marker {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-top: 0.28rem solid transparent;
+  border-bottom: 0.28rem solid transparent;
+  border-left: 0.36rem solid currentcolor;
+  transition: transform 120ms ease-out;
+}
+
+.sidebar__part-toggle[aria-expanded='true'] .sidebar__part-marker {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__part-marker {
+    transition: none;
+  }
+}
+
 /* The nested list sits directly under its heading, not a line below it. */
 .sidebar__part .sidebar__list {
   margin-top: 0.3rem;
+}
+
+/* `hidden` is a presentation hint that any `display` beats, and this list is a
+   flex column — without this the attribute would be silently ignored and a
+   collapsed part would stay on screen. */
+.sidebar__list[hidden] {
+  display: none;
 }
 
 /* Chapter prev/next */
@@ -462,6 +559,12 @@ body {
     align-items: center;
     gap: 0.4rem;
     justify-self: start;
+  }
+
+  /* The grid gap already separates the rail from the chapter; its own bottom
+     margin is 24px of nothing on the screen that can least afford it. */
+  .toc {
+    margin: 0;
   }
 
   .reader__scrim {
