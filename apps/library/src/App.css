@@ -22,15 +22,15 @@
    * there was nowhere — every token in this file was a colour. Nothing sets
    * these yet except this stylesheet.
    *
-   * `Inter` and `JetBrains Mono` are named first because the design targets
-   * them, but **nothing ships them**: they are used if the reader happens to
-   * have them and the stack falls through to the platform's own UI face
-   * otherwise. Loading them from a font CDN would contradict the rule that
-   * nothing third-party is fetched until the reader asks for it, so shipping
-   * them means self-hosting, which is a separate decision about package size.
+   * Both families are **self-hosted** (see `main.tsx`), so they are actually
+   * the fonts a reader sees rather than a name the stylesheet hoped for — which
+   * is what `'Inter'` was here before it was ever loaded. The non-variable
+   * names follow as a fallback for anyone who has them installed locally.
    */
-  --font-text: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, sfmono-regular, menlo, consolas, monospace;
+  --font-text: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, sfmono-regular, menlo, consolas,
+    monospace;
   --text-size: 1rem;
   --text-leading: 1.65;
   /* The measure: how wide a line of prose is allowed to get. */

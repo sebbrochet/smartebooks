@@ -1,5 +1,35 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * The stylesheet named `Inter` and `JetBrains Mono` for a long time without
+ * loading either, so both silently fell through to whatever the platform
+ * supplied. Naming a family proves nothing; this asks the browser.
+ */
+test('the reading fonts are actually loaded, and from this origin', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (request.resourceType() === 'font') requests.push(request.url());
+  });
+
+  await page.goto('/#/guide/01-getting-started');
+  await page.evaluate(() => document.fonts.ready);
+
+  // Loaded, not merely declared.
+  const loaded = await page.evaluate(() => [...document.fonts].map((face) => face.family));
+  expect(loaded).toContain('Inter Variable');
+
+  // And used: the resolved stack starts with the family we ship.
+  const family = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+  expect(family.startsWith('"Inter Variable"') || family.startsWith('Inter Variable')).toBe(true);
+
+  // Self-hosted: no font CDN is contacted, which is the same promise the video
+  // island makes. Fonts come from the app's own origin or not at all.
+  expect(requests.length).toBeGreaterThan(0);
+  for (const url of requests) {
+    expect(new URL(url).origin).toBe(new URL(page.url()).origin);
+  }
+});
+
 test('the pre-1.0 theme key migrates to the namespaced one', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('smart-ebook-theme', 'dark'));
   await page.goto('/');
