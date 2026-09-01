@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 export type AppRoute =
   | { view: 'shelf' }
-  | { view: 'book'; bookSlug: string; chapterSlug?: string }
+  | { view: 'book'; bookSlug: string; chapterSlug?: string; heading?: string }
   | { view: 'search'; bookSlug: string; query: string };
 
 export function parseAppHash(hash: string): AppRoute {
@@ -17,7 +17,13 @@ export function parseAppHash(hash: string): AppRoute {
     const query = new URLSearchParams(queryString ?? '').get('q') ?? '';
     return { view: 'search', bookSlug, query };
   }
-  return { view: 'book', bookSlug, chapterSlug: segments[1] };
+
+  // A section within a chapter is `?h=`, not a second `#`: the route already
+  // lives in the hash, so a fragment cannot be nested inside it. Using the
+  // query the search view already established keeps one grammar rather than
+  // inventing a second (SPEC002 S3).
+  const heading = new URLSearchParams(queryString ?? '').get('h') ?? undefined;
+  return { view: 'book', bookSlug, chapterSlug: segments[1], heading };
 }
 
 /** Reactive, hash-based platform route across books. No router dependency. */

@@ -172,12 +172,114 @@ body {
   cursor: pointer;
 }
 
-/* Two-column layout: sidebar + main */
+/*
+ * The reading column, and the furniture either side of it.
+ *
+ * The contents rail is a *third* column, and only on screens wide enough to
+ * carry one without squeezing the measure: 15rem of navigation + 44rem of
+ * prose + 12rem of contents needs about 76rem, so below 1100px the rail moves
+ * above the chapter instead of stealing from the text.
+ */
 .reader__body {
   display: grid;
   grid-template-columns: 15rem minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
+}
+
+/* On this page */
+.toc {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--island-bg);
+}
+
+.toc__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.toc__item--h3 {
+  padding-left: 0.85rem;
+}
+
+.toc__list a {
+  display: block;
+  padding: 0.2rem 0.4rem;
+  border-radius: 5px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.toc__list a:hover {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.toc__list a.is-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (min-width: 1100px) {
+  .reader__body {
+    grid-template-columns: 15rem minmax(0, 1fr) 12rem;
+  }
+
+  /* Out of the flow of the chapter and into the third column, where it can
+     stay in view without following the reader down the page. */
+  .toc {
+    grid-column: 3;
+    grid-row: 1;
+    position: sticky;
+    top: 4rem;
+    margin: 0;
+    border: 0;
+    border-left: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+    padding: 0 0 0 1rem;
+  }
+
+  .reader__main {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/*
+ * A heading's link to itself. Hidden until the heading is hovered or the link
+ * itself is focused, so it is available without decorating every heading in
+ * the book with punctuation.
+ */
+.heading-anchor {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+
+.prose :is(h2, h3, h4, h5, h6):hover .heading-anchor,
+.heading-anchor:focus {
+  opacity: 1;
 }
 
 .reader__main {

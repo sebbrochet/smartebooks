@@ -47,6 +47,42 @@ test('a book with parts groups its chapters, and one without does not', async ({
   await expect(page.locator('.sidebar__list > li')).toHaveCount(3);
 });
 
+test('the contents rail lists the sections and jumps to one', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  const toc = page.locator('.toc');
+  await expect(toc).toBeVisible();
+  await expect(toc.getByRole('link', { name: 'Why islands?' })).toBeVisible();
+
+  // A quiz writes its questions as `###`. They are headings in the source and
+  // never headings on the page, because the island replaces its own body — so
+  // listing them would offer the reader links that scroll nowhere.
+  await expect(toc.getByRole('link', { name: /What does a .token. represent/ })).toHaveCount(0);
+
+  await toc.getByRole('link', { name: 'Watch it in action' }).click();
+  await expect(page).toHaveURL(/#\/guide\/01-getting-started\?h=watch-it-in-action$/);
+
+  // Still in the chapter, scrolled down it — not navigated away by a bare
+  // fragment colliding with the hash route.
+  await expect(
+    page.getByRole('heading', { name: 'Getting started with smart ebooks' }),
+  ).toBeAttached();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test('a section can be linked to directly and survives a reload', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  const heading = page.locator('h2#watch-it-in-action');
+  await expect(heading.locator('a.heading-anchor')).toHaveAttribute(
+    'href',
+    '#/guide/01-getting-started?h=watch-it-in-action',
+  );
+
+  await page.goto('/#/guide/01-getting-started?h=watch-it-in-action');
+  await expect(heading).toBeInViewport();
+});
+
 test('search finds content and links to a chapter', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
   await page.getByPlaceholder('Search…').fill('matching');

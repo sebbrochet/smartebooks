@@ -9,6 +9,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeReact, { type Options as RehypeReactOptions } from 'rehype-react';
 import { remarkIslands } from './remarkIslands';
 import { rehypeCallouts } from './rehypeCallouts';
+import { rehypeHeadingIds } from './rehypeHeadingIds';
 import { rehypeResolveAssets } from './rehypeResolveAssets';
 import { IslandHost } from './IslandHost';
 import { IslandHostInline } from './IslandHostInline';
@@ -54,6 +55,7 @@ function buildProcessor(
   // After sanitising, so a callout's class is something the tree earned rather
   // than something an imported book could have written for itself.
   processor.use(rehypeCallouts);
+  processor.use(rehypeHeadingIds);
   if (resolveAsset) processor.use(rehypeResolveAssets, resolveAsset);
   return processor.use(rehypeReact, rehypeReactOptions);
 }
@@ -84,6 +86,15 @@ export interface RenderOptions {
   trusted?: boolean;
   /** Resolve in-package `assets/…` references (e.g. to Blob URLs). */
   resolveAsset?: (src: string) => string | undefined;
+  /**
+   * Builds the href a heading's permalink points at, given its id.
+   *
+   * Supplied by the caller because only it knows the route: this app is
+   * hash-routed, so a bare `href="#section"` would **replace** the route rather
+   * than scroll within it — a link that looks right and navigates the reader
+   * out of the chapter. Omit it and headings still get ids, just no anchor.
+   */
+  headingLink?: (id: string) => string;
 }
 
 /**
@@ -95,9 +106,14 @@ export interface RenderOptions {
 export function renderMarkdown(markdown: string, options: RenderOptions): ReactNode {
   const trusted = options.trusted ?? true;
   const { registry } = options;
+  // Per-run data travels on the file rather than in a plugin's closure, so a
+  // chapter's own link builder does not get baked into the cached processor and
+  // then handed to the next chapter.
+  const file = { value: markdown, data: { headingLink: options.headingLink } };
+
   if (options.resolveAsset) {
-    return buildProcessor(trusted, registry, options.resolveAsset).processSync(markdown)
+    return buildProcessor(trusted, registry, options.resolveAsset).processSync(file)
       .result as ReactNode;
   }
-  return cachedProcessor(trusted, registry).processSync(markdown).result as ReactNode;
+  return cachedProcessor(trusted, registry).processSync(file).result as ReactNode;
 }

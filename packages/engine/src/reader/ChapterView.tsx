@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { renderMarkdown } from '../markdown/render';
+import { headingHref } from '../markdown/headings';
 import type { Book, Chapter } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
 
@@ -20,10 +21,17 @@ export function ChapterView({
   resolveAsset,
   registry,
 }: ChapterViewProps) {
-  const content = useMemo(
-    () => renderMarkdown(chapter.markdown, { trusted, resolveAsset, registry }),
-    [chapter.markdown, trusted, resolveAsset, registry],
+  const linkTo = useMemo(
+    () => (id: string) => headingHref(basePath, chapter.slug, id),
+    [basePath, chapter.slug],
   );
+
+  const content = useMemo(
+    () =>
+      renderMarkdown(chapter.markdown, { trusted, resolveAsset, registry, headingLink: linkTo }),
+    [chapter.markdown, trusted, resolveAsset, registry, linkTo],
+  );
+
   const index = book.chapters.findIndex((c) => c.slug === chapter.slug);
   const prev = book.chapters[index - 1];
   const next = book.chapters[index + 1];

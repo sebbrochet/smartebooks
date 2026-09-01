@@ -82,6 +82,7 @@ export default function App() {
           basePath={`/${activeBook.meta.slug}`}
           view={route.view === 'search' ? 'search' : 'chapter'}
           chapterSlug={route.view === 'book' ? route.chapterSlug : undefined}
+          heading={route.view === 'book' ? route.heading : undefined}
           query={route.view === 'search' ? route.query : undefined}
           trusted={active?.trusted ?? true}
         />
