@@ -7,7 +7,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkDirectives } from './lint-islands.mjs';
-import { checkDeclaredAssets } from './book-sources.mjs';
+import { checkDeclaredAssets, checkParts } from './book-sources.mjs';
 
 const book = (islands) => ({ slug: 'demo', islands });
 const file = (markdown) => [{ path: 'content/01.md', markdown }];
@@ -339,5 +339,61 @@ describe('checkDeclaredAssets', () => {
 
   test('leaves an external cover URL alone', () => {
     assert.deepEqual(checkDeclaredAssets({ cover: 'https://example.com/c.png' }, []), []);
+  });
+});
+
+/**
+ * Parts are referenced by id rather than written as a label on each chapter,
+ * and this is why: a label grouped by string equality means one typo silently
+ * splits a part in two, with nothing able to tell that from an author who meant
+ * it. Every rule below is a mistake that spelling would have hidden.
+ */
+describe('checkParts', () => {
+  const book = {
+    parts: [
+      { id: 'one', title: 'Part I' },
+      { id: 'two', title: 'Part II' },
+    ],
+    chapters: [
+      { file: '01.md', part: 'one' },
+      { file: '02.md', part: 'two' },
+    ],
+  };
+
+  test('accepts a book whose chapters name parts it declares', () => {
+    assert.deepEqual(checkParts(book), []);
+  });
+
+  test('says nothing about a book with no parts at all', () => {
+    assert.deepEqual(checkParts({ chapters: [{ file: '01.md' }] }), []);
+  });
+
+  test('rejects a chapter naming a part that does not exist', () => {
+    const problems = checkParts({ ...book, chapters: [{ file: '01.md', part: 'onee' }] });
+    assert.equal(problems[0].rule, 'part-unknown');
+    assert.match(problems[0].message, /"01\.md" names part "onee"/);
+  });
+
+  test('rejects two parts sharing an id, once', () => {
+    const parts = [
+      { id: 'one', title: 'Part I' },
+      { id: 'one', title: 'Also Part I' },
+    ];
+    const problems = checkParts({ parts, chapters: [{ file: '01.md', part: 'one' }] });
+    assert.deepEqual(rules(problems), ['part-duplicate']);
+  });
+
+  test('rejects a part missing an id or a title', () => {
+    const problems = checkParts({ parts: [{ title: 'Nameless' }], chapters: [] });
+    assert.deepEqual(rules(problems), ['part-invalid']);
+  });
+
+  // A warning, not an error: it is dead weight in the descriptor, not a broken
+  // page, and it must not stop a build or the content checks that follow.
+  test('warns about a part no chapter claims', () => {
+    const problems = checkParts({ ...book, chapters: [{ file: '01.md', part: 'one' }] });
+    assert.deepEqual(rules(problems), ['part-empty']);
+    assert.equal(problems[0].severity, 'warning');
+    assert.match(problems[0].message, /"two" has no chapters/);
   });
 });

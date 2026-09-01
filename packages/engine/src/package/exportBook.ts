@@ -20,6 +20,9 @@ export function exportBookToZip(book: Book): Uint8Array {
     file: `${chapter.slug}.md`,
     order: chapter.order,
     title: chapter.title,
+    // Omitted rather than written as `undefined`, so a book with no parts
+    // round-trips to the same JSON it started as.
+    ...(chapter.part ? { part: chapter.part } : {}),
   }));
 
   const required = deriveRequiredIslands(book);

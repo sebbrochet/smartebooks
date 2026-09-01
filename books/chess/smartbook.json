@@ -14,10 +14,14 @@
     }
   },
   "assets": ["assets/immortal.pgn"],
+  "parts": [
+    { "id": "reading", "title": "Part I — Reading a game" },
+    { "id": "writing", "title": "Part II — Writing one" }
+  ],
   "chapters": [
-    { "file": "01-chess-basics.md", "order": 1 },
-    { "file": "02-reading-an-annotated-game.md", "order": 2 },
-    { "file": "03-a-game-from-a-file.md", "order": 3 },
-    { "file": "04-a-game-you-can-lay-out.md", "order": 4 }
+    { "file": "01-chess-basics.md", "order": 1, "part": "reading" },
+    { "file": "02-reading-an-annotated-game.md", "order": 2, "part": "reading" },
+    { "file": "03-a-game-from-a-file.md", "order": 3, "part": "writing" },
+    { "file": "04-a-game-you-can-lay-out.md", "order": 4, "part": "writing" }
   ]
 }

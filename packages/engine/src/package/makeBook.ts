@@ -20,7 +20,7 @@ function chaptersFromDescriptor(
       const prefix = slug.match(/^(\d+)/);
       const order = entry.order ?? (prefix ? Number.parseInt(prefix[1], 10) : index);
       const title = entry.title ?? extractTitle(markdown, slug);
-      return { slug, order, title, markdown };
+      return { slug, order, title, part: entry.part, markdown };
     })
     .sort((a, b) => a.order - b.order);
 }

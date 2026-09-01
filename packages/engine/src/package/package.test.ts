@@ -34,6 +34,20 @@ describe('makeBook', () => {
     const book = makeBook({ ...descriptor, chapters: undefined }, modules, []);
     expect(book.chapters.map((c) => c.slug)).toEqual(['01-first', '02-second']);
   });
+
+  it('carries each chapter’s part through to the reader', () => {
+    const grouped: SmartbookDescriptor = {
+      ...descriptor,
+      parts: [{ id: 'start', title: 'Part I' }],
+      chapters: [
+        { file: '01-first.md', order: 1, part: 'start' },
+        { file: '02-second.md', order: 2 },
+      ],
+    };
+
+    const book = makeBook(grouped, modules, []);
+    expect(book.chapters.map((c) => c.part)).toEqual(['start', undefined]);
+  });
 });
 
 describe('exportBookToZip', () => {
@@ -62,6 +76,31 @@ describe('exportBookToZip', () => {
 
     expect(manifest.chapters).toEqual([
       { file: '01-first.md', order: 1, title: 'First' },
+      { file: '02-second.md', order: 2, title: 'Second' },
+    ]);
+  });
+
+  // Grouping is descriptor-only — no chapter file mentions its part — so an
+  // export that dropped it would lose the book's structure silently, which is
+  // the same failure SPEC003 D7 caught for ordering.
+  it('round-trips parts, and writes none for a book that has none', () => {
+    const grouped: SmartbookDescriptor = {
+      ...descriptor,
+      parts: [{ id: 'start', title: 'Part I' }],
+      chapters: [
+        { file: '01-first.md', order: 1, part: 'start' },
+        { file: '02-second.md', order: 2 },
+      ],
+    };
+
+    const files = unzipSync(exportBookToZip(makeBook(grouped, modules, [])));
+    const manifest = JSON.parse(strFromU8(files['smartbook.json'])) as SmartbookDescriptor;
+
+    expect(manifest.parts).toEqual([{ id: 'start', title: 'Part I' }]);
+    expect(manifest.chapters).toEqual([
+      { file: '01-first.md', order: 1, title: 'First', part: 'start' },
+      // Absent, not `part: undefined`: an ungrouped book must export the same
+      // JSON it imported.
       { file: '02-second.md', order: 2, title: 'Second' },
     ]);
   });

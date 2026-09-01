@@ -13,10 +13,13 @@ import { validateBookContent } from './lint-islands.mjs';
 
 const folders = listBookFolders();
 
-// Content checks read the descriptor, so only run them where it is sound.
+// Content checks read the descriptor, so only run them where it is sound. A
+// *warning* leaves it sound — gating on any problem at all would let one
+// cosmetic note silently switch off directive linting for a whole book.
 const problems = folders.flatMap((folder) => {
   const descriptorProblems = validateBook(folder);
-  return descriptorProblems.length > 0 ? descriptorProblems : validateBookContent(folder);
+  const broken = descriptorProblems.some((problem) => problem.severity !== 'warning');
+  return broken ? descriptorProblems : [...descriptorProblems, ...validateBookContent(folder)];
 });
 
 /**

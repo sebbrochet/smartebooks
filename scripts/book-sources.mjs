@@ -236,10 +236,80 @@ export function validateBook(folder) {
     }
   }
 
+  // Parts are referenced by id, precisely so a mistyped one can be caught here
+  // rather than silently dropping a chapter out of its group at read time.
+  for (const problem of checkParts(descriptor)) {
+    problems.push({ folder, file: 'smartbook.json', line: 1, ...problem });
+  }
+
   // Asset references resolve by exact path at runtime, and a miss is silent:
   // the reader simply shows nothing. Catch it here, where it can still be fixed.
   for (const problem of checkDeclaredAssets(descriptor, listBookFiles(folder, 'assets'))) {
     fail(problem.rule, problem.message);
+  }
+
+  return problems;
+}
+
+/**
+ * Chapter grouping problems: a part a chapter names but the book never
+ * declares, two parts sharing an id, a malformed entry, or a part nothing
+ * points at.
+ *
+ * Pure, so it can be tested without a fixture book on disk.
+ *
+ * The reason parts are referenced by **id** rather than written as a label on
+ * each chapter is this function: a label grouped by string equality means one
+ * typo silently splits a part in two, and nothing can tell that from an author
+ * who meant it. An id gives the mistake somewhere to be caught.
+ *
+ * @param descriptor parsed smartbook.json
+ */
+export function checkParts(descriptor) {
+  const problems = [];
+  const parts = Array.isArray(descriptor.parts) ? descriptor.parts : [];
+  const chapters = Array.isArray(descriptor.chapters) ? descriptor.chapters : [];
+
+  for (const [index, part] of parts.entries()) {
+    if (!part?.id || !part?.title) {
+      problems.push({
+        rule: 'part-invalid',
+        message: `parts[${index}] needs both an "id" and a "title".`,
+      });
+    }
+  }
+
+  const ids = parts.map((part) => part?.id).filter(Boolean);
+  const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+  for (const id of new Set(duplicates)) {
+    problems.push({
+      rule: 'part-duplicate',
+      message: `two parts share the id "${id}" — a chapter could not say which it meant.`,
+    });
+  }
+
+  const declared = new Set(ids);
+  for (const entry of chapters) {
+    if (entry?.part !== undefined && !declared.has(entry.part)) {
+      problems.push({
+        rule: 'part-unknown',
+        message: `chapter "${entry.file}" names part "${entry.part}", which this book does not declare.`,
+      });
+    }
+  }
+
+  // A part nothing points at draws no heading. That is dead weight in the
+  // descriptor rather than a broken page, so it is a warning: it must not stop
+  // a build, and it must not stop the content checks that run after it.
+  const used = new Set(chapters.map((entry) => entry?.part).filter(Boolean));
+  for (const id of declared) {
+    if (!used.has(id)) {
+      problems.push({
+        rule: 'part-empty',
+        severity: 'warning',
+        message: `part "${id}" has no chapters, so it is never shown.`,
+      });
+    }
   }
 
   return problems;

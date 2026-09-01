@@ -206,6 +206,34 @@ body {
   font-weight: 600;
 }
 
+/*
+ * A part groups a run of chapters. The nested list carries its own top margin
+ * from `.sidebar__list`, so the wrapper only supplies the spacing *between*
+ * parts and the heading's own rhythm.
+ */
+.sidebar__part {
+  margin-top: 0.9rem;
+}
+
+.sidebar__part:first-child {
+  margin-top: 0;
+}
+
+.sidebar__part-title {
+  margin: 0;
+  padding: 0 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* The nested list sits directly under its heading, not a line below it. */
+.sidebar__part .sidebar__list {
+  margin-top: 0.3rem;
+}
+
 /* Chapter prev/next */
 .chapter-nav {
   display: flex;

@@ -30,6 +30,34 @@ export interface SmartbookChapterEntry {
   order?: number;
   /** Display title; defaults to the chapter's first heading. */
   title?: string;
+  /**
+   * The `id` of a part declared in {@link SmartbookDescriptor.parts}. Chapters
+   * with no part sit at the top level, which is how a preface or an appendix
+   * stays outside the grouping.
+   */
+  part?: string;
+}
+
+/**
+ * A named group of chapters — "Part I — Foundations", "Annexes".
+ *
+ * Declared **once**, and referenced by chapters by `id`. The obvious cheaper
+ * design is a label on each chapter (`part: "Part I — Foundations"`), and it is
+ * wrong for the same reason duplicate ids were: grouping on string equality
+ * means one typo silently splits a part in two, and nothing anywhere can tell
+ * that from an author who meant it. An `id` gives the linter a reference to
+ * check, like `assets` and island packs already have.
+ *
+ * Order is the array's own order. Parts do **not** nest: a chapter belongs to
+ * at most one, and the reader's chapter list is one level deep. Deeper trees
+ * can be added later without changing this, because a part is a view over the
+ * flat chapter sequence rather than a replacement for it.
+ */
+export interface SmartbookPart {
+  /** Stable identifier, referenced by `chapters[].part`. */
+  id: string;
+  /** Display title, e.g. "Part I — Foundations". */
+  title: string;
 }
 
 export interface SmartbookEngineRange {
@@ -78,6 +106,8 @@ export interface SmartbookDescriptor {
   engine?: SmartbookEngineRange;
   /** Chapters in order; if omitted, derived from the content folder. */
   chapters?: SmartbookChapterEntry[];
+  /** Named groups of chapters, in display order (SPEC005). */
+  parts?: SmartbookPart[];
   /** Declared asset paths (packaged/resolved in Phase 2). */
   assets?: string[];
   /** Island packs this book declares (SPEC006 F1.1). */

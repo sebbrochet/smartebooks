@@ -60,7 +60,28 @@
             "description": "Filename relative to content/, e.g. 01-intro.md."
           },
           "order": { "type": "integer", "description": "Display order." },
-          "title": { "type": "string", "description": "Overrides the first heading." }
+          "title": { "type": "string", "description": "Overrides the first heading." },
+          "part": {
+            "type": "string",
+            "description": "The id of a part declared in `parts`. Omit for a chapter that sits outside the grouping, such as a preface or an appendix."
+          }
+        }
+      }
+    },
+    "parts": {
+      "type": "array",
+      "description": "Named groups of chapters, e.g. 'Part I \u2014 Foundations'. Referenced by chapters[].part. A part appears where its first chapter appears, and one no chapter claims is not drawn.",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Stable identifier, referenced by chapters[].part."
+          },
+          "title": { "type": "string", "minLength": 1, "description": "Display title." }
         }
       }
     },

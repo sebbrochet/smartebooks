@@ -37,6 +37,34 @@
   | ⚠️ Pitfall | `> ⚠️ **Pitfall**: …` |
   | 📖 Definition | `> 📖 **Definition — Term**: …` |
 
+### Grouping chapters into parts
+
+A long book reads as *Part I → chapters → Part II → …*, and the sidebar can show that. Declare the
+parts once, then point chapters at them by `id`:
+
+```json
+"parts": [
+  { "id": "foundations", "title": "Part I — Foundations" },
+  { "id": "annexes", "title": "Annexes" }
+],
+"chapters": [
+  { "file": "00-preface.md", "order": 0 },
+  { "file": "01-tokens.md", "order": 1, "part": "foundations" },
+  { "file": "90-glossary.md", "order": 90, "part": "annexes" }
+]
+```
+
+- **`part` is optional.** A chapter without one sits at the top level — which is how a preface or a
+  standalone appendix stays outside the grouping, wherever it falls in the order.
+- **A part appears where its first chapter appears**, not where it sits in `parts`. Reading order is
+  the one you can see in the book, so it wins.
+- **Ids, not labels.** Writing the title on each chapter would mean one typo silently splits a part
+  in two with nothing able to notice. An id that no `parts` entry declares is `part-unknown`; a part
+  no chapter claims is `part-empty` (a warning — it simply never appears).
+- **Grouping is presentation only.** Chapters remain one flat sequence, so next/previous, search and
+  your reader's saved position all cross a part boundary without noticing it. Do not use parts to
+  imply that chapters are optional or out of order.
+
 ## 3. Directive syntax (how interactivity is declared)
 
 Interactivity uses [`remark-directive`](https://github.com/remarkjs/remark-directive) in two forms:

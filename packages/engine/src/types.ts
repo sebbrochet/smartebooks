@@ -63,6 +63,13 @@ export interface Chapter {
   slug: string;
   order: number;
   title: string;
+  /**
+   * The `id` of the part this chapter belongs to, if any. Chapters stay a
+   * **flat, ordered sequence** — search, prev/next, resume and export all walk
+   * it — and grouping is a view over that sequence rather than a tree that
+   * replaces it.
+   */
+  part?: string;
   markdown: string;
 }
 
