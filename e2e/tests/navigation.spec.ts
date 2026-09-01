@@ -143,6 +143,44 @@ test('a long chapter offers a way back to the top', async ({ page }) => {
   await expect(page.locator('#main')).toBeFocused();
 });
 
+test('the contents rail tracks the section being read', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+  const active = page.locator('.toc__list a.is-active');
+
+  // Nothing is marked while the reader is still above the first section: the
+  // rail should not claim they are somewhere they have not reached.
+  await expect(active).toHaveCount(0);
+
+  // Put the heading just past the line. Note that merely making it *visible*
+  // is not enough and should not be: a heading sitting at the bottom of the
+  // screen belongs to a section the reader has not started.
+  await page.evaluate(() => {
+    const el = document.getElementById('watch-it-in-action');
+    window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 20);
+  });
+  await expect(active).toHaveText('Watch it in action');
+  await expect(active).toHaveAttribute('aria-current', 'true');
+
+  // The last section's heading can never reach the line, because the section
+  // is shorter than a screen — without the bottom case it is unreachable.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(active).toHaveText('Still on the roadmap');
+});
+
+test('both rails scroll on their own instead of running off the screen', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  // A pane taller than the viewport with no scrollport of its own has an
+  // unreachable lower half — the page scroll moves the article, not the pane.
+  for (const selector of ['.sidebar', '.toc']) {
+    const box = await page.locator(selector).boundingBox();
+    const viewport = page.viewportSize();
+    expect(box, selector).not.toBeNull();
+    expect(box.height, selector).toBeLessThanOrEqual(viewport.height);
+    await expect(page.locator(selector)).toHaveCSS('overflow-y', 'auto');
+  }
+});
+
 test('search finds content and links to a chapter', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
   await page.getByPlaceholder('Search…').fill('matching');

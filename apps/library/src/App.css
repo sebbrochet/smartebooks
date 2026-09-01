@@ -268,6 +268,10 @@ body {
     border-radius: 0;
     background: none;
     padding: 0 0 0 1rem;
+    /* Same reasoning as the sidebar: a chapter with thirty sections would
+       otherwise put half of them past the bottom of the screen. (SPEC002 N1) */
+    max-height: calc(100vh - 5rem);
+    overflow-y: auto;
   }
 }
 
@@ -305,6 +309,22 @@ body {
   position: sticky;
   top: 4rem;
   align-self: start;
+  /*
+   * Clamped to the viewport, with its own scrollbar.
+   *
+   * Without this a sticky pane taller than the screen simply has an
+   * unreachable lower half: the page scroll moves the article, not the pane,
+   * so the last chapters of a long book cannot be clicked at all. The bundled
+   * books are three and four chapters long, which is exactly why this was
+   * invisible — it is a bug you only meet on a real book. (SPEC002 N1)
+   *
+   * `4rem` is the sticky offset; the extra rem keeps the last link clear of
+   * the bottom edge.
+   */
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+  /* Room for the scrollbar so it never sits on top of the link text. */
+  padding-right: 0.35rem;
 }
 
 .sidebar__search input {
@@ -463,6 +483,11 @@ body {
     overflow-y: auto;
     background: var(--bg);
     border-right: 1px solid var(--border);
+    /* Undoes the sticky-rail `align-self: start`. Box alignment applies to
+       out-of-flow boxes too: with `start`, `top: 0; bottom: 0` stops meaning
+       "stretch" and the panel collapses to the height of its links — a short
+       book got a drawer a third of the screen tall. */
+    align-self: stretch;
     /* Off-canvas rather than `display: none`, so opening it is a movement the
        reader can follow instead of a page that changes underneath them. */
     transform: translateX(-100%);
