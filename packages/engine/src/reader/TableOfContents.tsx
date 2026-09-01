@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Heading } from '../markdown/headings';
 import { activeHeading } from './activeHeading';
+import { useMediaQuery, NARROW } from './useMediaQuery';
 
 interface TableOfContentsProps {
   headings: Heading[];
@@ -14,20 +15,6 @@ interface TableOfContentsProps {
 const THRESHOLD = 96;
 
 /**
- * Above this the rail is a column beside the chapter; below it, the rail is in
- * the reader's way. Must match the `720px` breakpoint in the stylesheet — the
- * duplication is unavoidable because the difference is structural, not visual:
- * one layout shows the list, the other has to be able to fold it away.
- */
-const WIDE = '(min-width: 721px)';
-
-function matches(query: string): boolean {
-  // Guarded for environments without a layout engine; a rail that cannot be
-  // measured is better assumed open than silently missing.
-  return typeof window.matchMedia === 'function' ? window.matchMedia(query).matches : true;
-}
-
-/**
  * "On this page": the sections of the current chapter.
  *
  * A chapter was previously one indivisible thing — you could see its title in
@@ -39,7 +26,7 @@ function matches(query: string): boolean {
  */
 export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsProps) {
   const [readingId, setReadingId] = useState<string | undefined>();
-  const [wide, setWide] = useState(() => matches(WIDE));
+  const narrow = useMediaQuery(NARROW);
   const [openOnPhone, setOpenOnPhone] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -48,15 +35,7 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
   // same wall the chapter drawer was built to remove, one level down. Measured
   // at 420×780: it pushed the chapter title to y=632 and the first sentence off
   // the screen entirely (SPEC002 N6).
-  const listVisible = wide || openOnPhone;
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const query = window.matchMedia(WIDE);
-    const onChange = () => setWide(query.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
+  const listVisible = !narrow || openOnPhone;
 
   // The URL only says where the reader *arrived*. It is wrong the moment they
   // scroll, and absent entirely for anyone who opened the chapter normally.
@@ -118,11 +97,7 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
 
   return (
     <nav className="toc" aria-labelledby="toc-title">
-      {wide ? (
-        <h2 className="toc__title" id="toc-title">
-          On this page
-        </h2>
-      ) : (
+      {narrow ? (
         <h2 className="toc__title" id="toc-title">
           <button
             type="button"
@@ -134,6 +109,10 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
             <span className="toc__marker" aria-hidden="true" />
             On this page
           </button>
+        </h2>
+      ) : (
+        <h2 className="toc__title" id="toc-title">
+          On this page
         </h2>
       )}
       <ul className="toc__list" id="toc-list" ref={listRef} hidden={!listVisible}>

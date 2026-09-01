@@ -10,6 +10,7 @@ import { ChapterView } from './reader/ChapterView';
 import { SearchView } from './reader/SearchView';
 import { TableOfContents } from './reader/TableOfContents';
 import { BackToTop } from './reader/BackToTop';
+import { SearchOverlay } from './reader/SearchOverlay';
 import { chapterHeadings, headingHref } from './markdown/headings';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
@@ -50,6 +51,7 @@ export function Reader({
   const mainRef = useRef<HTMLElement>(null);
   const navToggleRef = useRef<HTMLButtonElement>(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const resolveAsset = useAssetResolver(book.assets);
 
   // Every book is scoped to exactly the islands it declares.
@@ -92,6 +94,28 @@ export function Reader({
     if (activeSlug) void reading.set(book.meta.slug, activeSlug);
   }, [book.meta.slug, activeSlug]);
 
+  // `/` opens search from anywhere, the convention every documentation site and
+  // code host shares. Guarded against firing while the reader is typing — a
+  // book with a text island would otherwise swallow the character instead of
+  // letting them write it.
+  useEffect(() => {
+    function onSlash(event: KeyboardEvent) {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target?.isContentEditable === true ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '');
+      if (typing) return;
+
+      event.preventDefault();
+      setSearchOpen(true);
+    }
+
+    document.addEventListener('keydown', onSlash);
+    return () => document.removeEventListener('keydown', onSlash);
+  }, []);
+
   // Escape closes the drawer, and focus goes back to the control that opened
   // it — otherwise it is left on a panel that no longer exists and the next
   // Tab starts from the top of the document.
@@ -124,16 +148,25 @@ export function Reader({
       registry={registry}
     >
       <div className="reader__body">
-        <button
-          type="button"
-          ref={navToggleRef}
-          className="reader__nav-toggle"
-          aria-expanded={navOpen}
-          aria-controls="book-nav"
-          onClick={() => setNavOpen((open) => !open)}
-        >
-          <span aria-hidden="true">☰</span> Contents
-        </button>
+        <div className="reader__toolbar">
+          <button
+            type="button"
+            ref={navToggleRef}
+            className="reader__nav-toggle"
+            aria-expanded={navOpen}
+            aria-controls="book-nav"
+            onClick={() => setNavOpen((open) => !open)}
+          >
+            <span aria-hidden="true">☰</span> Contents
+          </button>
+          <button
+            type="button"
+            className="reader__search-toggle"
+            onClick={() => setSearchOpen(true)}
+          >
+            <span aria-hidden="true">⌕</span> Search
+          </button>
+        </div>
         {navOpen && (
           <div
             className="reader__scrim"
@@ -148,9 +181,12 @@ export function Reader({
           basePath={basePath}
           view={view}
           activeSlug={activeChapter?.slug}
-          query={query}
           open={navOpen}
           onNavigate={() => setNavOpen(false)}
+          onSearch={() => {
+            setNavOpen(false);
+            setSearchOpen(true);
+          }}
         />
         <main id="main" ref={mainRef} tabIndex={-1} className="reader__main">
           {missing.length > 0 && (
@@ -190,6 +226,12 @@ export function Reader({
         )}
         <BackToTop target={mainRef} />
       </div>
+      <SearchOverlay
+        book={book}
+        basePath={basePath}
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
     </BookProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import type { Book } from '../types';
 import { navSections } from './navSections';
 
@@ -7,11 +7,12 @@ interface SidebarProps {
   basePath: string;
   view: 'chapter' | 'search';
   activeSlug?: string;
-  query?: string;
   /** Drawn as an open drawer on a narrow screen; ignored on a wide one. */
   open?: boolean;
   /** Called when the reader picks a destination, so the drawer can close. */
   onNavigate?: () => void;
+  /** Opens the search overlay. The sidebar no longer runs the search itself. */
+  onSearch?: () => void;
 }
 
 export function Sidebar({
@@ -19,11 +20,10 @@ export function Sidebar({
   basePath,
   view,
   activeSlug,
-  query,
   open = false,
   onNavigate,
+  onSearch,
 }: SidebarProps) {
-  const [text, setText] = useState(view === 'search' ? (query ?? '') : '');
   const currentSlug = view === 'chapter' ? (activeSlug ?? book.chapters[0]?.slug) : undefined;
 
   const sections = navSections(book.chapters, book.descriptor.parts);
@@ -55,15 +55,6 @@ export function Sidebar({
     );
   }, [activePartId, currentSlug]);
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    const trimmed = text.trim();
-    onNavigate?.();
-    window.location.hash = trimmed
-      ? `${basePath}/search?q=${encodeURIComponent(trimmed)}`
-      : basePath;
-  }
-
   // One listener on the nav rather than a handler threaded through every link
   // and every part. Picking the chapter you are already reading changes no
   // route, so closing cannot be left to a route change alone.
@@ -78,18 +69,14 @@ export function Sidebar({
       aria-label="Book navigation"
       onClick={dismissIfLink}
     >
-      <form className="sidebar__search" role="search" onSubmit={submit}>
-        <label htmlFor="book-search" className="visually-hidden">
-          Search the book
-        </label>
-        <input
-          id="book-search"
-          type="search"
-          placeholder="Search…"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-        />
-      </form>
+      {/* Looks like a field, behaves like a button: the real input lives in the
+          overlay, so there is one search box rather than two that can disagree
+          about what was typed. */}
+      <button type="button" className="sidebar__search" onClick={onSearch}>
+        <span aria-hidden="true">⌕</span>
+        <span>Search this book</span>
+        <kbd aria-hidden="true">/</kbd>
+      </button>
       <ul className="sidebar__list">
         {sections.map((section, index) => {
           const links = section.chapters.map((chapter) => {

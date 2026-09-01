@@ -21,6 +21,7 @@ export { BookProvider, useBook } from './reader/BookContext';
 export { usePersistentState } from './store/usePersistentState';
 export { useAssetResolver, type AssetResolver } from './reader/useAssetResolver';
 export { ThemeToggle } from './reader/ThemeToggle';
+export { useMediaQuery, NARROW } from './reader/useMediaQuery';
 export { useTheme, applyTheme, getStoredTheme, type Theme } from './reader/useTheme';
 export { searchChapters, type SearchResult } from './reader/search';
 

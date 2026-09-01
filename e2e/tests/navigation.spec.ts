@@ -119,6 +119,29 @@ test('a section can be linked to directly and survives a reload', async ({ page 
 test.describe('on a narrow screen', () => {
   test.use({ viewport: { width: 420, height: 780 } });
 
+  test('the header is one row, with the rest of the controls behind it', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+
+    // It wrapped to 154px of a 780px screen: a fifth of the viewport spent on
+    // controls a reader touches once a month, before a word of the book.
+    const header = await page.locator('.reader__header').boundingBox();
+    expect(header.height).toBeLessThan(70);
+
+    const tools = page.locator('.reader__tools');
+    await expect(tools).toBeHidden();
+
+    // The theme toggle stays out — it is the one control used while reading.
+    await expect(page.getByRole('button', { name: /Theme:/ })).toBeVisible();
+
+    await page.getByRole('button', { name: /Tools/ }).click();
+    await expect(tools).toBeVisible();
+    await expect(tools.getByRole('button', { name: 'Reset progress' })).toBeVisible();
+
+    // Opening the panel must not push the chapter down; it floats over it.
+    const afterOpen = await page.locator('.reader__header').boundingBox();
+    expect(afterOpen.height).toBe(header.height);
+  });
+
   test('the chapter list is a drawer, not a wall in front of the text', async ({ page }) => {
     await page.goto('/#/guide/01-getting-started');
 
@@ -178,6 +201,16 @@ test.describe('on a narrow screen', () => {
   });
 });
 
+test('on a wide screen the controls are all in the header, with no disclosure', async ({
+  page,
+}) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  await expect(page.getByRole('button', { name: /Tools/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Reset progress' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export progress' })).toBeVisible();
+});
+
 test('a long chapter offers a way back to the top', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
 
@@ -233,15 +266,69 @@ test('both rails scroll on their own instead of running off the screen', async (
   }
 });
 
-test('search finds content and links to a chapter', async ({ page }) => {
+test('search happens over the book and gives the reader their place back', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
-  await page.getByPlaceholder('Search…').fill('matching');
-  await page.getByPlaceholder('Search…').press('Enter');
+  // The `/` handler is mounted by the reader, so pressing it before the chapter
+  // exists races the first render rather than testing anything.
+  await expect(page.locator('article.prose')).toBeVisible();
 
-  await expect(page.getByRole('heading', { name: /Search/ })).toBeVisible();
-  const firstResult = page.locator('.search-view__list a').first();
-  await expect(firstResult).toBeVisible();
-  await firstResult.click();
+  // Somewhere into the chapter, so losing the position would be noticeable.
+  await page.evaluate(() => window.scrollTo(0, 900));
+  const before = await page.evaluate(() => window.scrollY);
+  expect(before).toBeGreaterThan(0);
+
+  // `/` from anywhere, the convention every documentation site shares.
+  await page.keyboard.press('/');
+  const input = page.getByPlaceholder('Search this book…');
+  await expect(input).toBeFocused();
+
+  // Results per keystroke — no Enter, no navigation.
+  await input.pressSequentially('matching', { delay: 40 });
+  await expect(page.locator('.search-overlay__list li')).not.toHaveCount(0);
+  await expect(page.locator('.search-overlay__meta')).toContainText(/matching chapters?/);
+
+  // The terms are marked in the results rather than left for the reader to
+  // find in a wall of grey snippet.
+  await expect(page.locator('.search-overlay mark').first()).toHaveText(/matching/i);
+
+  // Escape returns to the chapter *and* the place in it.
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.search-overlay__panel')).toHaveCount(0);
+  await expect(page).toHaveURL(/01-getting-started/);
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+});
+
+test('the keyboard alone can find a chapter and open it', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  await page.keyboard.press('/');
+  await page.getByPlaceholder('Search this book…').pressSequentially('progress', { delay: 40 });
+
+  const options = page.locator('.search-overlay__list li');
+  await expect(options.first()).toHaveAttribute('aria-selected', 'true');
+
+  await page.keyboard.press('ArrowDown');
+  await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('ArrowUp');
+  await expect(options.first()).toHaveAttribute('aria-selected', 'true');
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search-overlay__panel')).toHaveCount(0);
+  await expect(page.locator('article.prose')).toBeVisible();
+});
+
+test('a search result opens the chapter it names', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+
+  await page.locator('.sidebar__search').click();
+  await page.getByPlaceholder('Search this book…').fill('matching');
+
+  const first = page.locator('.search-overlay__list a').first();
+  await expect(first).toBeVisible();
+  await first.click();
+
+  await expect(page.locator('.search-overlay__panel')).toHaveCount(0);
   await expect(page.locator('article.prose')).toBeVisible();
 });
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Reader,
   ThemeToggle,
@@ -6,6 +6,8 @@ import {
   clearLastRead,
   deleteImportedBook,
   setLastRead,
+  useMediaQuery,
+  NARROW,
 } from '@smart-ebooks/engine';
 import { useShelfBooks } from './useShelfBooks';
 import { useAppRoute } from './router';
@@ -21,6 +23,22 @@ export default function App() {
   const { books, getBook, reload } = useShelfBooks();
   const active = route.view === 'shelf' ? undefined : getBook(route.bookSlug);
   const activeBook = active?.book;
+
+  /*
+   * On a phone the header used to wrap to **154px of a 780px screen** — brand,
+   * book title and five buttons, none of which folded. A fifth of the viewport
+   * spent on controls a reader touches once a month, before a word of the book.
+   *
+   * The theme toggle stays out: it is the one control readers use while
+   * reading. Everything else — progress backup, export, reset — goes behind a
+   * disclosure (SPEC002, header note).
+   */
+  const narrow = useMediaQuery(NARROW);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsVisible = !narrow || toolsOpen;
+
+  // Reopening on every navigation would put the panel back over the text.
+  useEffect(() => setToolsOpen(false), [route]);
 
   const { pending, dismiss } = useLaunchDecision(route);
   const pendingBook = pending ? getBook(pending.bookSlug)?.book : undefined;
@@ -62,17 +80,30 @@ export default function App() {
         {activeBook && <span className="reader__booktitle">{activeBook.meta.title}</span>}
         <div className="reader__actions">
           <ThemeToggle />
-          <BackupControls bookSlug={activeBook?.meta.slug} />
-          {activeBook && <BookExport book={activeBook} />}
-          {activeBook && (
+          {narrow && (
             <button
               type="button"
-              className="reader__reset"
-              onClick={() => resetBook(activeBook.meta.slug)}
+              className="reader__reset reader__tools-toggle"
+              aria-expanded={toolsOpen}
+              aria-controls="reader-tools"
+              onClick={() => setToolsOpen((open) => !open)}
             >
-              Reset progress
+              <span aria-hidden="true">⋯</span> Tools
             </button>
           )}
+          <div className="reader__tools" id="reader-tools" hidden={!toolsVisible}>
+            <BackupControls bookSlug={activeBook?.meta.slug} />
+            {activeBook && <BookExport book={activeBook} />}
+            {activeBook && (
+              <button
+                type="button"
+                className="reader__reset"
+                onClick={() => resetBook(activeBook.meta.slug)}
+              >
+                Reset progress
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

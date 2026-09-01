@@ -160,6 +160,45 @@ body {
   gap: 0.5rem;
 }
 
+/* The secondary controls. One row beside the theme toggle on a wide screen; a
+   panel below the header on a phone, where five buttons cannot share a line. */
+.reader__tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* `hidden` is only a presentation hint and this is a flex row, so without an
+   explicit rule the attribute is silently ignored. */
+.reader__tools[hidden] {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  /* Out of the header's flow so opening it pushes nothing around: the reader
+     is looking at the page, not at the toolbar. */
+  .reader__tools {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 12;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 12rem;
+    padding: 0.6rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+  }
+
+  /* The book's own title is the first thing in the chapter anyway. */
+  .reader__booktitle {
+    display: none;
+  }
+}
+
 .reader__backup-status {
   color: var(--muted);
   font-size: 0.78rem;
@@ -372,13 +411,132 @@ body {
   padding-right: 0.35rem;
 }
 
-.sidebar__search input {
+/* Looks like a field so it reads as "search goes here", but it is a button —
+   the only text input lives in the overlay. */
+.sidebar__search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar__search:hover {
   color: var(--fg);
+  border-color: var(--accent);
+}
+
+.sidebar__search kbd {
+  margin-left: auto;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/*
+ * Search over the book rather than instead of it.
+ *
+ * It used to be a route, so checking one word cost the reader their chapter and
+ * their scroll position. The overlay closes back onto the same pixel.
+ */
+.search-overlay__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 45%);
+}
+
+.search-overlay__panel {
+  position: fixed;
+  z-index: 41;
+  top: 3.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  width: min(42rem, 92vw);
+  max-height: min(32rem, 76vh);
+  padding: 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 28%);
+}
+
+.search-overlay__field {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-overlay__field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 1rem;
+}
+
+.search-overlay__close {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.search-overlay__meta {
+  margin: 0.6rem 0.15rem 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.search-overlay__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.search-overlay__list a {
+  display: block;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.search-overlay__list li.is-selected a,
+.search-overlay__list a:hover {
+  background: var(--island-bg);
+}
+
+.search-overlay__snippet {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.search-overlay mark {
+  padding: 0 0.1em;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: inherit;
 }
 
 .sidebar__list {
@@ -527,10 +685,18 @@ body {
  * Below 720px the sidebar used to sit in the flow above the chapter, which put
  * every chapter link between the reader and the first sentence — a forty
  * chapter book opened on forty links. It becomes a drawer instead, and the
- * toggle only exists at that width.
+ * toolbar that opens it only exists at that width.
  */
-.reader__nav-toggle {
+.reader__toolbar {
   display: none;
+  gap: 0.5rem;
+}
+
+.reader__nav-toggle,
+.reader__search-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.85rem;
   padding: 0.4rem 0.8rem;
   border: 1px solid var(--border);
@@ -553,11 +719,10 @@ body {
       'main';
   }
 
-  .reader__nav-toggle {
+  /* The search button is otherwise inside the drawer, two taps away. */
+  .reader__toolbar {
     grid-area: nav;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
+    display: flex;
     justify-self: start;
   }
 
