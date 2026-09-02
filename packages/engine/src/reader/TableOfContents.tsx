@@ -28,7 +28,7 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
   const [readingId, setReadingId] = useState<string | undefined>();
   const narrow = useMediaQuery(NARROW);
   const [openOnPhone, setOpenOnPhone] = useState(false);
-  const listRef = useRef<HTMLUListElement>(null);
+  const railRef = useRef<HTMLElement>(null);
 
   // On a phone the rail sits above the chapter, so an open list of seven
   // sections is seven links between the reader and the first sentence — the
@@ -79,24 +79,36 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
   // to need this is exactly a rail whose active entry would otherwise sit past
   // its bottom edge, tracking a section the reader cannot see it tracking.
   useEffect(() => {
-    const list = listRef.current;
-    if (!list || !current) return;
+    const rail = railRef.current;
+    if (!rail || !current) return;
 
-    const link = list.querySelector<HTMLElement>(`[data-heading="${CSS.escape(current)}"]`);
+    const link = rail.querySelector<HTMLElement>(`[data-heading="${CSS.escape(current)}"]`);
     if (!link) return;
 
-    // Deliberately *not* `scrollIntoView`: the rail is sticky inside a page
-    // that also scrolls, and that would drag the reader away from the text.
-    const above = link.offsetTop - list.scrollTop;
-    const below = above + link.offsetHeight - list.clientHeight;
-    if (above < 0) list.scrollTop += above;
-    else if (below > 0) list.scrollTop += below;
+    /*
+     * Measured with rects against the **`nav`**, which is the element carrying
+     * `max-height` and `overflow-y`. An earlier version scrolled the `ul` and
+     * did nothing at all: an unclipped list has `scrollTop === 0` and a
+     * `clientHeight` equal to its full height, so every entry looked like it
+     * was already in view. Nothing smaller than a 60-section chapter could
+     * show the difference.
+     *
+     * Deliberately *not* `scrollIntoView`: the rail is sticky inside a page
+     * that also scrolls, and that would drag the reader away from the text.
+     */
+    const railBox = rail.getBoundingClientRect();
+    const linkBox = link.getBoundingClientRect();
+
+    const above = linkBox.top - railBox.top;
+    const below = linkBox.bottom - railBox.bottom;
+    if (above < 0) rail.scrollTop += above;
+    else if (below > 0) rail.scrollTop += below;
   }, [current]);
 
   if (headings.length < 2) return null;
 
   return (
-    <nav className="toc" aria-labelledby="toc-title">
+    <nav className="toc" aria-labelledby="toc-title" ref={railRef}>
       {narrow ? (
         <h2 className="toc__title" id="toc-title">
           <button
@@ -115,7 +127,7 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
           On this page
         </h2>
       )}
-      <ul className="toc__list" id="toc-list" ref={listRef} hidden={!listVisible}>
+      <ul className="toc__list" id="toc-list" hidden={!listVisible}>
         {headings.map((heading) => (
           <li key={heading.id} className={`toc__item toc__item--h${heading.depth}`}>
             <a
