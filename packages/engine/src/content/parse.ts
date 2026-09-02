@@ -12,13 +12,21 @@ export function extractTitle(markdown: string, fallback: string): string {
 
 /** A rough plain-text rendering of a chapter, good enough for search. */
 export function toPlainText(markdown: string): string {
-  return markdown
-    .replace(/```[\s\S]*?```/g, ' ') // fenced code / game JSON
-    .replace(/^:::.*$/gm, ' ') // container directive fences
-    .replace(/^::.*$/gm, ' ') // leaf directives
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // images
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links -> text
-    .replace(/[#>*_`|~]/g, ' ') // markdown punctuation
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    markdown
+      .replace(/```[\s\S]*?```/g, ' ') // fenced code / game JSON
+      .replace(/^:::.*$/gm, ' ') // container directive fences
+      .replace(/^::.*$/gm, ' ') // leaf directives
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // images
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links -> text
+      // List scaffolding, which is punctuation a reader never sees. Quiz
+      // options are ordinary task-list items, so without this a search snippet
+      // reads "- [x] Locally in your browser" instead of the sentence.
+      .replace(/^\s{0,8}[-*+]\s+\[[ xX]\]\s*/gm, ' ') // task list markers
+      .replace(/^\s{0,8}[-*+]\s+/gm, ' ') // bullets
+      .replace(/^\s{0,8}\d+[.)]\s+/gm, ' ') // numbered items
+      .replace(/[#>*_`|~]/g, ' ') // markdown punctuation
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }

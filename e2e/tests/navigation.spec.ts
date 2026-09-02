@@ -285,7 +285,7 @@ test('search happens over the book and gives the reader their place back', async
   // Results per keystroke — no Enter, no navigation.
   await input.pressSequentially('matching', { delay: 40 });
   await expect(page.locator('.search-overlay__list li')).not.toHaveCount(0);
-  await expect(page.locator('.search-overlay__meta')).toContainText(/matching chapters?/);
+  await expect(page.locator('.search-overlay__meta')).toContainText(/matching passages?/);
 
   // The terms are marked in the results rather than left for the reader to
   // find in a wall of grey snippet.

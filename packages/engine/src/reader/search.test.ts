@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { searchChapters, highlight, buildCorpus, searchCorpus } from './search';
+import { toPlainText } from '../content/parse';
 import type { Chapter } from '../types';
 
 const chapters: Chapter[] = [
@@ -81,5 +82,18 @@ describe('highlight', () => {
   it('leaves text alone when nothing matches', () => {
     expect(highlight('nothing here', ['zzz'])).toEqual([{ text: 'nothing here', match: false }]);
     expect(highlight('nothing here', [])).toEqual([{ text: 'nothing here', match: false }]);
+  });
+});
+
+describe('toPlainText', () => {
+  // Quiz options are ordinary task-list items, so without stripping the markers
+  // a search snippet reads "- [x] Locally in your browser" instead of a
+  // sentence — punctuation the reader never saw on the page.
+  it('drops list scaffolding the reader never sees', () => {
+    expect(toPlainText('- [x] Locally in your browser\n- [ ] On a remote server')).toBe(
+      'Locally in your browser On a remote server',
+    );
+    expect(toPlainText('1. First\n2. Second')).toBe('First Second');
+    expect(toPlainText('- plain bullet')).toBe('plain bullet');
   });
 });

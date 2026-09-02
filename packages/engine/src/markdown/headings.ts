@@ -5,6 +5,7 @@ import remarkDirective from 'remark-directive';
 import { visit } from 'unist-util-visit';
 import type { Root, Heading as MdastHeading, Parent } from 'mdast';
 import { mdastToText } from './extract';
+import { toPlainText } from '../content/parse';
 
 /**
  * Heading identity, shared by the two things that need it to agree: the
@@ -95,20 +96,78 @@ const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);
  * `h1` is excluded: it is the chapter's title, which the page already shows.
  */
 export function chapterHeadings(markdown: string, maxDepth = 3): Heading[] {
+  return chapterPassages(markdown, maxDepth)
+    .map((passage) => passage.heading)
+    .filter((heading): heading is Heading => heading !== undefined);
+}
+
+/**
+ * A section of a chapter: one heading and the prose under it.
+ *
+ * The unit search results should point at. A chapter-level result says "the
+ * word is somewhere in these nine pages"; a passage says where.
+ *
+ * Derived from the same walk as {@link chapterHeadings} — and that list is now
+ * derived from *this* — so the two can never disagree about which headings
+ * exist or what their ids are. They previously could, and only a test stopped
+ * it.
+ *
+ * The text before the first heading is a passage with no heading: a chapter
+ * usually opens with a paragraph or two under its title, and those words are
+ * as findable as any others.
+ */
+export interface Passage {
+  heading?: Heading;
+  /** The prose under the heading, **not including the heading itself**. */
+  text: string;
+}
+
+export function chapterPassages(markdown: string, maxDepth = 3): Passage[] {
   const slug = uniqueSlugger();
-  const headings: Heading[] = [];
+  const marks: { heading: Heading; from: number; to: number }[] = [];
+  let titleEnd = 0;
 
   visit(parser.parse(markdown) as Root, 'heading', (node: MdastHeading, _index, parent) => {
-    if (node.depth < 2 || node.depth > maxDepth) return;
     if (isDirective(parent)) return;
+
+    // The chapter's own title, which every caller already displays. Recording
+    // where it ends keeps it out of the opening passage's text, so a search
+    // result does not print the chapter's name as its own excerpt.
+    if (node.depth === 1) {
+      titleEnd = Math.max(titleEnd, node.position?.end.offset ?? 0);
+      return;
+    }
+
+    if (node.depth < 2 || node.depth > maxDepth) return;
 
     const text = mdastToText(node).trim();
     if (!text) return;
 
-    headings.push({ depth: node.depth, text, id: slug(text) });
+    const from = node.position?.start.offset;
+    const to = node.position?.end.offset;
+    if (from === undefined || to === undefined) return;
+
+    marks.push({ heading: { depth: node.depth, text, id: slug(text) }, from, to });
   });
 
-  return headings;
+  // Sliced from the source by node offset rather than rebuilt from the tree.
+  // `toPlainText` is already the forgiving stripper the rest of search uses, so
+  // reusing it keeps one definition of "what counts as text" instead of two
+  // that drift on the next directive we add.
+  //
+  // Each body starts *after* its heading, because the caller already has the
+  // heading and showing it twice — as a result's title and again at the head of
+  // its own snippet — wastes the line that was supposed to give context.
+  const passages: Passage[] = [];
+  const preamble = toPlainText(markdown.slice(titleEnd, marks[0]?.from ?? markdown.length));
+  if (preamble) passages.push({ text: preamble });
+
+  marks.forEach((mark, index) => {
+    const end = marks[index + 1]?.from ?? markdown.length;
+    passages.push({ heading: mark.heading, text: toPlainText(markdown.slice(mark.to, end)) });
+  });
+
+  return passages;
 }
 
 function isDirective(parent: Parent | undefined): boolean {

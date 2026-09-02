@@ -520,6 +520,38 @@ body {
   text-decoration: none;
 }
 
+/* Sections are indented under the chapter they belong to, so the grouping is
+   visible without a second list or a heading between every run. */
+.search-overlay__row--passage a {
+  padding-left: 1.6rem;
+}
+
+.search-overlay__row--passage + .search-overlay__row--chapter a {
+  margin-top: 0.35rem;
+}
+
+.search-overlay__section {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.search-overlay__complete {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.search-overlay__complete kbd {
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
 .search-overlay__list li.is-selected a,
 .search-overlay__list a:hover {
   background: var(--island-bg);

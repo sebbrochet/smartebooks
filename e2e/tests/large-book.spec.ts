@@ -127,13 +127,34 @@ test('the contents rail scrolls itself to keep up with the reader', async ({ pag
   expect(activeBox.y + activeBox.height).toBeLessThanOrEqual(railBox.y + railBox.height + 1);
 });
 
-test('search still finds one chapter among forty-four', async ({ page }) => {
+test('search finds one passage among forty-four chapters, and lands on it', async ({ page }) => {
   await open(page, flatPath, FLAT);
 
   await page.keyboard.press('/');
   await page.getByPlaceholder('Search this book…').pressSequentially('chapter37unique');
 
-  await expect(page.locator('.search-overlay__meta')).toHaveText('1 matching chapter');
-  await page.locator('.search-overlay__list a').first().click();
+  await expect(page.locator('.search-overlay__meta')).toContainText('in 1 chapter');
+
+  // The section, not the top of the chapter — the difference between "it is
+  // somewhere in these pages" and "it is here".
+  const section = page.locator('.search-overlay__row--passage a').first();
+  await expect(section).toHaveAttribute('href', /\?s=section-/);
+  await section.click();
+
   await expect(page.getByRole('heading', { name: chapterTitle(37) })).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test('a half-typed word is completed from the book itself', async ({ page }) => {
+  await open(page, flatPath, FLAT);
+
+  await page.keyboard.press('/');
+  const input = page.getByPlaceholder('Search this book…');
+  await input.pressSequentially('chapter37uniq');
+
+  const hint = page.locator('.search-overlay__complete');
+  await expect(hint).toContainText('chapter37unique');
+
+  await page.keyboard.press('Tab');
+  await expect(input).toHaveValue('chapter37unique');
 });
