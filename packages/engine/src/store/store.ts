@@ -58,6 +58,32 @@ export async function clearBook(bookSlug: string): Promise<void> {
   notify();
 }
 
+/**
+ * Move every key belonging to one book onto another key.
+ *
+ * Used when a book's identity changes underneath its reader — which happened
+ * once, when imported books stopped being identified by a hash of their own
+ * contents. Without this the correction would itself have thrown away the
+ * progress it exists to protect.
+ */
+export async function renameBookState(from: string, to: string): Promise<void> {
+  if (from === to) return;
+
+  const prefix = `${ROOT}${from}:`;
+  const all = await entries();
+
+  await Promise.all(
+    all
+      .filter(([key]) => typeof key === 'string' && (key as string).startsWith(prefix))
+      .map(async ([key, value]) => {
+        const rest = (key as string).slice(prefix.length);
+        await set(keyFor(to, rest), value);
+        await del(key);
+      }),
+  );
+  notify();
+}
+
 /** Delete all stored state for every book on this device. */
 export async function clearAllBooks(): Promise<void> {
   const all = await entries();

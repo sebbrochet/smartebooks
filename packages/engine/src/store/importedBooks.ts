@@ -5,6 +5,7 @@ import { defaultIslands } from '../islands/defaults';
 import type { SmartbookDescriptor } from '../package/spec';
 import type { ImportedPackage } from '../package/importBook';
 import { makeBook } from '../package/makeBook';
+import { renameBookState } from './store';
 
 // A dedicated IndexedDB store so imported book packages never mix with the
 // per-book reader-progress keys.
@@ -18,29 +19,34 @@ export interface StoredImport {
   importedAt: number;
 }
 
-/** Small deterministic hash (FNV-1a) → stable id for dedupe across re-imports. */
-function hashString(input: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
-
-function packageId(pkg: ImportedPackage): string {
-  const contentKeys = Object.keys(pkg.content).sort();
-  const assetKeys = Object.keys(pkg.assets).sort();
-  const material =
-    JSON.stringify(pkg.descriptor) +
-    contentKeys.map((k) => k + pkg.content[k]).join('') +
-    assetKeys.map((k) => `${k}:${pkg.assets[k].length}`).join('');
-  return `imp-${hashString(material)}`;
+/**
+ * What makes an imported book *that book*, across every edition of it.
+ *
+ * **The declared slug, not a hash of the contents.** The id becomes the book's
+ * `meta.slug`, which is the key every quiz score, checkpoint and reading
+ * position is stored under — so identifying a book by its bytes meant that
+ * correcting one typo renamed it, orphaning the reader's progress and shelving
+ * a second copy beside the first with the same title and none of their work.
+ * Republishing is the normal life of a book, not an edge case.
+ *
+ * The slug is the identity the format already uses — it is how bundled books
+ * are addressed — and it is validated on import (`[a-z0-9][a-z0-9-]*`, ≤64
+ * characters), so it is safe and legible as a key.
+ *
+ * Still prefixed, so an imported book can never take a bundled book's slug.
+ *
+ * The cost, accepted deliberately: two unrelated books that both declare
+ * `study-guide` are one book to this reader, and importing the second replaces
+ * the first. That is the same trade the format already makes for bundled
+ * books, and replacing is exactly what a new edition should do.
+ */
+function identityFor(descriptor: SmartbookDescriptor): string {
+  return `imp-${descriptor.slug}`;
 }
 
 export async function saveImportedBook(pkg: ImportedPackage): Promise<StoredImport> {
   const stored: StoredImport = {
-    id: packageId(pkg),
+    id: identityFor(pkg.descriptor),
     descriptor: pkg.descriptor,
     content: pkg.content,
     assets: pkg.assets,
@@ -52,7 +58,33 @@ export async function saveImportedBook(pkg: ImportedPackage): Promise<StoredImpo
 
 export async function listImportedBooks(): Promise<StoredImport[]> {
   const all = await values<StoredImport>(importStore);
-  return all.filter(Boolean).sort((a, b) => a.importedAt - b.importedAt);
+  const shelved = all.filter(Boolean).sort((a, b) => a.importedAt - b.importedAt);
+
+  // Oldest first, so where the old scheme had shelved two copies of one book
+  // the newest edition's progress is the one that survives — it is the copy
+  // the reader was last reading.
+  const migrated: StoredImport[] = [];
+  for (const stored of shelved) migrated.push(await migrate(stored));
+
+  return [...new Map(migrated.map((stored) => [stored.id, stored])).values()];
+}
+
+/**
+ * Re-key a record stored under the old content-hash id, carrying the reader's
+ * progress with it.
+ *
+ * Done on read rather than as a one-shot upgrade step: there is no other moment
+ * every path passes through, and once the ids agree this costs a comparison.
+ */
+async function migrate(stored: StoredImport): Promise<StoredImport> {
+  const id = identityFor(stored.descriptor);
+  if (id === stored.id) return stored;
+
+  const moved: StoredImport = { ...stored, id };
+  await set(id, moved, importStore);
+  await del(stored.id, importStore);
+  await renameBookState(stored.id, id);
+  return moved;
 }
 
 export async function getImportedBook(id: string): Promise<StoredImport | undefined> {
