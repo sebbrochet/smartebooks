@@ -100,20 +100,38 @@ export const scores = {
 /** Where the reader had got to in a book. */
 export interface ReadingPosition {
   chapterSlug: string;
+  /**
+   * The section being read, and how far below its heading.
+   *
+   * **Anchored to a heading rather than to a pixel**, because a pixel offset
+   * stops meaning anything the moment the layout reflows — a changed text size,
+   * a narrower window, a lazily-sized image above (SPEC002 QS1). The heading
+   * survives all three; the offset only has to carry the reader from the
+   * heading to where they actually were, which is at most a section.
+   */
+  sectionId?: string;
+  offset?: number;
+  /**
+   * The furthest chapter reached, which **never moves backwards**. Distinct
+   * from `chapterSlug`: flipping back to re-read chapter 2 changes where you
+   * are, not how far you have got. This is what SPEC001 P2.7 exposes to
+   * islands, and only the shell can produce it (SPEC002 S5).
+   */
+  furthest?: string;
   at: number;
 }
 
 /**
- * The furthest/most recent place the reader was in this book. Kept per book (so
- * it travels with a progress backup) and used by the platform to resume.
+ * The most recent place the reader was in this book. Kept per book (so it
+ * travels with a progress backup) and used by the platform to resume.
  */
 export const reading = {
   key: 'reading:position',
   get(bookSlug: string): Promise<ReadingPosition | undefined> {
     return loadState<ReadingPosition | undefined>(bookSlug, reading.key, undefined);
   },
-  set(bookSlug: string, chapterSlug: string): Promise<void> {
-    return saveState<ReadingPosition>(bookSlug, reading.key, { chapterSlug, at: Date.now() });
+  set(bookSlug: string, position: Omit<ReadingPosition, 'at'>): Promise<void> {
+    return saveState<ReadingPosition>(bookSlug, reading.key, { ...position, at: Date.now() });
   },
 };
 

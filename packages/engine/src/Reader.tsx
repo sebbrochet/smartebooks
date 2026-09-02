@@ -11,6 +11,8 @@ import { SearchView } from './reader/SearchView';
 import { TableOfContents } from './reader/TableOfContents';
 import { BackToTop } from './reader/BackToTop';
 import { SearchOverlay } from './reader/SearchOverlay';
+import { useActiveSection, scrollToSpot } from './reader/useActiveSection';
+import { furthestOf } from './reader/furthest';
 import './reader/reader.css';
 import { chapterHeadings, headingHref } from './markdown/headings';
 import { ProgressDashboard } from './components/ProgressDashboard';
@@ -79,6 +81,9 @@ export function Reader({
     [activeChapter],
   );
 
+  const spot = useActiveSection(headings);
+  const activeSlug = activeChapter?.slug;
+
   useEffect(() => {
     mainRef.current?.focus();
 
@@ -87,16 +92,57 @@ export function Reader({
     // contain the thing you were sent. The element only exists once the chapter
     // has rendered, so a miss falls back to the top rather than doing nothing.
     const target = heading ? document.getElementById(heading) : null;
-    if (target) target.scrollIntoView();
-    else window.scrollTo(0, 0);
-  }, [view, chapterSlug, heading, query, book.meta.slug]);
+    if (target) {
+      target.scrollIntoView();
+      return;
+    }
 
-  // Remember where the reader got to, so the book can be resumed later. Stored
-  // per book, so it also travels with a progress backup.
-  const activeSlug = activeChapter?.slug;
+    // No section asked for: pick up where this reader left off in this
+    // chapter. Every view change used to scroll to the top, so resuming
+    // returned the reader to the chapter but never to the place — on a long
+    // chapter that is most of the way to not resuming at all (SPEC002 S4).
+    window.scrollTo(0, 0);
+    if (view !== 'chapter' || !activeSlug) return;
+
+    let cancelled = false;
+    void reading.get(book.meta.slug).then((saved) => {
+      // Only if they have not started reading in the meantime. Yanking the
+      // page out from under someone who scrolled while IndexedDB was answering
+      // is worse than simply not restoring.
+      if (cancelled || !saved || saved.chapterSlug !== activeSlug) return;
+      if (window.scrollY !== 0) return;
+      scrollToSpot(saved);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [view, chapterSlug, heading, query, book.meta.slug, activeSlug]);
+
+  /*
+   * Remember where the reader got to. Stored per book, so it travels with a
+   * progress backup.
+   *
+   * Written on a delay rather than on every frame: this is an IndexedDB write,
+   * and scrolling produces one candidate position per frame. A second of quiet
+   * means the reader has stopped somewhere worth remembering.
+   */
   useEffect(() => {
-    if (activeSlug) void reading.set(book.meta.slug, activeSlug);
-  }, [book.meta.slug, activeSlug]);
+    if (view !== 'chapter' || !activeSlug) return;
+
+    const timer = setTimeout(() => {
+      void reading.get(book.meta.slug).then((saved) =>
+        reading.set(book.meta.slug, {
+          chapterSlug: activeSlug,
+          sectionId: spot.sectionId,
+          offset: spot.offset,
+          furthest: furthestOf(book.chapters, saved?.furthest, activeSlug),
+        }),
+      );
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [book.meta.slug, book.chapters, view, activeSlug, spot.sectionId, spot.offset]);
 
   // `/` opens search from anywhere, the convention every documentation site and
   // code host shares. Guarded against firing while the reader is typing — a
@@ -226,7 +272,7 @@ export function Reader({
           <TableOfContents
             headings={headings}
             linkTo={(id) => headingHref(basePath, activeChapter.slug, id)}
-            activeId={heading}
+            activeId={spot.sectionId ?? heading}
           />
         )}
         <BackToTop target={mainRef} />
