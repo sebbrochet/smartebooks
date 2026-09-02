@@ -50,8 +50,21 @@ test('import a .smartbook package, then open and delete it', async ({ page }) =>
   // The packaged image is resolved to a Blob URL.
   await expect(page.locator('article.prose img')).toHaveAttribute('src', /^blob:/);
 
-  // Back to the shelf and delete it.
+  // Back to the shelf and delete it — which asks first.
   await page.getByRole('link', { name: 'Smart Ebooks' }).click();
   await page.getByRole('button', { name: /Delete imported book Imported Demo Book/ }).click();
+
+  const confirm = page.getByRole('alertdialog', { name: /Delete Imported Demo Book/ });
+  await expect(confirm).toBeVisible();
+
+  // Backing out leaves the book where it was. Worth a real browser: the unit
+  // tests dispatch events, and cannot see that the dialog actually blocks the
+  // click that used to delete.
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirm).toBeHidden();
+  await expect(page.getByRole('link', { name: /Imported Demo Book/ })).toHaveCount(1);
+
+  await page.getByRole('button', { name: /Delete imported book Imported Demo Book/ }).click();
+  await confirm.getByRole('button', { name: 'Delete book' }).click();
   await expect(page.getByRole('link', { name: /Imported Demo Book/ })).toHaveCount(0);
 });

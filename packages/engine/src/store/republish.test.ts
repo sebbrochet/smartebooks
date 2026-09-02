@@ -26,7 +26,8 @@ vi.mock('idb-keyval', () => ({
   entries: async (store?: string) => [...bank(store).entries()],
 }));
 
-const { saveImportedBook, listImportedBooks, makeImportedBook } = await import('./importedBooks');
+const { saveImportedBook, listImportedBooks, makeImportedBook, deleteImportedBook } =
+  await import('./importedBooks');
 const { saveState, loadState } = await import('./store');
 
 /** The store imported packages live in, for tests that plant legacy records. */
@@ -112,6 +113,32 @@ describe('a book that gets republished', () => {
     const stored = await saveImportedBook(edition('A book.'));
     expect(stored.id).not.toBe('study-guide');
     expect(stored.id.startsWith('imp-')).toBe(true);
+  });
+
+  /**
+   * The delete confirmation on the shelf tells the reader their progress is
+   * kept if they import the book again. That is a promise about two functions
+   * that know nothing about each other — `deleteImportedBook` removes the
+   * package, and reader state lives in a different store under the book's
+   * slug — so it is asserted here rather than trusted.
+   *
+   * It also follows from the identity fix above: delete-then-reimport is the
+   * same shape as republishing, and only stays true while the id is derived
+   * from the declared slug.
+   */
+  it('keeps the reader’s progress when a deleted book is imported again', async () => {
+    const stored = await saveImportedBook(edition('A book.'));
+    const book = makeImportedBook(stored);
+    await saveState(book.meta.slug, 'score:quiz-1', { correct: 2, total: 2 });
+
+    await deleteImportedBook(stored.id);
+    expect(await listImportedBooks()).toHaveLength(0);
+
+    const again = makeImportedBook(await saveImportedBook(edition('A book.')));
+    expect(await loadState(again.meta.slug, 'score:quiz-1', undefined)).toEqual({
+      correct: 2,
+      total: 2,
+    });
   });
 });
 

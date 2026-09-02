@@ -357,6 +357,79 @@
     cursor: pointer;
   }
 
+  /* The confirmation for deleting an imported book. */
+  .confirm {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+  }
+
+  .confirm__scrim {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 55%);
+  }
+
+  .confirm__panel {
+    position: relative;
+    width: min(28rem, 100%);
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+  }
+
+  .confirm__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .confirm__body {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .confirm__body p {
+    margin: 0 0 0.5rem;
+  }
+
+  .confirm__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+  }
+
+  .confirm__actions button {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .confirm__cancel {
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  /*
+   * The destructive button is the one that looks dangerous, not the one that
+   * looks primary. Colour is not the only signal — it is also the button that
+   * does not hold focus on open, and its label says what it deletes.
+   */
+  .confirm__confirm {
+    border-color: #b4232c;
+    background: #b4232c;
+    color: #fff;
+    font-weight: 600;
+  }
+
   .reader__footer {
     margin-top: 3rem;
     padding-top: 1rem;

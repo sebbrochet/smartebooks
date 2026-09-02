@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import type { ShelfBook } from './books';
 import { ImportControl } from './ImportControl';
 import { ResumeSettings } from './ResumeSettings';
 import { BookCover } from './BookCover';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface BookshelfProps {
   books: ShelfBook[];
@@ -10,6 +12,11 @@ interface BookshelfProps {
 }
 
 export function Bookshelf({ books, onImported, onDelete }: BookshelfProps) {
+  // Deleting used to happen on the click itself. The button sits in the corner
+  // of a card whose whole face is a link, so the price of a slightly missed tap
+  // was a book off the shelf with nothing to undo it.
+  const [pending, setPending] = useState<{ importId: string; title: string }>();
+
   return (
     <main id="main" className="shelf">
       <div className="shelf__head">
@@ -38,7 +45,7 @@ export function Bookshelf({ books, onImported, onDelete }: BookshelfProps) {
                 type="button"
                 className="shelf__delete"
                 aria-label={`Delete imported book ${book.meta.title}`}
-                onClick={() => onDelete(importId)}
+                onClick={() => setPending({ importId, title: book.meta.title })}
               >
                 Delete
               </button>
@@ -46,6 +53,28 @@ export function Bookshelf({ books, onImported, onDelete }: BookshelfProps) {
           </li>
         ))}
       </ul>
+
+      {pending && (
+        <ConfirmDialog
+          title={`Delete ${pending.title}?`}
+          confirmLabel="Delete book"
+          onCancel={() => setPending(undefined)}
+          onConfirm={() => {
+            const { importId } = pending;
+            setPending(undefined);
+            onDelete(importId);
+          }}
+        >
+          <p>This removes the book from your library.</p>
+          {/* Both halves are worth saying. The first is why the reader can
+              press Delete without much fear; the second is why the dialog is
+              here at all, since re-importing means finding the file again. */}
+          <p>
+            The <code>.smartbook</code> file on your computer is not touched, and your progress and
+            scores are kept if you import this book again.
+          </p>
+        </ConfirmDialog>
+      )}
     </main>
   );
 }
