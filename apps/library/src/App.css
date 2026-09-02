@@ -364,4 +364,19 @@
     color: var(--muted);
     font-size: 0.85rem;
   }
+
+  /*
+   * Paper. The engine hides its own furniture; this hides the app's.
+   *
+   * The header is the whole toolbar — brand, theme, reading settings, backup
+   * and export — none of which can be pressed on a sheet of paper. The footer
+   * says where progress is stored, which is true and is not what the reader
+   * printed the chapter for.
+   */
+  @media print {
+    .reader__header,
+    .reader__footer {
+      display: none !important;
+    }
+  }
 }

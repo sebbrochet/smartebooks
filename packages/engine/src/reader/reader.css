@@ -1485,4 +1485,122 @@
     color: var(--accent);
     cursor: pointer;
   }
+
+  /*
+   * Paper.
+   *
+   * Printing was never deliberately unsupported — it just never got styles, so
+   * `Ctrl+P` produced the sidebar, the contents rail and a floating "Top"
+   * button over a chapter squeezed into a column (SPEC009 V8/T8). This is not
+   * the PDF export of SPEC003; it is the thing a reader does when they want
+   * the chapter they are reading on paper.
+   *
+   * Last in the layer on purpose: several of these override earlier rules of
+   * equal specificity and win on source order.
+   */
+  @media print {
+    /*
+     * Ink. A reader on the dark theme would otherwise print white text on a
+     * black page — the single most expensive way to get a chapter wrong.
+     * `[data-theme]` is matched as well as `:root` because the explicit choice
+     * sets it, and the two have equal specificity.
+     */
+    :root,
+    :root[data-theme='dark'],
+    :root[data-theme='light'] {
+      --bg: #ffffff;
+      --fg: #111111;
+      --muted: #444444;
+      --border: #bbbbbb;
+      --accent: #000000;
+      --island-bg: #ffffff;
+    }
+
+    /*
+     * The reader's chosen text size is *kept*. Someone who enlarged the type
+     * because of their eyesight wants that on paper too; overriding it here
+     * would be the platform deciding it knows better.
+     */
+
+    .reader {
+      max-width: none;
+      padding: 0;
+    }
+
+    /* One column, and the prose uses the page rather than a screen measure. */
+    .reader__body {
+      display: block;
+    }
+
+    .reader__main .prose,
+    .reader__main .search-view {
+      max-width: none;
+    }
+
+    /*
+     * Everything that exists to navigate a screen. On paper the reader has the
+     * page in their hand; a contents rail and a "back to top" button are ink
+     * spent on controls that cannot be operated.
+     */
+    .sidebar,
+    .toc,
+    .reader__toolbar,
+    .reader__scrim,
+    .back-to-top,
+    .search-overlay,
+    .dashboard,
+    .chapter-nav,
+    .heading-anchor,
+    .skip-link {
+      display: none !important;
+    }
+
+    /* A heading at the foot of a page belongs to the text overleaf. */
+    .prose :is(h1, h2, h3, h4, h5, h6) {
+      break-after: avoid;
+      break-inside: avoid;
+    }
+
+    /*
+     * Things that read as one unit. A callout split across a page break loses
+     * the bar that made it a callout, and half a chess diagram is not a
+     * diagram.
+     */
+    .prose figure,
+    .prose blockquote,
+    .prose pre,
+    .prose table,
+    .prose .callout,
+    .island {
+      break-inside: avoid;
+    }
+
+    /* Interactive islands print as whatever the reader left them at, which is
+       the honest answer — but their controls are not usable on paper. */
+    .island button,
+    .island input,
+    .quiz__retry,
+    .matching__reset,
+    .flashcard__grades {
+      display: none;
+    }
+
+    /*
+     * Only *external* links get their address printed. An in-book link reads
+     * `#/guide/02-toolkit?s=islands` on paper, which is noise wrapped around
+     * the sentence it interrupts.
+     */
+    .prose a[href^='http']::after {
+      content: ' (' attr(href) ')';
+      font-size: 0.85em;
+      word-break: break-all;
+    }
+
+    /* Links are already distinguished by the text around them once colour is
+       gone, and underlining every one makes a page of prose look struck out. */
+    .prose a {
+      color: inherit;
+      text-decoration: none;
+    }
+  }
 }
