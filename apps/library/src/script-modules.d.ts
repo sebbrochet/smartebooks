@@ -17,6 +17,12 @@ interface ChapterEntry {
   file: string;
   order: number;
   title: string;
+  /**
+   * Optional, matching `SmartbookChapterEntry`. Absent here originally, which
+   * is part of why the CLI silently dropping it went unnoticed: the parity
+   * test compared two objects that neither carried nor could describe a part.
+   */
+  part?: string;
 }
 
 declare module '*/book-sources.mjs' {

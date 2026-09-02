@@ -151,6 +151,9 @@ export function deriveChapters(descriptor, files) {
           file: entry.file,
           order: entry.order ?? (prefix ? Number.parseInt(prefix[1], 10) : index),
           title: entry.title ?? extractTitle(markdown, slug),
+          // Omitted rather than written as `undefined`, so a book with no
+          // parts round-trips to the same bytes it started from.
+          ...(entry.part ? { part: entry.part } : {}),
         };
       })
       .sort((a, b) => a.order - b.order);

@@ -67,6 +67,32 @@ describe('CLI and browser exporters agree', () => {
     expect(deriveChapters(descriptor, files)).toEqual(exportedDescriptor(descriptor).chapters);
   });
 
+  /**
+   * The packaged descriptor is what a reader actually receives, and the CLI
+   * dropped `part` from every entry while the browser kept it — so a book
+   * declaring parts arrived flat, and only for the path real books take.
+   *
+   * The other cases here compare two *derivations* of the same thing, which
+   * agreed because both were wrong in the same way about nothing. This one
+   * names the field, because "the two exporters agree" is only worth something
+   * if the fields that carry meaning are among the ones compared.
+   */
+  it('carries a chapter’s part through both exporters', () => {
+    const descriptor: SmartbookDescriptor = {
+      ...base,
+      parts: [{ id: 'basics', title: 'Part I — Basics' }],
+      chapters: [
+        { file: '01-openings.md', order: 1, part: 'basics' },
+        { file: '02-endgames.md', order: 2 },
+      ],
+    };
+
+    const fromCli = deriveChapters(descriptor, files);
+    expect(fromCli).toEqual(exportedDescriptor(descriptor).chapters);
+    expect(fromCli[0].part).toBe('basics');
+    expect(fromCli[1]).not.toHaveProperty('part');
+  });
+
   it('derives the same required islands, resolving aliases the same way', () => {
     const required = exportedDescriptor(base).islands.required;
     expect(usedIslands(base, files)).toEqual(required);
