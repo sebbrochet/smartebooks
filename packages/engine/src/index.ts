@@ -21,6 +21,14 @@ export { BookProvider, useBook } from './reader/BookContext';
 export { usePersistentState } from './store/usePersistentState';
 export { useAssetResolver, type AssetResolver } from './reader/useAssetResolver';
 export { ThemeToggle } from './reader/ThemeToggle';
+export { ReadingSettings } from './reader/ReadingSettings';
+export { useReadingPreferences, applyReadingPreferences } from './reader/useReadingPreferences';
+export {
+  getReadingPreferences,
+  setReadingPreferences,
+  DEFAULT_READING,
+  type ReadingPreferences,
+} from './store/platformSettings';
 export { useMediaQuery, NARROW } from './reader/useMediaQuery';
 export { useTheme, applyTheme, getStoredTheme, type Theme } from './reader/useTheme';
 export { searchChapters, type SearchResult } from './reader/search';

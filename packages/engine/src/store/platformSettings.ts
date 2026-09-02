@@ -18,6 +18,7 @@ const PREFIX = 'smart-ebooks:';
 export const THEME_KEY = `${PREFIX}theme`;
 export const RESUME_MODE_KEY = `${PREFIX}resumeMode`;
 export const LAST_READ_KEY = `${PREFIX}lastRead`;
+export const READING_KEY = `${PREFIX}reading`;
 
 /** Pre-1.0 theme key, migrated on first load. */
 const LEGACY_THEME_KEY = 'smart-ebook-theme';
@@ -81,6 +82,70 @@ export function getTheme(): Theme {
 
 export function setTheme(theme: Theme): void {
   write(THEME_KEY, theme);
+}
+
+/*
+ * How the reader wants to read: size, spacing, line length, typeface.
+ *
+ * **Cross-book, like the theme, because they describe an eye rather than a
+ * book.** Someone who needs larger text needs it in every book they open, and
+ * being asked again by each one is the same failure as not having the setting.
+ *
+ * Named steps rather than numbers. The values belong in the stylesheet where a
+ * skin or a print rule can reason about them, and a stored `1.0625rem` is a
+ * number nobody can ever change their mind about (SPEC002 R2.1, SPEC009 T6).
+ */
+export type TextSize = 'small' | 'medium' | 'large' | 'xlarge';
+export type TextLeading = 'tight' | 'normal' | 'loose';
+export type TextMeasure = 'narrow' | 'normal' | 'wide';
+export type TextFace = 'sans' | 'serif';
+
+export interface ReadingPreferences {
+  size: TextSize;
+  leading: TextLeading;
+  measure: TextMeasure;
+  face: TextFace;
+}
+
+export const TEXT_SIZES: TextSize[] = ['small', 'medium', 'large', 'xlarge'];
+export const TEXT_LEADINGS: TextLeading[] = ['tight', 'normal', 'loose'];
+export const TEXT_MEASURES: TextMeasure[] = ['narrow', 'normal', 'wide'];
+export const TEXT_FACES: TextFace[] = ['sans', 'serif'];
+
+export const DEFAULT_READING: ReadingPreferences = {
+  size: 'medium',
+  leading: 'normal',
+  measure: 'normal',
+  face: 'sans',
+};
+
+function oneOf<T extends string>(allowed: T[], value: unknown, fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+export function getReadingPreferences(): ReadingPreferences {
+  const raw = read(READING_KEY);
+  if (!raw) return DEFAULT_READING;
+
+  try {
+    // Every field is validated rather than trusted: this is `localStorage`,
+    // which any script on the origin can write, and an unrecognised value would
+    // otherwise become an attribute selector that matches nothing and silently
+    // leaves the reader with no styling at all.
+    const parsed = JSON.parse(raw) as Partial<ReadingPreferences>;
+    return {
+      size: oneOf(TEXT_SIZES, parsed?.size, DEFAULT_READING.size),
+      leading: oneOf(TEXT_LEADINGS, parsed?.leading, DEFAULT_READING.leading),
+      measure: oneOf(TEXT_MEASURES, parsed?.measure, DEFAULT_READING.measure),
+      face: oneOf(TEXT_FACES, parsed?.face, DEFAULT_READING.face),
+    };
+  } catch {
+    return DEFAULT_READING;
+  }
+}
+
+export function setReadingPreferences(preferences: ReadingPreferences): void {
+  write(READING_KEY, JSON.stringify(preferences));
 }
 
 export function getResumeMode(): ResumeMode {

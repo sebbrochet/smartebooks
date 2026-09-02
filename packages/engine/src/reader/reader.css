@@ -18,14 +18,66 @@
  *
  * Later layers win, so this encodes SPEC009 T1's precedence mechanically:
  * a reader's legibility settings beat a book's identity, which beats the
- * platform's defaults. `skin` and `reader` are **empty today** — declaring
- * them costs nothing while there is one author and is a rewrite once books
- * ship skins, which is the whole argument for doing it now (SPEC009 T3).
+ * platform's defaults. `skin` is **empty today** — declaring it costs nothing
+ * while there is one author and is a rewrite once books ship skins, which is
+ * the whole argument for doing it now (SPEC009 T3).
  *
  * Repeated in both stylesheets on purpose: the first declaration wins, and
  * neither file should depend on the other being bundled first.
  */
 @layer platform, skin, reader;
+
+/*
+ * What the reader has asked for, which outranks what the platform chose and —
+ * once skins exist — what the book chose (SPEC009 T1/T6, SPEC002 R2.1).
+ *
+ * Selected by attribute rather than written as an inline style, so the values
+ * stay in CSS where print rules and future skins can still reason about them.
+ * Absent attributes leave the platform defaults alone, which is what a reader
+ * who has never opened the panel should get.
+ */
+@layer reader {
+  :root[data-text-size='small'] {
+    --text-size: 0.9375rem;
+  }
+
+  :root[data-text-size='large'] {
+    --text-size: 1.125rem;
+  }
+
+  :root[data-text-size='xlarge'] {
+    --text-size: 1.3125rem;
+  }
+
+  :root[data-text-leading='tight'] {
+    --text-leading: 1.45;
+  }
+
+  :root[data-text-leading='loose'] {
+    --text-leading: 1.85;
+  }
+
+  /* The measure moves with the type size because both are in `rem`: a reader
+     who enlarges the text keeps roughly the same words per line. */
+  :root[data-text-measure='narrow'] {
+    --measure: 34rem;
+  }
+
+  :root[data-text-measure='wide'] {
+    --measure: 54rem;
+  }
+
+  /*
+   * A system serif stack rather than a packaged face. A second self-hosted
+   * family is ~50kB per weight for a preference most readers never change,
+   * and unlike a *book's* chosen typeface (SPEC009 QV1) nothing here depends
+   * on it rendering identically everywhere — it exists because some people
+   * simply read serif more comfortably.
+   */
+  :root[data-text-face='serif'] {
+    --font-text: Charter, 'Bitstream Charter', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  }
+}
 
 @layer platform {
   :root {
@@ -114,6 +166,100 @@
     border-radius: 6px;
     background: transparent;
     color: var(--fg);
+    cursor: pointer;
+  }
+
+  /* Reading settings: one button, and a panel that floats over the page rather
+     than pushing it down while the reader is looking at it. */
+  .reading-settings {
+    position: relative;
+  }
+
+  .reading-settings__panel {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 15rem;
+    padding: 0.85rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+    text-align: left;
+  }
+
+  /* `hidden` is only a presentation hint and this is a flex column. */
+  .reading-settings__panel[hidden] {
+    display: none;
+  }
+
+  .reading-settings__group {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .reading-settings__group legend {
+    padding: 0;
+    margin-bottom: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .reading-settings__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .reading-settings__options label {
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .reading-settings__options label.is-selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* The radio itself is redundant once the label is styled as a chip, but it
+     stays in the DOM: it is what makes this a real radio group for a screen
+     reader and for the arrow keys. */
+  .reading-settings__options input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Focus has to be drawn on the label, since the input it belongs to is not
+     visible. Without this the panel is unusable by keyboard. */
+  .reading-settings__options label:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .reading-settings__reset {
+    align-self: start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.78rem;
+    text-decoration: underline;
     cursor: pointer;
   }
 

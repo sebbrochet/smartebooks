@@ -30,6 +30,69 @@ test('the reading fonts are actually loaded, and from this origin', async ({ pag
   }
 });
 
+test('the reader can set their own type, and it outlives the visit', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  const size = () =>
+    page
+      .locator('.prose p')
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontSize);
+  const before = await size();
+
+  await page.getByRole('button', { name: /Reading/ }).click();
+
+  // Clicking the label, which is what the reader clicks: the radio itself is
+  // visually hidden beneath it and exists to make this a real radio group for
+  // the keyboard and for a screen reader.
+  const choose = (label: string) =>
+    page.locator('.reading-settings__options label', { hasText: label }).click();
+
+  await choose('Extra large');
+  await expect(page.getByRole('radio', { name: 'Extra large' })).toBeChecked();
+
+  const enlarged = await size();
+  expect(parseFloat(enlarged)).toBeGreaterThan(parseFloat(before));
+
+  // Serif is a *system* stack, so assert the family changed rather than
+  // naming a font the test machine may not have.
+  const sans = await page
+    .locator('.prose p')
+    .first()
+    .evaluate((el) => getComputedStyle(el).fontFamily);
+  await choose('Serif');
+  const serif = await page
+    .locator('.prose p')
+    .first()
+    .evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(serif).not.toBe(sans);
+
+  // Someone who needs larger text needs it in every book and on every visit;
+  // being asked again is the same failure as not having the setting.
+  await page.reload();
+  await expect(page.locator('article.prose')).toBeVisible();
+  expect(await size()).toBe(enlarged);
+
+  // …and in another book, because this describes an eye and not a book.
+  await page.goto('/#/chess/01-chess-basics');
+  await expect(page.locator('article.prose')).toBeVisible();
+  expect(await size()).toBe(enlarged);
+});
+
+test('the reading panel closes on Escape and hands focus back', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  const toggle = page.getByRole('button', { name: /Reading/ });
+  await toggle.click();
+  await expect(page.locator('.reading-settings__panel')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.reading-settings__panel')).toBeHidden();
+  await expect(toggle).toBeFocused();
+});
+
 test('the pre-1.0 theme key migrates to the namespaced one', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('smart-ebook-theme', 'dark'));
   await page.goto('/');

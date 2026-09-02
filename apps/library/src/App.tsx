@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Reader,
   ThemeToggle,
+  ReadingSettings,
   clearBook,
   clearLastRead,
   deleteImportedBook,
@@ -80,6 +81,7 @@ export default function App() {
         {activeBook && <span className="reader__booktitle">{activeBook.meta.title}</span>}
         <div className="reader__actions">
           <ThemeToggle />
+          <ReadingSettings />
           {narrow && (
             <button
               type="button"
