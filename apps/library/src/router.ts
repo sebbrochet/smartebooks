@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 
 export type AppRoute =
   | { view: 'shelf' }
-  | { view: 'book'; bookSlug: string; chapterSlug?: string; heading?: string }
+  | {
+      view: 'book';
+      bookSlug: string;
+      chapterSlug?: string;
+      heading?: string;
+      highlight?: string[];
+    }
   | { view: 'search'; bookSlug: string; query: string };
 
 export function parseAppHash(hash: string): AppRoute {
@@ -23,13 +29,19 @@ export function parseAppHash(hash: string): AppRoute {
   // query the search view already established keeps one grammar rather than
   // inventing a second (SPEC002 S3).
   //
-  // `s` for section, deliberately **not** `h`. MkDocs Material — the reference
-  // this reader is being measured against — spends `?h=` on *highlight terms*
-  // for search results. Reserving it keeps that meaning available if in-page
-  // highlighting is ever built, instead of two features fighting over one
-  // parameter (SPEC002 N14).
-  const heading = new URLSearchParams(queryString ?? '').get('s') ?? undefined;
-  return { view: 'book', bookSlug, chapterSlug: segments[1], heading };
+  // `s` for section and `h` for the terms to mark — the same split MkDocs
+  // Material uses, which is why `h` was kept free when sections shipped.
+  const params = new URLSearchParams(queryString ?? '');
+  const heading = params.get('s') ?? undefined;
+  const terms = (params.get('h') ?? '').split(/\s+/).filter(Boolean);
+
+  return {
+    view: 'book',
+    bookSlug,
+    chapterSlug: segments[1],
+    heading,
+    highlight: terms.length ? terms : undefined,
+  };
 }
 
 /** Reactive, hash-based platform route across books. No router dependency. */

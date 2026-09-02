@@ -50,6 +50,17 @@ describe('parseAppHash', () => {
       bookSlug: 'guide',
       chapterSlug: '01-getting-started',
       heading: undefined,
+      highlight: ['why-islands'],
+    });
+  });
+
+  it('parses the terms to mark, and carries both parameters at once', () => {
+    expect(parseAppHash('#/guide/01-getting-started?s=why-islands&h=island+format')).toEqual({
+      view: 'book',
+      bookSlug: 'guide',
+      chapterSlug: '01-getting-started',
+      heading: 'why-islands',
+      highlight: ['island', 'format'],
     });
   });
 });

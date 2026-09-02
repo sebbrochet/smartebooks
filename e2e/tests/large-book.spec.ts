@@ -143,6 +143,13 @@ test('search finds one passage among forty-four chapters, and lands on it', asyn
 
   await expect(page.getByRole('heading', { name: chapterTitle(37) })).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+  // …and the word is marked once the reader is there. Landing on the right
+  // section is only half an answer while the term is still somewhere in a
+  // screen of prose.
+  const marks = page.locator('article.prose mark.term-highlight');
+  await expect(marks.first()).toBeVisible();
+  await expect(marks.first()).toHaveText(/chapter37unique/i);
 });
 
 test('a half-typed word is completed from the book itself', async ({ page }) => {

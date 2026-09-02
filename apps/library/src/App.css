@@ -571,6 +571,20 @@ body {
   color: inherit;
 }
 
+/*
+ * Terms marked in the chapter a search sent the reader to.
+ *
+ * Warmer than the accent used inside the overlay, because here the marks sit in
+ * running prose the reader is trying to read: it should be findable by glancing
+ * down the page, not compete with the text for attention.
+ */
+.prose mark.term-highlight {
+  padding: 0 0.1em;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--warn) 32%, transparent);
+  color: inherit;
+}
+
 .sidebar__list {
   list-style: none;
   margin: 1rem 0 0;

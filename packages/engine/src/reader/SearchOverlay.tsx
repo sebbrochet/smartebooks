@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Book } from '../types';
 import { highlight } from './search';
 import { buildIndex, queryIndex, completeTerm, tokenize, type PassageHit } from './searchIndex';
-import { headingHref, type Heading } from '../markdown/headings';
+import { readerHref, type Heading } from '../markdown/headings';
+import { keepInView } from './keepInView';
 
 interface SearchOverlayProps {
   book: Book;
@@ -52,6 +53,11 @@ export function SearchOverlay({ book, basePath, open, onClose }: SearchOverlayPr
 
   const rows = useMemo<Row[]>(() => {
     if (!outcome) return [];
+    // Carried into the destination so the terms are marked there too: landing
+    // on the right section is only half an answer while the word is still
+    // somewhere in a screen of prose (SPEC002 N14).
+    const terms = outcome.terms;
+
     return outcome.chapters.flatMap((chapter) => {
       // The passage above a chapter's first heading *is* the chapter opening,
       // so it would otherwise render as a second row with the same title and
@@ -64,14 +70,14 @@ export function SearchOverlay({ book, basePath, open, onClose }: SearchOverlayPr
       return [
         {
           key: chapter.slug,
-          href: `#${basePath}/${chapter.slug}`,
+          href: readerHref(basePath, chapter.slug, { terms }),
           kind: 'chapter' as const,
           label: chapter.title,
           snippet: opening?.snippet,
         },
         ...sections.map((passage) => ({
           key: `${chapter.slug}#${passage.heading.id}`,
-          href: headingHref(basePath, chapter.slug, passage.heading.id),
+          href: readerHref(basePath, chapter.slug, { section: passage.heading.id, terms }),
           kind: 'passage' as const,
           label: passage.heading.text,
           snippet: passage.snippet,
@@ -113,9 +119,13 @@ export function SearchOverlay({ book, basePath, open, onClose }: SearchOverlayPr
     };
   }, [open]);
 
-  // Keep the highlighted row in view when arrowing past the fold.
+  // Keep the highlighted row in view when arrowing past the fold. Scrolls the
+  // list itself: `scrollIntoView` would also scroll the document behind this
+  // dialog, which is precisely the thing the overlay promises not to do.
   useEffect(() => {
-    listRef.current?.querySelectorAll('li')[selected]?.scrollIntoView({ block: 'nearest' });
+    const list = listRef.current;
+    const row = list?.querySelectorAll('li')[selected];
+    if (list && row instanceof HTMLElement) keepInView(list, row);
   }, [selected]);
 
   if (!open) return null;

@@ -11,6 +11,8 @@ interface ChapterViewProps {
   trusted?: boolean;
   resolveAsset?: (src: string) => string | undefined;
   registry: IslandRegistry;
+  /** Terms to mark in the prose, when the reader arrived from a search. */
+  highlight?: string[];
 }
 
 export function ChapterView({
@@ -20,6 +22,7 @@ export function ChapterView({
   trusted = true,
   resolveAsset,
   registry,
+  highlight,
 }: ChapterViewProps) {
   const linkTo = useMemo(
     () => (id: string) => headingHref(basePath, chapter.slug, id),
@@ -28,8 +31,14 @@ export function ChapterView({
 
   const content = useMemo(
     () =>
-      renderMarkdown(chapter.markdown, { trusted, resolveAsset, registry, headingLink: linkTo }),
-    [chapter.markdown, trusted, resolveAsset, registry, linkTo],
+      renderMarkdown(chapter.markdown, {
+        trusted,
+        resolveAsset,
+        registry,
+        headingLink: linkTo,
+        highlightTerms: highlight,
+      }),
+    [chapter.markdown, trusted, resolveAsset, registry, linkTo, highlight],
   );
 
   const index = book.chapters.findIndex((c) => c.slug === chapter.slug);

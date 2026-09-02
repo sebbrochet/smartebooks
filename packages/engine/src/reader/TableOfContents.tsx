@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Heading } from '../markdown/headings';
 import { activeHeading } from './activeHeading';
 import { useMediaQuery, NARROW } from './useMediaQuery';
+import { keepInView } from './keepInView';
 
 interface TableOfContentsProps {
   headings: Heading[];
@@ -86,23 +87,13 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
     if (!link) return;
 
     /*
-     * Measured with rects against the **`nav`**, which is the element carrying
-     * `max-height` and `overflow-y`. An earlier version scrolled the `ul` and
-     * did nothing at all: an unclipped list has `scrollTop === 0` and a
-     * `clientHeight` equal to its full height, so every entry looked like it
-     * was already in view. Nothing smaller than a 60-section chapter could
-     * show the difference.
-     *
-     * Deliberately *not* `scrollIntoView`: the rail is sticky inside a page
-     * that also scrolls, and that would drag the reader away from the text.
+     * Against the **`nav`**, which is the element carrying `max-height` and
+     * `overflow-y`. An earlier version scrolled the `ul` and did nothing at
+     * all: an unclipped list has `scrollTop === 0` and a `clientHeight` equal
+     * to its full height, so every entry looked like it was already in view.
+     * Nothing smaller than a 60-section chapter could show the difference.
      */
-    const railBox = rail.getBoundingClientRect();
-    const linkBox = link.getBoundingClientRect();
-
-    const above = linkBox.top - railBox.top;
-    const below = linkBox.bottom - railBox.bottom;
-    if (above < 0) rail.scrollTop += above;
-    else if (below > 0) rail.scrollTop += below;
+    keepInView(rail, link);
   }, [current]);
 
   if (headings.length < 2) return null;

@@ -114,6 +114,7 @@ export default function App() {
           view={route.view === 'search' ? 'search' : 'chapter'}
           chapterSlug={route.view === 'book' ? route.chapterSlug : undefined}
           heading={route.view === 'book' ? route.heading : undefined}
+          highlight={route.view === 'book' ? route.highlight : undefined}
           query={route.view === 'search' ? route.query : undefined}
           trusted={active?.trusted ?? true}
         />

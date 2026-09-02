@@ -28,6 +28,8 @@ export interface ReaderProps {
   chapterSlug?: string;
   /** Section within the chapter to open at, from the route's `?s=`. */
   heading?: string;
+  /** Terms to mark in the prose, from the route's `?h=`. */
+  highlight?: string[];
   /** Search query when `view === 'search'`. */
   query?: string;
   /** Whether the book is trusted. Imported books pass `false` (sanitized). */
@@ -45,6 +47,7 @@ export function Reader({
   view,
   chapterSlug,
   heading,
+  highlight,
   query,
   trusted,
 }: ReaderProps) {
@@ -213,6 +216,7 @@ export function Reader({
                 trusted={trusted}
                 resolveAsset={resolveAsset}
                 registry={registry}
+                highlight={highlight}
               />
             )
           )}

@@ -66,19 +66,35 @@ export interface Heading {
 }
 
 /**
- * The route that opens a chapter at one of its sections.
+ * The route that opens a chapter, optionally at one of its sections and
+ * optionally with a search's terms marked in it.
  *
  * A **query parameter, not a fragment**: the app's route already lives in the
  * hash, so `#section` would replace it and send the reader out of the chapter
- * rather than down it. One helper because two callers need to agree — the
- * contents rail and the anchor beside each heading.
+ * rather than down it.
  *
- * `s` for section. `h` is deliberately left free: MkDocs Material spends it on
- * search *highlight terms*, and if in-page highlighting is ever built here the
- * two meanings would collide in one parameter (SPEC002 N14).
+ * `s` for section, `h` for highlight — the same split MkDocs Material uses,
+ * which is why `h` was kept free when sections shipped (SPEC002 §3.1).
+ */
+export function readerHref(
+  basePath: string,
+  chapterSlug: string,
+  options: { section?: string; terms?: string[] } = {},
+): string {
+  const query = new URLSearchParams();
+  if (options.section) query.set('s', options.section);
+  if (options.terms?.length) query.set('h', options.terms.join(' '));
+
+  const search = query.toString();
+  return `#${basePath}/${chapterSlug}${search ? `?${search}` : ''}`;
+}
+
+/**
+ * A section's own link. One helper because two callers need to agree — the
+ * contents rail and the anchor beside each heading.
  */
 export function headingHref(basePath: string, chapterSlug: string, id: string): string {
-  return `#${basePath}/${chapterSlug}?s=${encodeURIComponent(id)}`;
+  return readerHref(basePath, chapterSlug, { section: id });
 }
 
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);

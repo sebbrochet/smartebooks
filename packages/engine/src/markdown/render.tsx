@@ -10,6 +10,7 @@ import rehypeReact, { type Options as RehypeReactOptions } from 'rehype-react';
 import { remarkIslands } from './remarkIslands';
 import { rehypeCallouts } from './rehypeCallouts';
 import { rehypeHeadingIds } from './rehypeHeadingIds';
+import { rehypeHighlightTerms } from './rehypeHighlightTerms';
 import { rehypeResolveAssets } from './rehypeResolveAssets';
 import { IslandHost } from './IslandHost';
 import { IslandHostInline } from './IslandHostInline';
@@ -56,6 +57,9 @@ function buildProcessor(
   // than something an imported book could have written for itself.
   processor.use(rehypeCallouts);
   processor.use(rehypeHeadingIds);
+  // After the heading ids, so a marked term inside a heading cannot change the
+  // text the slug was derived from.
+  processor.use(rehypeHighlightTerms);
   if (resolveAsset) processor.use(rehypeResolveAssets, resolveAsset);
   return processor.use(rehypeReact, rehypeReactOptions);
 }
@@ -95,6 +99,13 @@ export interface RenderOptions {
    * out of the chapter. Omit it and headings still get ids, just no anchor.
    */
   headingLink?: (id: string) => string;
+  /**
+   * Terms to mark in the prose, when the reader arrived from a search.
+   *
+   * Landing on the right section is only half an answer — the section is still
+   * a screen of text with the word somewhere in it (SPEC002 N14).
+   */
+  highlightTerms?: string[];
 }
 
 /**
@@ -109,7 +120,10 @@ export function renderMarkdown(markdown: string, options: RenderOptions): ReactN
   // Per-run data travels on the file rather than in a plugin's closure, so a
   // chapter's own link builder does not get baked into the cached processor and
   // then handed to the next chapter.
-  const file = { value: markdown, data: { headingLink: options.headingLink } };
+  const file = {
+    value: markdown,
+    data: { headingLink: options.headingLink, highlightTerms: options.highlightTerms },
+  };
 
   if (options.resolveAsset) {
     return buildProcessor(trusted, registry, options.resolveAsset).processSync(file)
