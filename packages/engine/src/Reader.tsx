@@ -11,6 +11,7 @@ import { SearchView } from './reader/SearchView';
 import { TableOfContents } from './reader/TableOfContents';
 import { BackToTop } from './reader/BackToTop';
 import { SearchOverlay } from './reader/SearchOverlay';
+import './reader/reader.css';
 import { chapterHeadings, headingHref } from './markdown/headings';
 import { ProgressDashboard } from './components/ProgressDashboard';
 

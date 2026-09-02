@@ -1,1641 +1,367 @@
-:root {
-  --bg: #ffffff;
-  --fg: #1a1a2e;
-  --muted: #5b5b73;
-  --border: #e2e2ec;
-  --accent: #3f51b5;
-  --correct: #2e7d32;
-  --correct-bg: #e8f5e9;
-  --wrong: #c62828;
-  --wrong-bg: #ffebee;
-  --island-bg: #f7f7fb;
-  /* A pitfall is a warning, not a wrong answer, so it does not borrow the red
-     that marks one. `--info` is the neutral counterpart for explanation. */
-  --warn: #b26a00;
-  --info: #00697c;
+/*
+ * The app around the reader: the page itself, the header and its controls,
+ * the bookshelf, the covers and the resume splash.
+ *
+ * Everything the engine renders is styled by the engine (SPEC009 T7).
+ */
 
-  /*
-   * Typography, as tokens rather than literals.
-   *
-   * The layer matters more than the values: reading-comfort controls (SPEC002
-   * S8) and a book-declared skin both need somewhere to write, and until now
-   * there was nowhere — every token in this file was a colour. Nothing sets
-   * these yet except this stylesheet.
-   *
-   * Both families are **self-hosted** (see `main.tsx`), so they are actually
-   * the fonts a reader sees rather than a name the stylesheet hoped for — which
-   * is what `'Inter'` was here before it was ever loaded. The non-variable
-   * names follow as a fallback for anyone who has them installed locally.
-   */
-  --font-text: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono:
-    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, sfmono-regular, menlo, consolas,
-    monospace;
-  --text-size: 1rem;
-  --text-leading: 1.65;
-  /* The measure: how wide a line of prose is allowed to get. */
-  --measure: 44rem;
-}
+/*
+ * Layer order, declared before anything uses it.
+ *
+ * Later layers win, so this encodes SPEC009 T1's precedence mechanically:
+ * a reader's legibility settings beat a book's identity, which beats the
+ * platform's defaults. `skin` and `reader` are **empty today** — declaring
+ * them costs nothing while there is one author and is a rewrite once books
+ * ship skins, which is the whole argument for doing it now (SPEC009 T3).
+ *
+ * Repeated in both stylesheets on purpose: the first declaration wins, and
+ * neither file should depend on the other being bundled first.
+ */
+@layer platform, skin, reader;
 
-/* Dark palette, shared by system-dark (no explicit choice) and data-theme="dark". */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #14141f;
-    --fg: #e8e8f0;
-    --muted: #a0a0b8;
-    --border: #2a2a3c;
-    --accent: #8c9eff;
-    --correct: #81c784;
-    --correct-bg: #1b3a1e;
-    --wrong: #ef9a9a;
-    --wrong-bg: #3a1b1b;
-    --island-bg: #1c1c2a;
-    --warn: #e0a458;
-    --info: #5fc9dd;
+@layer platform {
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-text);
+    font-size: var(--text-size);
+    line-height: var(--text-leading);
   }
-}
 
-[data-theme='dark'] {
-  --bg: #14141f;
-  --fg: #e8e8f0;
-  --muted: #a0a0b8;
-  --border: #2a2a3c;
-  --accent: #8c9eff;
-  --correct: #81c784;
-  --correct-bg: #1b3a1e;
-  --wrong: #ef9a9a;
-  --wrong-bg: #3a1b1b;
-  --island-bg: #1c1c2a;
-  --warn: #e0a458;
-  --info: #5fc9dd;
-}
+  .reader {
+    max-width: 74rem;
+    margin: 0 auto;
+    padding: 0 1.25rem 4rem;
+  }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-text);
-  font-size: var(--text-size);
-  line-height: var(--text-leading);
-}
-
-.reader {
-  max-width: 74rem;
-  margin: 0 auto;
-  padding: 0 1.25rem 4rem;
-}
-
-/* Skip link + screen-reader-only helper */
-.skip-link {
-  position: absolute;
-  left: -999px;
-  top: 0;
-  background: var(--accent);
-  color: #fff;
-  padding: 0.5rem 0.9rem;
-  border-radius: 0 0 6px 0;
-  /* Above everything, including the mobile drawer (21) and its scrim (20).
+  /* Skip link + screen-reader-only helper */
+  .skip-link {
+    position: absolute;
+    left: -999px;
+    top: 0;
+    background: var(--accent);
+    color: #fff;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0 0 6px 0;
+    /* Above everything, including the mobile drawer (21) and its scrim (20).
      At 20 it tied with the scrim and lost on tree order, so a focused skip
      link was painted over while the drawer was open. The stacking order is
      five literals with no scale behind them — SPEC009 T2/V9. */
-  z-index: 30;
-}
-
-.skip-link:focus {
-  left: 0;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.reader__header {
-  position: sticky;
-  top: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  z-index: 10;
-}
-
-.reader__brand {
-  font-weight: 700;
-  color: var(--fg);
-  text-decoration: none;
-}
-
-.reader__booktitle {
-  color: var(--muted);
-  font-size: 0.9rem;
-  border-left: 1px solid var(--border);
-  padding-left: 0.75rem;
-}
-
-.reader__version {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.reader__actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-/* The secondary controls. One row beside the theme toggle on a wide screen; a
-   panel below the header on a phone, where five buttons cannot share a line. */
-.reader__tools {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-/* `hidden` is only a presentation hint and this is a flex row, so without an
-   explicit rule the attribute is silently ignored. */
-.reader__tools[hidden] {
-  display: none;
-}
-
-@media (max-width: 720px) {
-  /* Out of the header's flow so opening it pushes nothing around: the reader
-     is looking at the page, not at the toolbar. */
-  .reader__tools {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 12;
-    flex-direction: column;
-    align-items: stretch;
-    min-width: 12rem;
-    padding: 0.6rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+    z-index: 30;
   }
 
-  /* The book's own title is the first thing in the chapter anyway. */
+  .skip-link:focus {
+    left: 0;
+  }
+
+  .reader__header {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+
+  .reader__brand {
+    font-weight: 700;
+    color: var(--fg);
+    text-decoration: none;
+  }
+
   .reader__booktitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    border-left: 1px solid var(--border);
+    padding-left: 0.75rem;
+  }
+
+  .reader__version {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .reader__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  /* The secondary controls. One row beside the theme toggle on a wide screen; a
+   panel below the header on a phone, where five buttons cannot share a line. */
+  .reader__tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* `hidden` is only a presentation hint and this is a flex row, so without an
+   explicit rule the attribute is silently ignored. */
+  .reader__tools[hidden] {
     display: none;
   }
-}
 
-.reader__backup-status {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
+  @media (max-width: 720px) {
+    /* Out of the header's flow so opening it pushes nothing around: the reader
+     is looking at the page, not at the toolbar. */
+    .reader__tools {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 12;
+      flex-direction: column;
+      align-items: stretch;
+      min-width: 12rem;
+      padding: 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+    }
 
-.theme-toggle,
-.reader__reset {
-  font-size: 0.8rem;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-}
-
-/*
- * The reading column, and the furniture either side of it.
- *
- * Placed by name at every width. The contents rail comes *after* the chapter
- * in the markup, because on a wide screen it is a sibling column and reading
- * order should be chapter-then-aside; auto-placement would therefore drop it
- * below the whole chapter everywhere else, which is where a contents list is
- * of no use at all.
- *
- * The rail is a third column only on screens wide enough to carry one without
- * squeezing the measure: 15rem of navigation + 44rem of prose + 12rem of
- * contents needs about 76rem.
- */
-.reader__body {
-  display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
-  grid-template-areas:
-    'sidebar toc'
-    'sidebar main';
-  gap: 2rem;
-  align-items: start;
-}
-
-/* On this page */
-.toc {
-  grid-area: toc;
-  margin: 0 0 1.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--island-bg);
-}
-
-.toc__title {
-  margin: 0 0 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-/* Only drawn on a narrow screen, where the rail is above the chapter and has
-   to be foldable. Same disclosure shape as a sidebar part. */
-.toc__toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  width: 100%;
-  margin: -0.25rem 0;
-  padding: 0.25rem 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-align: left;
-  text-transform: inherit;
-  cursor: pointer;
-}
-
-.toc__marker {
-  flex: none;
-  width: 0;
-  height: 0;
-  border-top: 0.28rem solid transparent;
-  border-bottom: 0.28rem solid transparent;
-  border-left: 0.36rem solid currentcolor;
-  transition: transform 120ms ease-out;
-}
-
-.toc__toggle[aria-expanded='true'] .toc__marker {
-  transform: rotate(90deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toc__marker {
-    transition: none;
-  }
-}
-
-.toc__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-/* `hidden` is a presentation hint that any `display` beats, and this list is a
-   flex column — without this the attribute would be silently ignored. */
-.toc__list[hidden] {
-  display: none;
-}
-
-.toc__item--h3 {
-  padding-left: 0.85rem;
-}
-
-.toc__list a {
-  display: block;
-  padding: 0.2rem 0.4rem;
-  border-radius: 5px;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 0.85rem;
-  line-height: 1.35;
-}
-
-.toc__list a:hover {
-  color: var(--fg);
-  background: var(--bg);
-}
-
-.toc__list a.is-active {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-@media (min-width: 1100px) {
-  .reader__body {
-    grid-template-columns: 15rem minmax(0, 1fr) 12rem;
-    grid-template-areas: 'sidebar main toc';
+    /* The book's own title is the first thing in the chapter anyway. */
+    .reader__booktitle {
+      display: none;
+    }
   }
 
-  /* Beside the chapter rather than above it, where it can stay in view
-     without following the reader down the page. */
-  .toc {
-    position: sticky;
-    top: 4rem;
-    margin: 0;
-    border: 0;
-    border-left: 1px solid var(--border);
-    border-radius: 0;
-    background: none;
-    padding: 0 0 0 1rem;
-    /* Same reasoning as the sidebar: a chapter with thirty sections would
-       otherwise put half of them past the bottom of the screen. (SPEC002 N1) */
-    max-height: calc(100vh - 5rem);
-    overflow-y: auto;
-  }
-}
-
-/*
- * A heading's link to itself. Hidden until the heading is hovered or the link
- * itself is focused, so it is available without decorating every heading in
- * the book with punctuation.
- */
-.heading-anchor {
-  margin-left: 0.4rem;
-  color: var(--muted);
-  text-decoration: none;
-  opacity: 0;
-  font-weight: 400;
-}
-
-.prose :is(h2, h3, h4, h5, h6):hover .heading-anchor,
-.heading-anchor:focus {
-  opacity: 1;
-}
-
-.reader__main {
-  grid-area: main;
-  min-width: 0;
-  outline: none;
-}
-
-.reader__main .prose,
-.reader__main .search-view {
-  max-width: var(--measure);
-}
-
-.sidebar {
-  grid-area: sidebar;
-  position: sticky;
-  top: 4rem;
-  align-self: start;
-  /*
-   * Clamped to the viewport, with its own scrollbar.
-   *
-   * Without this a sticky pane taller than the screen simply has an
-   * unreachable lower half: the page scroll moves the article, not the pane,
-   * so the last chapters of a long book cannot be clicked at all. The bundled
-   * books are three and four chapters long, which is exactly why this was
-   * invisible — it is a bug you only meet on a real book. (SPEC002 N1)
-   *
-   * `4rem` is the sticky offset; the extra rem keeps the last link clear of
-   * the bottom edge.
-   */
-  max-height: calc(100vh - 5rem);
-  overflow-y: auto;
-  /* Room for the scrollbar so it never sits on top of the link text. */
-  padding-right: 0.35rem;
-}
-
-/* Looks like a field so it reads as "search goes here", but it is a button —
-   the only text input lives in the overlay. */
-.sidebar__search {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.9rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-.sidebar__search:hover {
-  color: var(--fg);
-  border-color: var(--accent);
-}
-
-.sidebar__search kbd {
-  margin-left: auto;
-  padding: 0.05rem 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-}
-
-/*
- * Search over the book rather than instead of it.
- *
- * It used to be a route, so checking one word cost the reader their chapter and
- * their scroll position. The overlay closes back onto the same pixel.
- */
-.search-overlay__scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: rgb(0 0 0 / 45%);
-}
-
-.search-overlay__panel {
-  position: fixed;
-  z-index: 41;
-  top: 3.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  width: min(42rem, 92vw);
-  max-height: min(32rem, 76vh);
-  padding: 0.85rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 28%);
-}
-
-.search-overlay__field {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.search-overlay__field input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--fg);
-  font-size: 1rem;
-}
-
-.search-overlay__close {
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.search-overlay__meta {
-  margin: 0.6rem 0.15rem 0.4rem;
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.search-overlay__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-}
-
-.search-overlay__list a {
-  display: block;
-  padding: 0.5rem 0.6rem;
-  border-radius: 6px;
-  color: var(--fg);
-  text-decoration: none;
-}
-
-/* Sections are indented under the chapter they belong to, so the grouping is
-   visible without a second list or a heading between every run. */
-.search-overlay__row--passage a {
-  padding-left: 1.6rem;
-}
-
-.search-overlay__row--passage + .search-overlay__row--chapter a {
-  margin-top: 0.35rem;
-}
-
-.search-overlay__section {
-  display: block;
-  font-size: 0.9rem;
-}
-
-.search-overlay__complete {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  cursor: pointer;
-}
-
-.search-overlay__complete kbd {
-  padding: 0.05rem 0.3rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-}
-
-.search-overlay__list li.is-selected a,
-.search-overlay__list a:hover {
-  background: var(--island-bg);
-}
-
-.search-overlay__snippet {
-  display: block;
-  margin-top: 0.15rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.search-overlay mark {
-  padding: 0 0.1em;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-  color: inherit;
-}
-
-/*
- * Terms marked in the chapter a search sent the reader to.
- *
- * Warmer than the accent used inside the overlay, because here the marks sit in
- * running prose the reader is trying to read: it should be findable by glancing
- * down the page, not compete with the text for attention.
- */
-.prose mark.term-highlight {
-  padding: 0 0.1em;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--warn) 32%, transparent);
-  color: inherit;
-}
-
-.sidebar__list {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.sidebar__list a {
-  display: block;
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-  color: var(--fg);
-  text-decoration: none;
-  font-size: 0.92rem;
-}
-
-.sidebar__list a:hover {
-  background: var(--island-bg);
-}
-
-.sidebar__list a.is-active {
-  background: var(--island-bg);
-  border-left: 3px solid var(--accent);
-  font-weight: 600;
-}
-
-/*
- * A part groups a run of chapters. The nested list carries its own top margin
- * from `.sidebar__list`, so the wrapper only supplies the spacing *between*
- * parts and the heading's own rhythm.
- */
-.sidebar__part {
-  margin-top: 0.9rem;
-}
-
-.sidebar__part:first-child {
-  margin-top: 0;
-}
-
-.sidebar__part-title {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-/* The heading is a wrapper for the toggle; all of the padding lives on the
-   button so the whole strip is a click target, not just the words. */
-.sidebar__part-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  width: 100%;
-  padding: 0.25rem 0.6rem;
-  border: 0;
-  border-radius: 5px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-align: left;
-  text-transform: inherit;
-  cursor: pointer;
-}
-
-.sidebar__part-toggle:hover {
-  color: var(--fg);
-  background: var(--island-bg);
-}
-
-/* A disclosure triangle drawn in CSS rather than shipped as an icon font or an
-   SVG per part. It rotates to point down when the part is open. */
-.sidebar__part-marker {
-  flex: none;
-  width: 0;
-  height: 0;
-  border-top: 0.28rem solid transparent;
-  border-bottom: 0.28rem solid transparent;
-  border-left: 0.36rem solid currentcolor;
-  transition: transform 120ms ease-out;
-}
-
-.sidebar__part-toggle[aria-expanded='true'] .sidebar__part-marker {
-  transform: rotate(90deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar__part-marker {
-    transition: none;
-  }
-}
-
-/* The nested list sits directly under its heading, not a line below it. */
-.sidebar__part .sidebar__list {
-  margin-top: 0.3rem;
-}
-
-/* `hidden` is a presentation hint that any `display` beats, and this list is a
-   flex column — without this the attribute would be silently ignored and a
-   collapsed part would stay on screen. */
-.sidebar__list[hidden] {
-  display: none;
-}
-
-/* Chapter prev/next */
-.chapter-nav {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.chapter-nav a {
-  color: var(--accent);
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-/* Search results */
-.search-view__list {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.search-view__snippet {
-  margin: 0.25rem 0 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-/*
- * Navigation on a narrow screen.
- *
- * Below 720px the sidebar used to sit in the flow above the chapter, which put
- * every chapter link between the reader and the first sentence — a forty
- * chapter book opened on forty links. It becomes a drawer instead, and the
- * toolbar that opens it only exists at that width.
- */
-.reader__toolbar {
-  display: none;
-  gap: 0.5rem;
-}
-
-.reader__nav-toggle,
-.reader__search-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--island-bg);
-  color: var(--fg);
-  cursor: pointer;
-}
-
-.reader__scrim {
-  display: none;
-}
-
-@media (max-width: 720px) {
-  .reader__body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'nav'
-      'toc'
-      'main';
+  .reader__backup-status {
+    color: var(--muted);
+    font-size: 0.78rem;
   }
 
-  /* The search button is otherwise inside the drawer, two taps away. */
-  .reader__toolbar {
-    grid-area: nav;
+  /* The app's own buttons. `.theme-toggle` is an engine component and carries
+   the same look from the engine's stylesheet; the duplication is the price of
+   the two packages not sharing a control class. */
+  .reader__reset {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  /* Bookshelf (library landing) */
+  .shelf {
+    outline: none;
+  }
+
+  .shelf__head {
     display: flex;
-    justify-self: start;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
-  /* The grid gap already separates the rail from the chapter; its own bottom
-     margin is 24px of nothing on the screen that can least afford it. */
-  .toc {
-    margin: 0;
+  .shelf__import {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .reader__scrim {
+  .shelf__intro {
+    color: var(--muted);
+  }
+
+  .shelf__intro code {
+    font-size: 0.9em;
+  }
+
+  .shelf__grid {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1rem;
+  }
+
+  .shelf__card {
+    position: relative;
+  }
+
+  .shelf__card a {
     display: block;
-    position: fixed;
-    inset: 0;
-    background: rgb(0 0 0 / 45%);
-    z-index: 20;
+    height: 100%;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--island-bg);
+    color: var(--fg);
+    text-decoration: none;
   }
 
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 21;
-    width: min(18rem, 82vw);
-    padding: 1rem;
-    overflow-y: auto;
-    background: var(--bg);
-    border-right: 1px solid var(--border);
-    /* Undoes the sticky-rail `align-self: start`. Box alignment applies to
-       out-of-flow boxes too: with `start`, `top: 0; bottom: 0` stops meaning
-       "stretch" and the panel collapses to the height of its links — a short
-       book got a drawer a third of the screen tall. */
-    align-self: stretch;
-    /* Off-canvas rather than `display: none`, so opening it is a movement the
-       reader can follow instead of a page that changes underneath them. */
-    transform: translateX(-100%);
-    transition:
-      transform 160ms ease-out,
-      visibility 160ms;
-    /* Off-screen is not out of reach: a translated panel keeps its links in
-       the tab order, so a keyboard reader tabs into a drawer nobody can see. */
-    visibility: hidden;
+  .shelf__card a:hover {
+    border-color: var(--accent);
   }
 
-  .sidebar--open {
-    transform: translateX(0);
-    visibility: visible;
+  .shelf__card h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1.15rem;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .sidebar {
-    transition: none;
+  .shelf__card p {
+    margin: 0 0 0.6rem;
+    color: var(--muted);
+    font-size: 0.92rem;
   }
-}
 
-/*
- * Back to the top of a long chapter. Floating over the text, bottom right,
- * and only once there is enough behind the reader to be worth returning from.
- */
-.back-to-top {
-  position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  z-index: 15;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.45rem 0.8rem;
-  font-size: 0.8rem;
-  color: var(--fg);
-  background: var(--island-bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 18%);
-  cursor: pointer;
-  /* Invisible *and* untouchable: a transparent button still swallows taps on
-     whatever is underneath it. */
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 140ms ease-out;
-}
-
-.back-to-top.is-shown {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .back-to-top {
-    transition: none;
+  /* Resume preference */
+  .shelf__setting {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    font-size: 0.92rem;
+    color: var(--muted);
   }
-}
 
-/* Bookshelf (library landing) */
-.shelf {
-  outline: none;
-}
-
-.shelf__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.shelf__import {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.shelf__intro {
-  color: var(--muted);
-}
-
-.shelf__intro code {
-  font-size: 0.9em;
-}
-
-.shelf__grid {
-  list-style: none;
-  margin: 1.5rem 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: 1rem;
-}
-
-.shelf__card {
-  position: relative;
-}
-
-.shelf__card a {
-  display: block;
-  height: 100%;
-  padding: 1.1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--island-bg);
-  color: var(--fg);
-  text-decoration: none;
-}
-
-.shelf__card a:hover {
-  border-color: var(--accent);
-}
-
-.shelf__card h2 {
-  margin: 0 0 0.4rem;
-  font-size: 1.15rem;
-}
-
-.shelf__card p {
-  margin: 0 0 0.6rem;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-/* Resume preference */
-.shelf__setting {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  font-size: 0.92rem;
-  color: var(--muted);
-}
-
-.shelf__setting select {
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--island-bg);
-  color: var(--fg);
-}
-
-/* Book covers */
-.bookcover {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  aspect-ratio: 3 / 4;
-  width: 100%;
-  margin-bottom: 0.85rem;
-  border-radius: 8px;
-  object-fit: cover;
-  overflow: hidden;
-}
-
-.bookcover--generated {
-  padding: 0.9rem;
-  color: #fff;
-  background: linear-gradient(
-    145deg,
-    hsl(var(--cover-hue, 210) 62% 42%),
-    hsl(calc(var(--cover-hue, 210) + 35) 58% 28%)
-  );
-}
-
-.bookcover__title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.bookcover__author {
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-
-.bookcover--large {
-  width: min(15rem, 60vw);
-  margin: 0 auto 1.25rem;
-  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
-}
-
-/* Resume splash */
-.splash {
-  display: grid;
-  place-items: center;
-  min-height: 60vh;
-  padding: 2rem 1rem;
-  text-align: center;
-}
-
-.splash__card {
-  animation: splash-in 320ms ease-out both;
-}
-
-@keyframes splash-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
+  .shelf__setting select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--island-bg);
+    color: var(--fg);
   }
-}
 
-.splash__status {
-  margin: 0 0 1rem;
-  color: var(--muted);
-}
+  /* Book covers */
+  .bookcover {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    aspect-ratio: 3 / 4;
+    width: 100%;
+    margin-bottom: 0.85rem;
+    border-radius: 8px;
+    object-fit: cover;
+    overflow: hidden;
+  }
 
-.splash__actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
+  .bookcover--generated {
+    padding: 0.9rem;
+    color: #fff;
+    background: linear-gradient(
+      145deg,
+      hsl(var(--cover-hue, 210) 62% 42%),
+      hsl(calc(var(--cover-hue, 210) + 35) 58% 28%)
+    );
+  }
 
-.splash__skip,
-.splash__library {
-  padding: 0.4rem 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-}
+  .bookcover__title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.25;
+  }
 
-.splash__skip {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+  .bookcover__author {
+    font-size: 0.8rem;
+    opacity: 0.85;
+  }
 
-@media (prefers-reduced-motion: reduce) {
+  .bookcover--large {
+    width: min(15rem, 60vw);
+    margin: 0 auto 1.25rem;
+    box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+  }
+
+  /* Resume splash */
+  .splash {
+    display: grid;
+    place-items: center;
+    min-height: 60vh;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+
   .splash__card {
-    animation: none;
+    animation: splash-in 320ms ease-out both;
   }
-}
 
-.shelf__meta {
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.shelf__badge {
-  margin-left: 0.5rem;
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  background: var(--border);
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.shelf__delete {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
-  font-size: 0.72rem;
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-/* Disabled/blocked island notice (untrusted imported books) */
-.island--disabled {
-  color: var(--muted);
-  font-size: 0.9rem;
-  border-style: dashed;
-}
-
-/* Book-level notice: islands this reader cannot provide */
-.reader__notice {
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.reader__footer {
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/*
- * Prose typography.
- *
- * Before this, only `h1`, inline `code` and `blockquote` were styled: h2–h6,
- * tables, lists, images, code blocks and rules all rendered at browser
- * defaults, so a heading hierarchy an author wrote in Markdown mostly did not
- * arrive as one. Sizes are a scale off `--text-size` rather than fixed rems,
- * so changing the base moves the whole page together.
- */
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4,
-.prose h5,
-.prose h6 {
-  line-height: 1.25;
-  /* Text-wrap balance keeps a two-line heading from leaving one orphan word. */
-  text-wrap: balance;
-  scroll-margin-top: 5rem;
-}
-
-.prose h1 {
-  font-size: calc(var(--text-size) * 2);
-  margin: 0 0 1.25rem;
-}
-
-/* Top margin far exceeds bottom, so a heading belongs to what follows it. */
-.prose h2 {
-  font-size: calc(var(--text-size) * 1.5);
-  margin: 2.5rem 0 0.75rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border);
-}
-
-.prose h3 {
-  font-size: calc(var(--text-size) * 1.25);
-  margin: 2rem 0 0.6rem;
-}
-
-.prose h4 {
-  font-size: calc(var(--text-size) * 1.1);
-  margin: 1.6rem 0 0.5rem;
-}
-
-.prose h5 {
-  font-size: var(--text-size);
-  margin: 1.4rem 0 0.4rem;
-}
-
-/* Nothing left to shrink at h6, so it separates itself by weight and case. */
-.prose h6 {
-  font-size: calc(var(--text-size) * 0.85);
-  margin: 1.4rem 0 0.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.prose p {
-  margin: 0 0 1rem;
-}
-
-.prose a {
-  color: var(--accent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.15em;
-}
-
-.prose ul,
-.prose ol {
-  margin: 0 0 1rem;
-  padding-left: 1.5rem;
-}
-
-.prose li + li {
-  margin-top: 0.3rem;
-}
-
-.prose li > ul,
-.prose li > ol {
-  margin: 0.3rem 0 0;
-}
-
-.prose img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-}
-
-.prose hr {
-  margin: 2rem 0;
-  border: 0;
-  border-top: 1px solid var(--border);
-}
-
-.prose table {
-  width: 100%;
-  margin: 0 0 1rem;
-  border-collapse: collapse;
-  font-size: 0.95em;
-}
-
-.prose th,
-.prose td {
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
-.prose thead th {
-  background: var(--island-bg);
-  font-weight: 600;
-}
-
-.prose code {
-  background: var(--island-bg);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-}
-
-/* A code block is one box: the <code> inside it drops its own chrome. */
-.prose pre {
-  margin: 0 0 1rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--island-bg);
-  overflow-x: auto;
-  line-height: 1.5;
-}
-
-.prose pre code {
-  padding: 0;
-  background: none;
-  border-radius: 0;
-  font-size: 0.85rem;
-}
-
-.prose blockquote {
-  border-left: 3px solid var(--accent);
-  margin: 1rem 0;
-  padding: 0.25rem 1rem;
-  color: var(--muted);
-}
-
-/*
- * Callouts (editorial-charter.md §2).
- *
- * The charter has defined five kinds since it was written, and all five
- * rendered as the same undifferentiated blockquote — an author following the
- * editorial contract got no more than a grey left border. `rehypeCallouts`
- * reads the emoji the charter already prescribes and adds a class; the type
- * colour is then one variable, so every rule below is shared.
- *
- * The background is mixed from that colour rather than stored as a second
- * token, which keeps a five-type palette from becoming ten tokens per theme.
- */
-.prose .callout {
-  --callout: var(--accent);
-
-  margin: 1.25rem 0;
-  padding: 0.7rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--callout) 35%, transparent);
-  border-left: 4px solid var(--callout);
-  border-radius: 0 8px 8px 0;
-  background: color-mix(in srgb, var(--callout) 7%, var(--bg));
-  /* Not `--muted`: a callout is the emphasised sentence on the page, so it
-     must not be the faintest thing on it. */
-  color: var(--fg);
-}
-
-.prose .callout > :last-child {
-  margin-bottom: 0;
-}
-
-.prose .callout strong {
-  color: var(--callout);
-}
-
-.prose .callout--how {
-  --callout: var(--info);
-}
-
-.prose .callout--tip {
-  --callout: var(--correct);
-}
-
-.prose .callout--pitfall {
-  --callout: var(--warn);
-}
-
-.prose .callout--definition {
-  --callout: var(--muted);
-}
-
-/* --- Islands --- */
-.island {
-  margin: 1.5rem 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--island-bg);
-  padding: 1rem 1.25rem;
-}
-
-.island--loading {
-  min-height: 4rem;
-}
-
-.island--unknown {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-/*
- * Inline islands (SPEC001 P2.6). These live inside a sentence, so everything
- * here is about *not* interrupting it: no box, no block, nothing that changes
- * the line height of the paragraph it sits in.
- */
-.island-inline {
-  display: inline;
-}
-
-.island-term__word {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  /* A dotted underline is the printed convention for a glossed word. */
-  border-bottom: 1px dotted currentColor;
-}
-
-.island-term__definition {
-  display: inline;
-  margin-left: 0.35rem;
-  font-size: 0.9em;
-  color: var(--muted);
-}
-
-.island-term__definition::before {
-  content: '— ';
-}
-
-/* Checkpoint */
-.island--checkpoint {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  cursor: pointer;
-}
-
-.island--checkpoint.is-complete {
-  border-color: var(--correct);
-  background: var(--correct-bg);
-}
-
-.island--checkpoint input {
-  width: 1.15rem;
-  height: 1.15rem;
-}
-
-/* Quiz */
-.quiz__question {
-  border: none;
-  margin: 0 0 1.25rem;
-  padding: 0;
-}
-
-.quiz__prompt {
-  font-weight: 600;
-  padding: 0;
-  margin-bottom: 0.5rem;
-}
-
-.quiz__option {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.quiz__option.is-selected {
-  border-color: var(--accent);
-}
-
-.quiz__option.is-correct {
-  background: var(--correct-bg);
-  border-color: var(--correct);
-}
-
-.quiz__option.is-wrong {
-  background: var(--wrong-bg);
-  border-color: var(--wrong);
-}
-
-.quiz__explanation {
-  margin: 0.4rem 0 0;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.quiz__submit,
-.quiz__retry {
-  margin-top: 0.5rem;
-  padding: 0.45rem 1rem;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.quiz__result {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.75rem;
-}
-
-.quiz__retry {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-}
-
-/* Video */
-.island--video {
-  margin-inline: 0;
-}
-
-.video__frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-}
-
-.video__frame iframe,
-.island--video video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: 8px;
-}
-
-.island--video video {
-  position: static;
-}
-
-/*
- * The placeholder shown before a YouTube embed is loaded. Drawn entirely
- * locally — no poster is fetched, because fetching one from `i.ytimg.com`
- * would make exactly the third-party request the facade exists to avoid.
- */
-.video__facade {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--island-bg);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.video__facade:hover,
-.video__facade:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* A play triangle, so the control reads as one without an icon font. */
-.video__play {
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 1.1rem 0 1.1rem 1.9rem;
-  border-color: transparent transparent transparent currentcolor;
-}
-
-.video__notice {
-  font-size: 0.85rem;
-  text-align: center;
-  padding-inline: 1rem;
-}
-
-.island--video figcaption {
-  margin-top: 0.5rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/* Progress dashboard */
-.dashboard {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--island-bg);
-  font-size: 0.9rem;
-}
-
-.dashboard__stat strong {
-  color: var(--accent);
-}
-
-/* Flashcard */
-.island--flashcard {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.6rem;
-}
-
-.flashcard__card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-height: 6rem;
-  padding: 1.25rem;
-  border: 1px dashed var(--accent);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--fg);
-  cursor: pointer;
-  text-align: center;
-  font-size: 1.05rem;
-}
-
-.flashcard__hint {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.flashcard__grades {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.flashcard__grades button {
-  flex: 1;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-}
-
-.flashcard__reps {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/* Audio */
-.island--audio audio {
-  width: 100%;
-  margin-top: 0.5rem;
-}
-
-.island--audio figcaption {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/* Matching game */
-.matching__columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.matching__col {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.matching__item {
-  width: 100%;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--fg);
-  cursor: pointer;
-  text-align: left;
-}
-
-.matching__item.is-selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-.matching__item.is-matched {
-  background: var(--correct-bg);
-  border-color: var(--correct);
-  cursor: default;
-}
-
-.matching__item.is-wrong {
-  background: var(--wrong-bg);
-  border-color: var(--wrong);
-}
-
-.matching__status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-}
-
-.matching__reset {
-  padding: 0.35rem 0.8rem;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--accent);
-  cursor: pointer;
+  @keyframes splash-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+
+  .splash__status {
+    margin: 0 0 1rem;
+    color: var(--muted);
+  }
+
+  .splash__actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .splash__skip,
+  .splash__library {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  .splash__skip {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .splash__card {
+      animation: none;
+    }
+  }
+
+  .shelf__meta {
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .shelf__badge {
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: var(--border);
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .shelf__delete {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .reader__footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
 }
