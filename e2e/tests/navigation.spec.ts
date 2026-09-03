@@ -33,7 +33,10 @@ test('a book with parts groups its chapters, and one without does not', async ({
   // Matched on the full title: "Part I" is a substring of "Part II", so the
   // short form silently selects both groups.
   const partOne = sidebar.locator('.sidebar__part', { hasText: 'Part I — Reading a game' });
-  await expect(partOne.getByRole('link')).toHaveCount(2);
+  // The chapters, specifically: the part heading also carries a link to the
+  // part's own overview page, and counting every link in the group would make
+  // this assertion drift the next time the heading gains a control.
+  await expect(partOne.locator('.sidebar__list a')).toHaveCount(2);
   await expect(partOne.getByRole('link', { name: /A chess game, move by move/ })).toBeVisible();
   // Grouping is presentation only — the chapters are still one flat sequence,
   // so navigation across a part boundary is an ordinary next step. Part II is

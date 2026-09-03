@@ -9,6 +9,7 @@ export type AppRoute =
       heading?: string;
       highlight?: string[];
     }
+  | { view: 'part'; bookSlug: string; partId: string }
   | { view: 'search'; bookSlug: string; query: string };
 
 export function parseAppHash(hash: string): AppRoute {
@@ -22,6 +23,14 @@ export function parseAppHash(hash: string): AppRoute {
   if (segments[1] === 'search') {
     const query = new URLSearchParams(queryString ?? '').get('q') ?? '';
     return { view: 'search', bookSlug, query };
+  }
+
+  // `#/<book>/part/<id>`, matching the `search` shape above. It costs the
+  // chapter slugs `search` and `part`, which is the same trade the search
+  // route already made; a book that needs them can rename the file, and
+  // nothing silently misroutes because a two-segment path is still a chapter.
+  if (segments[1] === 'part' && segments[2]) {
+    return { view: 'part', bookSlug, partId: segments[2] };
   }
 
   // A section within a chapter is `?s=`, not a second `#`: the route already

@@ -23,6 +23,27 @@ describe('parseAppHash', () => {
     });
   });
 
+  it('parses a part route', () => {
+    expect(parseAppHash('#/guide/part/foundations')).toEqual({
+      view: 'part',
+      bookSlug: 'guide',
+      partId: 'foundations',
+    });
+  });
+
+  /**
+   * `part` with nothing after it is a chapter slug, not a malformed part page.
+   * The alternative — treating any `/part` as a part route — would swallow a
+   * chapter file genuinely called `part.md` and route it nowhere.
+   */
+  it('treats a bare `part` segment as a chapter', () => {
+    expect(parseAppHash('#/guide/part')).toEqual({
+      view: 'book',
+      bookSlug: 'guide',
+      chapterSlug: 'part',
+    });
+  });
+
   it('parses a search route', () => {
     expect(parseAppHash('#/guide/search?q=hello%20world')).toEqual({
       view: 'search',

@@ -5,8 +5,10 @@ import { navSections } from './navSections';
 interface SidebarProps {
   book: Book;
   basePath: string;
-  view: 'chapter' | 'search';
+  view: 'chapter' | 'search' | 'part';
   activeSlug?: string;
+  /** The part whose landing page is open, when `view === 'part'`. */
+  activePart?: string;
   /** Drawn as an open drawer on a narrow screen; ignored on a wide one. */
   open?: boolean;
   /** Called when the reader picks a destination, so the drawer can close. */
@@ -20,6 +22,7 @@ export function Sidebar({
   basePath,
   view,
   activeSlug,
+  activePart,
   open = false,
   onNavigate,
   onSearch,
@@ -27,9 +30,10 @@ export function Sidebar({
   const currentSlug = view === 'chapter' ? (activeSlug ?? book.chapters[0]?.slug) : undefined;
 
   const sections = navSections(book.chapters, book.descriptor.parts);
-  const activePartId = sections.find((section) =>
-    section.chapters.some((chapter) => chapter.slug === currentSlug),
-  )?.id;
+  const activePartId =
+    activePart ??
+    sections.find((section) => section.chapters.some((chapter) => chapter.slug === currentSlug))
+      ?.id;
 
   /*
    * Which parts the reader has opened or closed by hand. Absent means "follow
@@ -120,6 +124,19 @@ export function Sidebar({
                   <span className="sidebar__part-marker" aria-hidden="true" />
                   {section.title}
                 </button>
+                {/* The toggle folds the part; this opens it. Two actions on
+                    one heading, because collapsing a part and reading about
+                    it are different intents and a single control has to
+                    guess which was meant — which is what made the heading
+                    inert in the first place (SPEC002 N5). */}
+                <a
+                  className="sidebar__part-link"
+                  href={`#${basePath}/part/${section.id}`}
+                  aria-label={`Overview of ${section.title}`}
+                  aria-current={activePart === section.id ? 'page' : undefined}
+                >
+                  <span aria-hidden="true">≡</span>
+                </a>
               </h3>
               <ul
                 className="sidebar__list"

@@ -6,6 +6,7 @@ import {
   clearBook,
   clearLastRead,
   deleteImportedBook,
+  getLastRead,
   setLastRead,
   useMediaQuery,
   NARROW,
@@ -52,9 +53,25 @@ export default function App() {
       return;
     }
     allowResume();
-    if (activeBook) {
-      setLastRead(activeBook.meta.slug, route.view === 'book' ? route.chapterSlug : undefined);
+    if (!activeBook) return;
+
+    /*
+     * A part page and a search are places *in* a book, not chapters of it, so
+     * neither can name one — and writing `undefined` here would throw away the
+     * chapter the reader was actually on. They would then reopen the book at
+     * chapter one, having done nothing but glance at a contents page.
+     *
+     * So the chapter is carried over whenever the pointer already refers to
+     * this same book. Landing on a part page of a book never opened before
+     * records the book alone, which is all that is known.
+     */
+    const slug = activeBook.meta.slug;
+    if (route.view === 'book') {
+      setLastRead(slug, route.chapterSlug);
+      return;
     }
+    const previous = getLastRead();
+    setLastRead(slug, previous?.bookSlug === slug ? previous.chapterSlug : undefined);
   }, [route, activeBook]);
 
   async function resetBook(slug: string) {
@@ -113,8 +130,9 @@ export default function App() {
         <Reader
           book={activeBook}
           basePath={`/${activeBook.meta.slug}`}
-          view={route.view === 'search' ? 'search' : 'chapter'}
+          view={route.view === 'search' ? 'search' : route.view === 'part' ? 'part' : 'chapter'}
           chapterSlug={route.view === 'book' ? route.chapterSlug : undefined}
+          partId={route.view === 'part' ? route.partId : undefined}
           heading={route.view === 'book' ? route.heading : undefined}
           highlight={route.view === 'book' ? route.highlight : undefined}
           query={route.view === 'search' ? route.query : undefined}

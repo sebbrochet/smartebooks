@@ -687,6 +687,8 @@
   }
 
   .sidebar__part-title {
+    display: flex;
+    align-items: center;
     margin: 0;
     font-size: 0.72rem;
     font-weight: 700;
@@ -695,13 +697,30 @@
     color: var(--muted);
   }
 
+  /* Sits at the end of the strip, beside the toggle rather than inside it: a
+   link nested in a button is neither, and the two do different things. */
+  .sidebar__part-link {
+    flex: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .sidebar__part-link:hover,
+  .sidebar__part-link[aria-current='page'] {
+    color: var(--fg);
+    background: var(--island-bg);
+  }
+
   /* The heading is a wrapper for the toggle; all of the padding lives on the
    button so the whole strip is a click target, not just the words. */
   .sidebar__part-toggle {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     padding: 0.25rem 0.6rem;
     border: 0;
     border-radius: 5px;
@@ -751,6 +770,48 @@
    collapsed part would stay on screen. */
   .sidebar__list[hidden] {
     display: none;
+  }
+
+  /* A part's landing page: its chapters and how the reader is doing in them. */
+  .part__summary {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .part__chapters {
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .part__chapters li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .part__chapters a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .part__chapters a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  /* Deliberately quiet. The chapter is what the reader came to open; the score
+   is context, and typographic weight here would make the page a scoreboard
+   with links on it rather than a contents list that knows how you are doing. */
+  .part__chapter-score {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Chapter prev/next */

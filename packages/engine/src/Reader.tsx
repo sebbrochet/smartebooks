@@ -8,6 +8,8 @@ import { reading } from './store/store';
 import { Sidebar } from './reader/Sidebar';
 import { ChapterView } from './reader/ChapterView';
 import { SearchView } from './reader/SearchView';
+import { PartView } from './reader/PartView';
+import { findSection } from './store/bookProgress';
 import { TableOfContents } from './reader/TableOfContents';
 import { BackToTop } from './reader/BackToTop';
 import { SearchOverlay } from './reader/SearchOverlay';
@@ -26,9 +28,11 @@ export interface ReaderProps {
    */
   basePath: string;
   /** Current within-book view. */
-  view: 'chapter' | 'search';
+  view: 'chapter' | 'search' | 'part';
   /** Active chapter slug (defaults to the first chapter when omitted). */
   chapterSlug?: string;
+  /** Which part to show when `view === 'part'`. */
+  partId?: string;
   /** Section within the chapter to open at, from the route's `?s=`. */
   heading?: string;
   /** Terms to mark in the prose, from the route's `?h=`. */
@@ -49,6 +53,7 @@ export function Reader({
   basePath,
   view,
   chapterSlug,
+  partId,
   heading,
   highlight,
   query,
@@ -67,8 +72,15 @@ export function Reader({
   // Reported once here rather than as scattered placeholders (SPEC001 P2.1).
   const missing = useMemo(() => missingIslands(book.descriptor, book.islands), [book]);
 
+  const activePart = useMemo(
+    () => (view === 'part' && partId ? findSection(book, partId) : undefined),
+    [book, view, partId],
+  );
+
+  // Also resolved when a part view finds no such part, because that falls back
+  // to the chapter rather than to an error page.
   const activeChapter =
-    view === 'chapter'
+    view === 'chapter' || (view === 'part' && !activePart)
       ? ((chapterSlug ? book.chapters.find((c) => c.slug === chapterSlug) : book.chapters[0]) ??
         book.chapters[0])
       : undefined;
@@ -231,6 +243,7 @@ export function Reader({
           basePath={basePath}
           view={view}
           activeSlug={activeChapter?.slug}
+          activePart={activePart?.id}
           open={navOpen}
           onNavigate={() => setNavOpen(false)}
           onSearch={() => {
@@ -254,6 +267,26 @@ export function Reader({
           <ProgressDashboard />
           {view === 'search' ? (
             <SearchView book={book} basePath={basePath} query={query ?? ''} />
+          ) : view === 'part' ? (
+            // An unknown part id falls back to the chapter view rather than to
+            // an error page: the runtime is forgiving, and a stale link to a
+            // part that has been renamed should still land the reader in the
+            // book (`part-unknown` is what tells the author).
+            activePart ? (
+              <PartView book={book} basePath={basePath} section={activePart} registry={registry} />
+            ) : (
+              activeChapter && (
+                <ChapterView
+                  book={book}
+                  basePath={basePath}
+                  chapter={activeChapter}
+                  trusted={trusted}
+                  resolveAsset={resolveAsset}
+                  registry={registry}
+                  highlight={highlight}
+                />
+              )
+            )
           ) : (
             activeChapter && (
               <ChapterView
