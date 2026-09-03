@@ -9,6 +9,7 @@
     "dev": "vite",
     "prebuild": "node scripts/copy-stockfish.mjs",
     "build": "vite build",
+    "postbuild": "node ../../scripts/build-sw.mjs dist",
     "preview": "vite preview"
   },
   "dependencies": {

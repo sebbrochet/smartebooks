@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Smart Ebooks">
+  <title>Smart Ebooks</title>
+  <!-- Maskable: a launcher may crop this to a circle, so the artwork is kept
+       inside the safe zone (the middle 80%) and the background bleeds to the
+       full square. Same drawing as icon.svg, scaled down about its centre. -->
+  <rect width="512" height="512" fill="#1f6feb" />
+  <g
+    transform="translate(256 256) scale(0.72) translate(-256 -256)"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="26"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  >
+    <path d="M256 150c-30-26-76-40-118-40-24 0-44 3-58 7v235c14-4 34-7 58-7 42 0 88 14 118 40" />
+    <path d="M256 150c30-26 76-40 118-40 24 0 44 3 58 7v235c-14-4-34-7-58-7-42 0-88 14-118 40" />
+    <path d="M256 150v235" />
+  </g>
+</svg>

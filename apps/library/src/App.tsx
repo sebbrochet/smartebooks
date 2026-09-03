@@ -12,6 +12,7 @@ import {
   NARROW,
 } from '@smart-ebooks/engine';
 import { useShelfBooks } from './useShelfBooks';
+import { useServiceWorker } from './useServiceWorker';
 import { useAppRoute } from './router';
 import { allowResume, suppressResume, useLaunchDecision } from './launch';
 import { Bookshelf } from './Bookshelf';
@@ -44,6 +45,10 @@ export default function App() {
 
   const { pending, dismiss } = useLaunchDecision(route);
   const pendingBook = pending ? getBook(pending.bookSlug)?.book : undefined;
+
+  // A new build of the *app*, which is not the same thing as a new edition of a
+  // book and must not look like one (SPEC003 E2.1).
+  const { updateReady, update } = useServiceWorker();
 
   // Track where the reader is, so the next visit can resume. Landing on the
   // shelf is treated as "I want my library" for the rest of this session.
@@ -91,6 +96,20 @@ export default function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+      {updateReady && (
+        /*
+         * A strip, not a dialog. The reader is mid-sentence and this is not
+         * urgent — the version they are running works, and the new one will
+         * still be there later. `role="status"` rather than `alert` for the
+         * same reason: announce it, do not interrupt.
+         */
+        <div className="app-update" role="status">
+          <span>A new version of Smart Ebooks is ready.</span>
+          <button type="button" onClick={update}>
+            Reload to update
+          </button>
+        </div>
+      )}
       <header className="reader__header">
         <a className="reader__brand" href="#/">
           Smart Ebooks

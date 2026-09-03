@@ -7,6 +7,13 @@
       name="description"
       content="Smart Ebooks — a platform of interactive, app-like books built from plain Markdown."
     />
+    <!-- Relative, so a project page served from /<repo>/ resolves them without
+         the build having to rewrite anything. `start_url` and the icon paths
+         inside the manifest are relative for the same reason. -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <meta name="theme-color" content="#1f6feb" />
     <title>Smart Ebooks</title>
     <script>
       // Apply the saved theme before paint to avoid a flash of the wrong theme.

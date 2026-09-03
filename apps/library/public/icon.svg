@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Smart Ebooks">
+  <title>Smart Ebooks</title>
+  <rect width="512" height="512" rx="96" fill="#1f6feb" />
+  <!-- An open book: two leaves meeting at a spine. Drawn rather than shipped as
+       a raster so one file covers every size a launcher asks for. -->
+  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M256 150c-30-26-76-40-118-40-24 0-44 3-58 7v235c14-4 34-7 58-7 42 0 88 14 118 40" />
+    <path d="M256 150c30-26 76-40 118-40 24 0 44 3 58 7v235c-14-4-34-7-58-7-42 0-88 14-118 40" />
+    <path d="M256 150v235" />
+  </g>
+</svg>
