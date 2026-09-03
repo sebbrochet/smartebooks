@@ -5,7 +5,8 @@ import type { AttributeValue } from '../islands/attributes';
 
 interface IslandHostInlineProps {
   type?: string;
-  id?: string;
+  /** The island's persistence key. Named to survive sanitising — see `remarkIslands`. */
+  islandId?: string;
   config?: string;
   /** The bracketed label: `:term[palimpsest]` → `palimpsest`. */
   children?: ReactNode;
@@ -25,7 +26,7 @@ interface IslandHostInlineProps {
  * text directive, renders **the label alone**. The reader sees the word; the
  * content linter is what tells the author (SPEC001 P1.3).
  */
-export function IslandHostInline({ type, id, config, children }: IslandHostInlineProps) {
+export function IslandHostInline({ type, islandId, config, children }: IslandHostInlineProps) {
   const { trusted, registry } = useBook();
   const definition = type ? registry.get(type) : undefined;
 
@@ -40,7 +41,7 @@ export function IslandHostInline({ type, id, config, children }: IslandHostInlin
     <IslandBoundary type={type ?? 'island'} inline>
       <Suspense fallback={<>{children}</>}>
         <Component
-          id={id ?? ''}
+          id={islandId ?? ''}
           attributes={parsed.attributes ?? {}}
           packagedAssets={[]}
           data={parsed.data}

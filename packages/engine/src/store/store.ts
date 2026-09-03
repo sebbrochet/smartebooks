@@ -95,6 +95,59 @@ export async function clearAllBooks(): Promise<void> {
   notify();
 }
 
+/**
+ * The prefix `rehype-sanitize` puts on an `id` it clobbers.
+ *
+ * Imported books are sanitised, and an island's persistence key used to travel
+ * in an attribute called `id` — so every answer given in an imported book was
+ * saved under `score:user-content-<id>` while the same book read bundled saved
+ * under `score:<id>`. The attribute is now called `islandId`, which the
+ * sanitiser leaves alone.
+ */
+const CLOBBER_PREFIX = 'user-content-';
+
+/**
+ * Drop the clobber prefix from any reader state written before that fix.
+ *
+ * Run on read, for the same reason the import re-keying is: there is no other
+ * moment every path passes through, and once no key matches it costs one scan.
+ *
+ * **A prefixed key never overwrites an unprefixed one.** A reader who answered
+ * the same quiz both ways has two records, and the unprefixed one is the one
+ * the running code has been writing to — so it is the more recent, and taking
+ * it is the same rule the import migration follows.
+ */
+export async function migrateClobberedKeys(): Promise<void> {
+  const all = await entries();
+  let moved = false;
+
+  for (const [key, value] of all) {
+    if (typeof key !== 'string' || !key.startsWith(ROOT)) continue;
+
+    // `smart-ebooks:<book>:<kind>:<id>` — only the id was clobbered, so the
+    // prefix appears after the second colon and nowhere else.
+    const rest = key.slice(ROOT.length);
+    const cut = rest.indexOf(':');
+    if (cut === -1) continue;
+
+    const book = rest.slice(0, cut);
+    const stateKey = rest.slice(cut + 1);
+    const kindEnd = stateKey.indexOf(':');
+    if (kindEnd === -1) continue;
+
+    const id = stateKey.slice(kindEnd + 1);
+    if (!id.startsWith(CLOBBER_PREFIX)) continue;
+
+    const target = keyFor(book, `${stateKey.slice(0, kindEnd)}:${id.slice(CLOBBER_PREFIX.length)}`);
+    const existing = await get(target);
+    if (existing === undefined) await set(target, value);
+    await del(key);
+    moved = true;
+  }
+
+  if (moved) notify();
+}
+
 // --- Domain facades ---------------------------------------------------------
 
 export interface CheckpointState {

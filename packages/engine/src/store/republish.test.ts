@@ -209,3 +209,48 @@ describe('readers who imported under the old scheme', () => {
     expect(after).toEqual(before);
   });
 });
+
+/**
+ * An island's persistence key used to travel in an attribute called `id`, and
+ * the sanitiser applied to imported books rewrites `id` to `user-content-<id>`.
+ * So every answer given in an imported book landed under a key no other copy of
+ * the book would look for.
+ */
+describe('readers who answered before island keys stopped being clobbered', () => {
+  it('keep their scores when the prefix is dropped', async () => {
+    const stored = await saveImportedBook(edition('A book.'));
+    await saveState(stored.id, 'score:user-content-quiz-1', { score: 3, total: 3, attempts: 1 });
+
+    await listImportedBooks();
+
+    expect(await loadState(stored.id, 'score:quiz-1', undefined)).toMatchObject({ score: 3 });
+    expect(await loadState(stored.id, 'score:user-content-quiz-1', undefined)).toBeUndefined();
+  });
+
+  /**
+   * A reader who answered the same quiz before and after the fix has both.
+   * The unprefixed record is the one the running code has been writing, so it
+   * is the more recent — the same rule the id migration above follows.
+   */
+  it('do not let a stale prefixed score overwrite a newer one', async () => {
+    const stored = await saveImportedBook(edition('A book.'));
+    await saveState(stored.id, 'score:user-content-quiz-1', { score: 1, total: 3, attempts: 1 });
+    await saveState(stored.id, 'score:quiz-1', { score: 3, total: 3, attempts: 2 });
+
+    await listImportedBooks();
+
+    expect(await loadState(stored.id, 'score:quiz-1', undefined)).toMatchObject({ score: 3 });
+  });
+
+  /** An id that merely looks like a prefix is not one. Only the key's id part is cut. */
+  it('leaves an ordinary key untouched', async () => {
+    const stored = await saveImportedBook(edition('A book.'));
+    await saveState(stored.id, 'score:quiz-user-content-1', { score: 2, total: 2, attempts: 1 });
+
+    await listImportedBooks();
+
+    expect(await loadState(stored.id, 'score:quiz-user-content-1', undefined)).toMatchObject({
+      score: 2,
+    });
+  });
+});

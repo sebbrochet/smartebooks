@@ -5,7 +5,7 @@ import { defaultIslands } from '../islands/defaults';
 import type { SmartbookDescriptor } from '../package/spec';
 import type { ImportedPackage } from '../package/importBook';
 import { makeBook } from '../package/makeBook';
-import { renameBookState } from './store';
+import { renameBookState, migrateClobberedKeys } from './store';
 
 // A dedicated IndexedDB store so imported book packages never mix with the
 // per-book reader-progress keys.
@@ -57,6 +57,10 @@ export async function saveImportedBook(pkg: ImportedPackage): Promise<StoredImpo
 }
 
 export async function listImportedBooks(): Promise<StoredImport[]> {
+  // Only imported books were ever sanitised, so this is the path where a
+  // clobbered key can exist. Cheap once nothing matches.
+  await migrateClobberedKeys();
+
   const all = await values<StoredImport>(importStore);
   const shelved = all.filter(Boolean).sort((a, b) => a.importedAt - b.importedAt);
 

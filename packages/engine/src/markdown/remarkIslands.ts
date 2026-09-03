@@ -60,7 +60,15 @@ export function remarkIslands(registry: IslandRegistry) {
       directive.data.hName = inline ? 'island-inline' : 'island';
       directive.data.hProperties = {
         type: name,
-        id: attributes.id ?? '',
+        // **Not `id`.** The sanitiser applied to imported books clobbers `id`
+        // and `name` with a `user-content-` prefix, which is a real defence
+        // for prose (an attacker-chosen `id` can shadow a DOM property) but
+        // wrong here: this is not a DOM id, it is the key an island persists
+        // the reader's answers under. Under the old name an imported book
+        // silently saved to `score:user-content-ch1-basics`, so the same book
+        // read bundled and read as a package kept two sets of progress and
+        // nothing could join a score back to the chapter that earned it.
+        islandId: attributes.id ?? '',
         config: JSON.stringify({ attributes: values, data }),
       };
 

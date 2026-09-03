@@ -5,7 +5,8 @@ import type { AttributeValue } from '../islands/attributes';
 
 interface IslandHostProps {
   type?: string;
-  id?: string;
+  /** The island's persistence key. Named to survive sanitising — see `remarkIslands`. */
+  islandId?: string;
   config?: string;
   children?: ReactNode;
 }
@@ -25,12 +26,12 @@ function safeParse(config: string | undefined): ParsedConfig {
 }
 
 /**
- * Maps a neutral `<island type=… id=… config=…>` element (produced by
+ * Maps a neutral `<island type=… islandId=… config=…>` element (produced by
  * remarkIslands) to one of the islands the book declares. Directives outside the
  * book's registry render a visible placeholder; components may be lazy (wrapped
  * in Suspense).
  */
-export function IslandHost({ type, id, config, children }: IslandHostProps) {
+export function IslandHost({ type, islandId, config, children }: IslandHostProps) {
   const { trusted, registry, resolveAsset } = useBook();
   const definition = type ? registry.get(type) : undefined;
   const parsed = safeParse(config);
@@ -76,7 +77,7 @@ export function IslandHost({ type, id, config, children }: IslandHostProps) {
     <IslandBoundary type={type ?? 'island'}>
       <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
         <Component
-          id={id ?? ''}
+          id={islandId ?? ''}
           attributes={attributes}
           packagedAssets={packagedAssets}
           data={parsed.data}

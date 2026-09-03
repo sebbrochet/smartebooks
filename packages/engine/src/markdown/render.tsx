@@ -36,8 +36,12 @@ const untrustedSchema = {
   tagNames: [...(defaultSchema.tagNames ?? []), 'island', 'island-inline'],
   attributes: {
     ...defaultSchema.attributes,
-    island: ['type', 'id', 'config'],
-    'island-inline': ['type', 'id', 'config'],
+    // `islandId` rather than `id`, deliberately: `defaultSchema.clobber` lists
+    // `id`, so an island's persistence key would arrive prefixed with
+    // `user-content-` in exactly the books that are sanitised. See
+    // `remarkIslands`. The clobbering itself is kept for everything else.
+    island: ['type', 'islandId', 'config'],
+    'island-inline': ['type', 'islandId', 'config'],
   },
 };
 
