@@ -77,6 +77,70 @@ test('navigating to a chapter offline works, because routing is local', async ({
 });
 
 /**
+ * A book's own content is embedded and survives the network going away; media
+ * it merely *links to* does not. SPEC003 E2.1 asks that the reader be told
+ * which, rather than pressing play and watching nothing happen.
+ *
+ * Chapter one of the guide happens to hold one of each — a YouTube embed and a
+ * packaged `.wav` — so the two cases can be asserted against each other rather
+ * than in isolation.
+ */
+test('says which media needs a network, and stays quiet about media that does not', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/#/guide/01-getting-started');
+  await waitForController(page);
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  // Online: no warnings anywhere. A notice that is always on says nothing.
+  await expect(page.locator('.island__offline')).toHaveCount(0);
+
+  await context.setOffline(true);
+
+  await expect(page.locator('.island--video .island__offline')).toBeVisible();
+  await expect(page.locator('.island--video')).toContainText('needs a connection');
+
+  // The packaged clip is part of the book, so there is nothing to warn about.
+  await expect(page.locator('.island--audio .island__offline')).toHaveCount(0);
+  // And the play control is still there: the reader is told, not prevented.
+  await expect(page.locator('.island--video .video__facade')).toBeVisible();
+});
+
+/**
+ * The case above changes the connection under a page that is already open. A
+ * reader on a train opens the book *already* offline, and must be told at first
+ * paint rather than only when something changes.
+ *
+ * `navigator.onLine` is overridden rather than emulated because Playwright's
+ * offline emulation **does not survive a reload** — measured: after
+ * `setOffline(true)` and `page.reload()`, the new document reports `onLine:
+ * true`. Real browsers do not do that, so emulating it here would test the
+ * harness rather than the reader's experience.
+ */
+test('warns on first paint when the book is opened with no network', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'onLine', { get: () => false });
+  });
+
+  await page.goto('/#/guide/01-getting-started');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  await expect(page.locator('.island--video .island__offline')).toBeVisible();
+  await expect(page.locator('.island--audio .island__offline')).toHaveCount(0);
+});
+
+test('drops the warning again when the network comes back', async ({ page, context }) => {
+  await page.goto('/#/guide/01-getting-started');
+  await waitForController(page);
+  await context.setOffline(true);
+  await expect(page.locator('.island--video .island__offline')).toBeVisible();
+
+  await context.setOffline(false);
+  await expect(page.locator('.island--video .island__offline')).toHaveCount(0);
+});
+
+/**
  * A reader arriving for the first time must not be told the app has updated —
  * it has not, it has merely installed. The strip appears only when a *new*
  * build is waiting behind one that is already controlling the page.

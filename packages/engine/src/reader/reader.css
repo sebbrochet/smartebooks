@@ -991,6 +991,15 @@
     border-style: dashed;
   }
 
+  /* "This needs a connection." A line under the media, not a replacement for
+   it: the control stays, because the browser may have the file cached and
+   `navigator.onLine` is only trustworthy when it says no. */
+  .island__offline {
+    margin: 0.5rem 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
   /* Book-level notice: islands this reader cannot provide */
   .reader__notice {
     margin-bottom: 1.5rem;

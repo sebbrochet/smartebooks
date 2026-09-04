@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
 import { useBook } from '../reader/BookContext';
+import { useOnline } from '../reader/useOnline';
 import { isHttpsUrl } from './mediaUrl';
 import { attrText } from './attributes';
 
@@ -46,6 +47,7 @@ function toYouTubeEmbed(src: string): string | null {
  */
 export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentProps) {
   const { trusted } = useBook();
+  const online = useOnline();
   const src = attrText(attributes.src);
   const title = attrText(attributes.title, 'Video');
   const fromPackage = packagedAssets.includes('src');
@@ -76,6 +78,17 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
     setLoaded(true);
     setWatched(true);
   }
+
+  /*
+   * A packaged file is inside the book and plays with no network; anything else
+   * is fetched when pressed, and offline that press does nothing at all.
+   *
+   * Saying so is the whole of SPEC003 E2.1's "the UI should say so rather than
+   * fail silently". The reader is told, not prevented: `navigator.onLine` is
+   * only reliable when it says *false*, and a wrong guess that disabled a
+   * working video would be worse than the silence this replaces.
+   */
+  const needsNetwork = !fromPackage && !online;
 
   return (
     <figure className={`island island--video ${watched ? 'is-watched' : ''}`}>
@@ -108,6 +121,11 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
         </video>
       )}
       <figcaption>{title}</figcaption>
+      {needsNetwork && (
+        <p className="island__offline" role="note">
+          This video is not part of the book and needs a connection to play.
+        </p>
+      )}
     </figure>
   );
 }
