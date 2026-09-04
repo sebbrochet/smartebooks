@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 /**
  * The claim this whole feature makes: a reader on a train can reload and keep
@@ -128,4 +130,101 @@ test('is installable: a manifest and an icon are served', async ({ page }) => {
     manifest.icons[0].src,
   );
   expect(icon).toBe(200);
+});
+
+/*
+ * The update path, which is the most dangerous thing a PWA does and was until
+ * now only half proven: the tests above assert that the worker *contains* no
+ * unsolicited `skipWaiting`, not that the sequence a reader actually meets
+ * works. Getting this wrong is how readers end up stranded on a stale shell.
+ *
+ * A new deployment is simulated by rewriting the version in the worker the
+ * build emitted. That is exactly what a real deployment changes — the browser
+ * refetches `sw.js`, sees different bytes, and installs a second worker — and
+ * it avoids a second three-minute build inside the test.
+ */
+const SW = resolve('apps/library/dist/sw.js');
+let pristine: string | undefined;
+
+function deployNewVersion(): string {
+  if (!existsSync(SW)) throw new Error(`No built worker at ${SW}. Run \`npm run build\` first.`);
+  pristine ??= readFileSync(SW, 'utf8');
+
+  const version = `updated-${Date.now()}`;
+  const next = pristine.replace(/const VERSION = "[^"]*"/, `const VERSION = "${version}"`);
+  if (next === pristine) throw new Error('Could not find VERSION in the generated worker.');
+
+  writeFileSync(SW, next);
+  return version;
+}
+
+// Leave the build as it was found, so a later run of this suite — or a deploy
+// from the same `dist` — does not ship a worker this test edited.
+test.afterAll(() => {
+  if (pristine) writeFileSync(SW, pristine);
+});
+
+test('an update waits for the reader, and installs only when they ask', async ({ page }) => {
+  await page.goto('/');
+  await waitForController(page);
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+
+  const before = await page.evaluate(() => caches.keys());
+  expect(before.length).toBeGreaterThan(0);
+  await expect(page.locator('.app-update')).toHaveCount(0);
+
+  const version = deployNewVersion();
+  await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.update();
+  });
+
+  // Offered, not applied.
+  await expect(page.locator('.app-update')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reload to update' })).toBeVisible();
+
+  /*
+   * The new worker *has* installed and precached itself by now, and that is
+   * correct — it is what makes applying the update instant. What matters is
+   * that it is **waiting** rather than active, and that the cache the reader is
+   * being served from is untouched.
+   *
+   * The first version of this assertion said the caches were unchanged, which
+   * was a proxy for "nothing has happened" and simply false: install precaches.
+   */
+  const waiting = await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return Boolean(registration?.waiting);
+  });
+  expect(waiting).toBe(true);
+  expect(await page.evaluate(() => caches.keys())).toContain(before[0]);
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Reload to update' }).click();
+
+  // Now it has taken over: the page reloaded, the notice is gone, and the new
+  // version's cache exists while the old one has been cleaned up.
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+  await expect(page.locator('.app-update')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => caches.keys())).toEqual([`smart-ebooks-${version}`]);
+});
+
+test('a reader who ignores the update keeps reading the version they opened', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+  await waitForController(page);
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  deployNewVersion();
+  await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.update();
+  });
+  await expect(page.locator('.app-update')).toBeVisible();
+
+  // The whole point of not calling `skipWaiting`: the shell is not swapped
+  // underneath someone mid-chapter. They can still navigate the book they
+  // opened, on the build they opened it with.
+  await page.locator('.sidebar__list a').nth(1).click();
+  await expect(page.locator('article.prose')).toBeVisible();
+  await expect(page.locator('.app-update')).toBeVisible();
 });

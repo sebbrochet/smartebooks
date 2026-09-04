@@ -2,11 +2,15 @@
 # (engine + all books) to GitHub Pages.
 #
 # Flow on a push to main:
-#   1. check  : typecheck, lint, format check and unit tests (fast feedback).
+#   1. check  : `npm run validate` — typecheck, lint, content lint, format,
+#               unit tests and the plain-Node script tests (fast feedback).
 #   2. e2e    : Playwright drives the real app — reading, quizzes, import/export,
 #               resume, and the Stockfish (WASM) chess analysis island.
-#   3. build  : Vite emits the static site to apps/library/dist.
-#   4. deploy : that artifact is published to Pages (main only).
+#   3. offline: Playwright drives a *built* site with the network cut, which is
+#               the only way to exercise the service worker (it is deliberately
+#               not registered in development).
+#   4. build  : Vite emits the static site to apps/library/dist.
+#   5. deploy : that artifact is published to Pages (main only).
 #
 # The site is fully static and local-only (reader progress lives in the browser),
 # so there is nothing to configure beyond Pages itself.
@@ -47,17 +51,20 @@ jobs:
 
       - run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Format check
-        run: npm run format:check
-
-      - name: Unit tests
-        run: npm test
+      # One command, deliberately, rather than a step per check.
+      #
+      # This job used to spell the checks out individually — typecheck, lint,
+      # format, unit tests — and `npm run validate` grew two more that were
+      # never copied here. The result was that `lint:content` and the 78
+      # `node --test` assertions in `scripts/` ran on a developer's machine and
+      # nowhere else, including every test guarding what the service worker
+      # precaches. A list that has to be kept in sync with another list will
+      # eventually not be.
+      #
+      # The cost is a coarser failure in the Actions UI; the log still names the
+      # step that failed.
+      - name: Validate (typecheck, lint, content lint, format, unit + script tests)
+        run: npm run validate
 
       - name: Audit
         run: npm audit --audit-level=high
@@ -92,6 +99,44 @@ jobs:
           retention-days: 7
 
   # ----------------------------------------------------------------------------
+  # Offline behaviour, which needs a *built* site.
+  #
+  # A separate job rather than a step in `build`, for two reasons: it must run
+  # on pull requests too (where `build` does not), and the service worker is
+  # deliberately not registered in development, so the `e2e` job above — which
+  # drives the dev server — can never exercise it.
+  #
+  # `npm run test:e2e:offline` builds first, so this job pays for its own build.
+  # It runs in parallel with `e2e`, so it costs wall clock only if it is the
+  # slowest job.
+  # ----------------------------------------------------------------------------
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Offline & PWA tests
+        run: npm run test:e2e:offline
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-offline
+          path: playwright-report/
+          retention-days: 7
+
+  # ----------------------------------------------------------------------------
   # Static production build (main only).
   #
   # The site is served from a custom domain (see apps/library/public/CNAME), so
@@ -102,7 +147,7 @@ jobs:
   #     BASE_PATH: /${{ github.event.repository.name }}/
   # ----------------------------------------------------------------------------
   build:
-    needs: [check, e2e]
+    needs: [check, e2e, offline]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
