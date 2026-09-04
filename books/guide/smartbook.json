@@ -1,6 +1,7 @@
 {
   "schemaVersion": 2,
   "minReaderSchema": 1,
+  "authorId": "sebbrochet.com",
   "slug": "guide",
   "visibility": "public",
   "title": "The Smart Ebook Guide",

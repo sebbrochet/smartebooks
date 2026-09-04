@@ -95,6 +95,27 @@ export interface SmartbookDescriptor {
    * `schemaVersion` (assume no backward compatibility unless stated).
    */
   minReaderSchema?: number;
+  /**
+   * Stable, machine-comparable publisher id — a domain or reverse-DNS, e.g.
+   * `sebbrochet.com` (SPEC003 E1.2).
+   *
+   * **Optional in the type, required by the linter.** The spec asks for it to
+   * be required, and for new books it is: `lint:content` rejects a descriptor
+   * without one. It cannot be required *here*, because packages already in
+   * readers' hands were written before the field existed, and refusing to open
+   * them would throw away exactly the progress this field exists to protect.
+   * Absent means "the unscoped namespace", which is what those books have
+   * always been in.
+   */
+  authorId?: string;
+  /**
+   * This book's edition: an ISO date (`2026-09-04`) or semver (`1.2.0`).
+   *
+   * Restricted to those two so it can be *ordered*, which is the only thing it
+   * is for — deciding whether an imported package is newer than the copy a
+   * reader already has. See `edition.ts`.
+   */
+  edition?: string;
   slug: string;
   title: string;
   description?: string;

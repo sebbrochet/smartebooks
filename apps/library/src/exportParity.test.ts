@@ -4,10 +4,12 @@ import {
   exportBookToZip,
   makeBook,
   defaultIslands,
+  isAuthorId as engineIsAuthorId,
+  isEdition as engineIsEdition,
   type SmartbookDescriptor,
 } from '@smart-ebooks/engine';
 import { chessIslands } from '@smart-ebooks/islands-chess';
-import { deriveChapters } from '../../../scripts/book-sources.mjs';
+import { deriveChapters, isAuthorId, isOrderableEdition } from '../../../scripts/book-sources.mjs';
 import { usedIslands } from '../../../scripts/lint-islands.mjs';
 
 /**
@@ -108,5 +110,51 @@ describe('CLI and browser exporters agree', () => {
     };
     expect(usedIslands(descriptor, files)).toEqual(exportedDescriptor(descriptor).islands.required);
     expect(usedIslands(descriptor, files)).toContain('score');
+  });
+});
+
+/**
+ * The identity rules are duplicated for the same reason the chapter derivation
+ * is: `scripts/*.mjs` cannot load the engine's TypeScript, and the linter has
+ * to reject a bad `authorId` or `edition` before a book is ever packaged.
+ *
+ * Two copies of a regular expression is exactly the arrangement that let
+ * `part` go missing (`87faf05`), so they are compared here on one shared table
+ * rather than left to agree by inspection.
+ */
+describe('the linter and the reader agree on identity', () => {
+  const authorIds = [
+    'example.com',
+    'books.example.co.uk',
+    'a-b.c-d.org',
+    'guide',
+    'Example.com',
+    'example..com',
+    '-example.com',
+    '.com',
+    '',
+  ];
+
+  it.each(authorIds)('reads %s the same way', (value) => {
+    expect(isAuthorId(value)).toBe(engineIsAuthorId(value));
+  });
+
+  const editions = [
+    '2026-09-04',
+    '2024-02-29',
+    '2026-02-31',
+    '2025-02-29',
+    '2026-13-01',
+    '1.2.0',
+    '10.20.30',
+    '1.2',
+    'v1.2.0',
+    '1.2.0-beta.1',
+    'second edition',
+    '',
+  ];
+
+  it.each(editions)('orders, or refuses to order, %s the same way', (value) => {
+    expect(isOrderableEdition(value)).toBe(engineIsEdition(value));
   });
 });

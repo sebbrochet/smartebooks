@@ -254,3 +254,79 @@ describe('readers who answered before island keys stopped being clobbered', () =
     });
   });
 });
+
+/**
+ * `authorId` scopes a book's identity, so two authors may both publish
+ * `study-guide` and remain two books (SPEC003 E1.2). The interesting cases are
+ * not the happy one — they are the two ways this could quietly destroy work.
+ */
+describe('books scoped by their author', () => {
+  function byAuthor(authorId: string, slug = 'study-guide'): ImportedPackage {
+    const pkg = edition('A book.');
+    pkg.descriptor = { ...pkg.descriptor, authorId, slug };
+    return pkg;
+  }
+
+  it('keeps two authors sharing a slug apart', async () => {
+    await saveImportedBook(byAuthor('alice.example'));
+    await saveImportedBook(byAuthor('bob.example'));
+
+    const shelved = await listImportedBooks();
+    expect(shelved).toHaveLength(2);
+    expect(new Set(shelved.map((book) => book.id)).size).toBe(2);
+  });
+
+  it('keeps their progress apart too', async () => {
+    const alice = makeImportedBook(await saveImportedBook(byAuthor('alice.example')));
+    await saveState(alice.meta.slug, 'score:q-1', { score: 3, total: 3, attempts: 1 });
+
+    const bob = makeImportedBook(await saveImportedBook(byAuthor('bob.example')));
+
+    expect(await loadState(bob.meta.slug, 'score:q-1', undefined)).toBeUndefined();
+    expect(await loadState(alice.meta.slug, 'score:q-1', undefined)).toMatchObject({ score: 3 });
+  });
+
+  /**
+   * The migration that matters: every book already on a shelf was published
+   * before `authorId` existed, and acquires one exactly once. That edition must
+   * be the same book to its reader, not a second copy beside the first.
+   */
+  it('adopts the reader’s copy when a book gains an author id', async () => {
+    const before = makeImportedBook(await saveImportedBook(edition('First edition.')));
+    await saveState(before.meta.slug, 'score:q-1', { score: 2, total: 3, attempts: 1 });
+
+    const after = makeImportedBook(await saveImportedBook(byAuthor('alice.example')));
+
+    expect(await listImportedBooks()).toHaveLength(1);
+    expect(after.meta.slug).not.toBe(before.meta.slug);
+    expect(await loadState(after.meta.slug, 'score:q-1', undefined)).toMatchObject({ score: 2 });
+    expect(await loadState(before.meta.slug, 'score:q-1', undefined)).toBeUndefined();
+  });
+
+  /**
+   * ...but adoption must not overwrite. A reader who already has the authored
+   * edition and *also* an old unscoped copy of something with the same slug
+   * keeps the newer work, not whatever the predecessor left behind.
+   */
+  it('never lets an unscoped predecessor overwrite a book already imported', async () => {
+    const authored = makeImportedBook(await saveImportedBook(byAuthor('alice.example')));
+    await saveState(authored.meta.slug, 'score:q-1', { score: 3, total: 3, attempts: 1 });
+
+    // An older, unscoped copy is still on the shelf with its own progress.
+    const legacy = makeImportedBook(await saveImportedBook(edition('Older, unscoped.')));
+    await saveState(legacy.meta.slug, 'score:q-1', { score: 1, total: 3, attempts: 1 });
+
+    // Re-importing the authored edition must not adopt over the top of itself.
+    await saveImportedBook(byAuthor('alice.example'));
+
+    expect(await loadState(authored.meta.slug, 'score:q-1', undefined)).toMatchObject({ score: 3 });
+  });
+
+  /** The id is a route segment and a store key prefix, so it can contain neither. */
+  it('produces an id safe for a hash route and a store key', async () => {
+    const stored = await saveImportedBook(byAuthor('alice.example'));
+    expect(stored.id).not.toContain('/');
+    expect(stored.id).not.toContain(':');
+    expect(stored.id.startsWith('imp-')).toBe(true);
+  });
+});

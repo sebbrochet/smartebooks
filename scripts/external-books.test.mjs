@@ -47,6 +47,7 @@ describe('books outside this repository', () => {
       join(booksDir, 'album', 'smartbook.json'),
       JSON.stringify({
         schemaVersion: 2,
+        authorId: 'example.com',
         slug: 'album',
         title: 'Album',
         visibility: 'private',

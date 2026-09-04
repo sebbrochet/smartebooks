@@ -1,5 +1,6 @@
 import { unzipSync, strFromU8 } from 'fflate';
 import { MIN_SUPPORTED_SCHEMA, SMARTBOOK_SCHEMA_VERSION, type SmartbookDescriptor } from './spec';
+import { isAuthorId, isEdition } from './edition';
 
 /** A parsed, validated `.smartbook` package. */
 export interface ImportedPackage {
@@ -46,6 +47,26 @@ function validateDescriptor(value: unknown): asserts value is SmartbookDescripto
   if (typeof d.title !== 'string' || d.title.trim().length === 0) {
     throw new Error('Package has an invalid or missing title.');
   }
+
+  /*
+   * Both are optional here and both are checked when present (SPEC003 E1.2).
+   *
+   * Optional, because packages built before these fields existed are already in
+   * readers' hands and refusing to open them would throw away the progress the
+   * fields exist to protect. Checked, because a malformed one is worse than an
+   * absent one: an `edition` that cannot be ordered makes every future update
+   * an unanswerable "replace or not?", and an `authorId` that is not a domain
+   * namespaces nothing while looking as though it does.
+   */
+  if (d.authorId != null && !isAuthorId(d.authorId)) {
+    throw new Error('Package has an invalid authorId (expected a domain, e.g. "example.com").');
+  }
+  if (d.edition != null && !isEdition(d.edition)) {
+    throw new Error(
+      'Package has an invalid edition (expected an ISO date like 2026-09-04, or semver like 1.2.0).',
+    );
+  }
+
   if (d.chapters != null && !Array.isArray(d.chapters))
     throw new Error('Package has invalid chapters.');
 }

@@ -39,14 +39,59 @@ export interface StoredImport {
  * `study-guide` are one book to this reader, and importing the second replaces
  * the first. That is the same trade the format already makes for bundled
  * books, and replacing is exactly what a new edition should do.
+ *
+ * **Scoped by `authorId` when the package declares one** (SPEC003 E1.2), which
+ * removes that cost for every book published from here on: two authors may both
+ * call a book `study-guide` and remain two books. A package without one keeps
+ * the unscoped key it has always had, because packages written before the field
+ * existed are already on shelves and re-keying them for the sake of tidiness
+ * would orphan exactly the progress this scheme exists to protect.
+ *
+ * The separator is `~`, and neither `/` nor `:` would do. This id becomes the
+ * book's `meta.slug`, which is both a hash-route segment and part of every
+ * store key: `#/imp-example.com/study-guide` would parse as a book called
+ * `imp-example.com` opened at a chapter called `study-guide`, and a `:` would
+ * break the `<book>:<kind>:<id>` split the store migrations rely on. `~` is
+ * URL-unreserved and appears in neither a slug (`[a-z0-9-]`) nor an author id.
  */
+const SCOPE = '~';
+
 function identityFor(descriptor: SmartbookDescriptor): string {
-  return `imp-${descriptor.slug}`;
+  return descriptor.authorId
+    ? `imp-${descriptor.authorId}${SCOPE}${descriptor.slug}`
+    : `imp-${descriptor.slug}`;
+}
+
+/**
+ * The key this book would have had before it declared an author.
+ *
+ * A book that adds `authorId` in a new edition is still the same book to its
+ * reader, so the import adopts the unscoped record rather than shelving a
+ * second copy beside it. This is the one case where the two schemes have to
+ * meet, and it is the ordinary one: every existing book acquires an author id
+ * exactly once.
+ */
+function unscopedIdentityFor(descriptor: SmartbookDescriptor): string | undefined {
+  return descriptor.authorId ? `imp-${descriptor.slug}` : undefined;
 }
 
 export async function saveImportedBook(pkg: ImportedPackage): Promise<StoredImport> {
+  const id = identityFor(pkg.descriptor);
+
+  // Adopt the pre-`authorId` record, if this reader has one and nothing is
+  // already stored under the scoped key. Checked in that order so a book that
+  // has been imported since is never overwritten by a stale predecessor.
+  const previous = unscopedIdentityFor(pkg.descriptor);
+  if (previous && !(await get<StoredImport>(id, importStore))) {
+    const legacy = await get<StoredImport>(previous, importStore);
+    if (legacy) {
+      await del(previous, importStore);
+      await renameBookState(previous, id);
+    }
+  }
+
   const stored: StoredImport = {
-    id: identityFor(pkg.descriptor),
+    id,
     descriptor: pkg.descriptor,
     content: pkg.content,
     assets: pkg.assets,

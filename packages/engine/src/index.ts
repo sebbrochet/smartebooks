@@ -65,6 +65,13 @@ export {
   type SmartbookIslands,
   type SmartbookVisibility,
 } from './package/spec';
+export {
+  isAuthorId,
+  isEdition,
+  parseEdition,
+  compareEditions,
+  type Edition,
+} from './package/edition';
 
 // Persistence
 export {

@@ -33,7 +33,13 @@ describe('a linked book folder', () => {
     writeFileSync(
       join(target, 'smartbook.json'),
       // Public on purpose: `visibility` must not be what saves us here.
-      JSON.stringify({ schemaVersion: 2, slug: SLUG, title: 'Linked', visibility: 'public' }),
+      JSON.stringify({
+        schemaVersion: 2,
+        authorId: 'example.com',
+        slug: SLUG,
+        title: 'Linked',
+        visibility: 'public',
+      }),
     );
     writeFileSync(join(target, 'content', '01-x.md'), '# X\n\nhello\n');
 

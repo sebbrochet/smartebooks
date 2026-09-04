@@ -1,6 +1,7 @@
 {
   "schemaVersion": 2,
   "minReaderSchema": 1,
+  "authorId": "sebbrochet.com",
   "slug": "sampler",
   "visibility": "public",
   "title": "Platform Sampler",

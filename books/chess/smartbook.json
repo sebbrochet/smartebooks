@@ -1,6 +1,7 @@
 {
   "schemaVersion": 2,
   "minReaderSchema": 2,
+  "authorId": "sebbrochet.com",
   "slug": "chess",
   "visibility": "public",
   "title": "Chess: Boards & Puzzles",

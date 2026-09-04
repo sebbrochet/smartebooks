@@ -34,6 +34,46 @@ const MIN_SCHEMA = 1;
 
 const SAFE_SLUG = /^[a-z0-9][a-z0-9-]*$/;
 
+/*
+ * Duplicated from `packages/engine/src/package/edition.ts`, for the same reason
+ * `deriveChapters` duplicates `makeChapters`: these scripts cannot load the
+ * engine's TypeScript. Kept honest by `book-sources.test.mjs`, which checks the
+ * two agree on a shared table of cases.
+ */
+const LABEL_CHARS = /^[a-z0-9-]+$/;
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const SEMVER = /^\d+\.\d+\.\d+$/;
+
+/** A domain or reverse-DNS publisher id. Label by label, so it cannot backtrack. */
+export function isAuthorId(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 253) return false;
+
+  const labels = value.split('.');
+  return (
+    labels.length >= 2 &&
+    labels.every(
+      (label) => LABEL_CHARS.test(label) && !label.startsWith('-') && !label.endsWith('-'),
+    )
+  );
+}
+
+/** True when an edition string is one this platform can put in order. */
+export function isOrderableEdition(value) {
+  if (typeof value !== 'string') return false;
+
+  const date = ISO_DATE.exec(value);
+  if (date) {
+    const [, year, month, day] = date.map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    return (
+      parsed.getUTCFullYear() === year &&
+      parsed.getUTCMonth() === month - 1 &&
+      parsed.getUTCDate() === day
+    );
+  }
+  return SEMVER.test(value);
+}
+
 /**
  * Every folder under `books/` that has a descriptor.
  *
@@ -194,7 +234,7 @@ export function validateBook(folder) {
     return problems;
   }
 
-  const { schemaVersion, slug, title, visibility, chapters } = descriptor;
+  const { schemaVersion, slug, title, visibility, chapters, authorId, edition } = descriptor;
 
   if (!Number.isInteger(schemaVersion) || schemaVersion < MIN_SCHEMA) {
     fail('schema-version', `schemaVersion must be an integer >= ${MIN_SCHEMA}.`);
@@ -213,6 +253,34 @@ export function validateBook(folder) {
 
   if (typeof title !== 'string' || title.trim() === '') {
     fail('title-missing', 'title is required.');
+  }
+
+  /*
+   * `authorId` is required *here* and optional in the reader (SPEC003 E1.2).
+   *
+   * Required at authoring time, because it is what stops two people's
+   * `study-guide` being one book on a reader's shelf, and a field that is
+   * optional for authors is a field most books will not have. Optional at
+   * import, because packages published before it existed are already on
+   * shelves and refusing them would throw away the progress it protects.
+   */
+  if (authorId === undefined) {
+    fail(
+      'author-missing',
+      'authorId is required — a domain you control, e.g. "example.com". It scopes this book\'s ' +
+        "identity so another author's book with the same slug stays a different book.",
+    );
+  } else if (!isAuthorId(authorId)) {
+    fail('author-invalid', 'authorId must be a domain, e.g. "example.com".');
+  }
+
+  // Optional, but useless unless it can be ordered: a free-form version cannot
+  // answer "is this newer than the copy I have?".
+  if (edition !== undefined && !isOrderableEdition(edition)) {
+    fail(
+      'edition-invalid',
+      'edition must be an ISO date (2026-09-04) or semver (1.2.0), so editions can be ordered.',
+    );
   }
 
   // The D1 guard: publication must be a decision, never a default.

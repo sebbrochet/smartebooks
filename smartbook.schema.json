@@ -4,7 +4,7 @@
   "title": "smartbook.json",
   "description": "A smart ebook's descriptor. The same format backs a bundled book under books/<slug>/ and a portable .smartbook package. A book is data only — there is no code file.",
   "type": "object",
-  "required": ["schemaVersion", "slug", "title", "visibility"],
+  "required": ["schemaVersion", "authorId", "slug", "title", "visibility"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {
@@ -17,6 +17,17 @@
       "type": "integer",
       "minimum": 1,
       "description": "Oldest reader schema able to render this package. Defaults to schemaVersion. Set it when a newer package is still readable by an older reader."
+    },
+    "authorId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$",
+      "maxLength": 253,
+      "description": "Publisher id: a domain you control, e.g. example.com. Scopes this book's identity, so another author's book with the same slug stays a different book. Not the same as `authors`, which is a display byline."
+    },
+    "edition": {
+      "type": "string",
+      "pattern": "^(\\d{4}-\\d{2}-\\d{2}|\\d+\\.\\d+\\.\\d+)$",
+      "description": "This edition, as an ISO date (2026-09-04) or semver (1.2.0). Restricted to those so editions can be ordered: a free-form version cannot answer whether an imported package is newer than the copy a reader already has."
     },
     "slug": {
       "type": "string",
