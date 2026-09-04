@@ -26,6 +26,9 @@ export default defineConfig({
      */
     environment: 'node',
     globals: true,
+    // Turns React's "update was not wrapped in act(...)" diagnostic on for
+    // every file rather than one — see vitest.setup.ts.
+    setupFiles: ['./vitest.setup.ts'],
     pool: 'threads',
     // The suite spends ~2s actually running tests; the rest is worker startup.
     // Spawning one worker per file bought nothing and failed intermittently on

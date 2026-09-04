@@ -162,8 +162,11 @@ jobs:
 
       # Turns Pages on if it isn't already, so a fresh clone of this repo
       # deploys without anyone first flipping a switch in Settings.
+      #
+      # v6 rather than v5 because v5 runs on Node 20, which Actions now
+      # force-migrates to Node 24 with a warning. Same inputs, same outputs.
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 

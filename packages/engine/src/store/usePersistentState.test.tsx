@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { usePersistentState } from './usePersistentState';
 import { saveState } from './store';
 import { BookProvider } from '../reader/BookContext';

@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
-import { useState, type ReactNode } from 'react';
+import { act, useState, type ReactNode } from 'react';
 import { createSequence } from './sequence';
 
 const { SequenceProvider, useSequence } = createSequence('Test');

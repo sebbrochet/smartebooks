@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
-import type { ReactNode } from 'react';
+import { act, type ReactNode } from 'react';
 import ChessMoveIsland from './ChessMoveIsland';
 import { GameProvider, SequenceProvider } from './gameContext';
 import { pgnToTree } from './tree';

@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
-import type { ReactNode } from 'react';
+import { act, type ReactNode } from 'react';
 import { VideoIsland } from './VideoIsland';
 import { BookProvider } from '../reader/BookContext';
 import { createIslandRegistry } from '../islandRegistry';

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import type { Book } from '@smart-ebooks/engine';
 import { Bookshelf } from './Bookshelf';
 import type { ShelfBook } from './books';
@@ -31,10 +31,6 @@ function shelfBook(title: string, importId?: string): ShelfBook {
 
 let host: HTMLDivElement;
 let root: Root;
-
-// React needs telling that `act` is legitimate here, or every state update
-// warns that the environment is not configured for it.
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 beforeEach(() => {
   host = document.createElement('div');

@@ -20,5 +20,5 @@
     "noUncheckedSideEffectImports": true,
     "types": ["vite/client"]
   },
-  "include": ["packages/*/src", "apps/*/src", "books"]
+  "include": ["packages/*/src", "apps/*/src", "books", "vitest.setup.ts"]
 }
