@@ -53,6 +53,10 @@ export {
   getImportedBook,
   deleteImportedBook,
   makeImportedBook,
+  importBook,
+  previewImport,
+  type ImportOutcome,
+  type ImportResult,
   type StoredImport,
 } from './store/importedBooks';
 export {
@@ -78,6 +82,7 @@ export {
   readBookStats,
   clearBook,
   clearAllBooks,
+  orphanedState,
   subscribeToStore,
   exportProgress,
   importProgress,
@@ -86,7 +91,9 @@ export {
   type BookStats,
   type ProgressBackup,
   type ImportProgressResult,
+  type OrphanedState,
 } from './store/store';
+export { islandIds, bookIslandIds } from './markdown/islandIds';
 
 // Platform-level settings (device preferences, not book state)
 export {

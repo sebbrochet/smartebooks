@@ -5,6 +5,7 @@ import { defaultIslands } from '../islands/defaults';
 import type { SmartbookDescriptor } from '../package/spec';
 import type { ImportedPackage } from '../package/importBook';
 import { makeBook } from '../package/makeBook';
+import { compareEditions } from '../package/edition';
 import { renameBookState, migrateClobberedKeys } from './store';
 
 // A dedicated IndexedDB store so imported book packages never mix with the
@@ -75,7 +76,65 @@ function unscopedIdentityFor(descriptor: SmartbookDescriptor): string | undefine
   return descriptor.authorId ? `imp-${descriptor.slug}` : undefined;
 }
 
+/**
+ * What importing a package did to the reader's shelf (SPEC003 E1.2).
+ *
+ * The distinction the whole of `edition` exists for. Without it every import is
+ * a silent replace, which is fine when the file is newer and quietly destructive
+ * when it is not — a reader handed last month's copy loses a month of reading
+ * and is told "Imported".
+ *
+ * `unknown` is a real answer, not a gap: a book with no edition, or one that
+ * changed from dates to semver, has no ordering. Guessing would mean either
+ * refusing a genuine update or silently downgrading someone.
+ */
+export type ImportOutcome = 'new' | 'update' | 'duplicate' | 'downgrade' | 'unknown';
+
+export interface ImportResult {
+  stored: StoredImport;
+  outcome: ImportOutcome;
+  /** The edition being replaced, when there was one. */
+  replaced?: string;
+}
+
+/** What a package would do to this shelf, without doing it. */
+export async function previewImport(pkg: ImportedPackage): Promise<{
+  outcome: ImportOutcome;
+  replaced?: string;
+}> {
+  const id = identityFor(pkg.descriptor);
+  const existing =
+    (await get<StoredImport>(id, importStore)) ??
+    (await maybeGet(unscopedIdentityFor(pkg.descriptor)));
+
+  if (!existing) return { outcome: 'new' };
+
+  const replaced = existing.descriptor.edition;
+  const order = compareEditions(pkg.descriptor.edition, replaced);
+  if (order === undefined) return { outcome: 'unknown', replaced };
+
+  return {
+    outcome: order > 0 ? 'update' : order === 0 ? 'duplicate' : 'downgrade',
+    replaced,
+  };
+}
+
+async function maybeGet(id: string | undefined): Promise<StoredImport | undefined> {
+  return id ? get<StoredImport>(id, importStore) : undefined;
+}
+
 export async function saveImportedBook(pkg: ImportedPackage): Promise<StoredImport> {
+  return (await importBook(pkg)).stored;
+}
+
+/**
+ * Store a package, reporting what it did.
+ *
+ * `saveImportedBook` remains as the answer-free version, because most callers
+ * genuinely do not care and threading a result through them would be noise.
+ */
+export async function importBook(pkg: ImportedPackage): Promise<ImportResult> {
+  const { outcome, replaced } = await previewImport(pkg);
   const id = identityFor(pkg.descriptor);
 
   // Adopt the pre-`authorId` record, if this reader has one and nothing is
@@ -98,7 +157,7 @@ export async function saveImportedBook(pkg: ImportedPackage): Promise<StoredImpo
     importedAt: Date.now(),
   };
   await set(stored.id, stored, importStore);
-  return stored;
+  return { stored, outcome, replaced };
 }
 
 export async function listImportedBooks(): Promise<StoredImport[]> {

@@ -148,6 +148,65 @@ export async function migrateClobberedKeys(): Promise<void> {
   if (moved) notify();
 }
 
+/**
+ * Keys the *engine* owns, rather than an author. Everything else under a book
+ * is `<kind>:<island id>` and belongs to something the author wrote.
+ */
+const ENGINE_KEYS = new Set(['reading:position']);
+
+/** A piece of the reader's work that the current edition can no longer show. */
+export interface OrphanedState {
+  /** The state key, e.g. `score:ch1-basics`. */
+  key: string;
+  /** The island id inside it, which the new edition no longer contains. */
+  id: string;
+}
+
+/**
+ * Reader state whose island no longer exists in the book (SPEC003 E1.2).
+ *
+ * The spec's rule is **carry forward every key whose id still exists; report
+ * the rest rather than deleting silently** — and the first half is free, since
+ * state is keyed by the book and the book's key does not change across
+ * editions. So the work is entirely the second half, and this only reports.
+ *
+ * **Nothing is deleted, deliberately.** A dropped id is far more often an
+ * author's typo, a renamed quiz, or a chapter temporarily pulled for editing
+ * than a decision that the reader's answers should be destroyed. Deleting on
+ * that guess is unrecoverable; leaving the keys costs bytes, and they become
+ * live again the moment the id comes back.
+ *
+ * Engine-owned keys are excluded: `reading:position` is not an island and would
+ * otherwise be reported as orphaned by every edition.
+ */
+export async function orphanedState(
+  bookSlug: string,
+  islandIds: ReadonlySet<string>,
+): Promise<OrphanedState[]> {
+  const prefix = `${ROOT}${bookSlug}:`;
+  const found: OrphanedState[] = [];
+
+  try {
+    for (const [rawKey] of await entries()) {
+      if (typeof rawKey !== 'string' || !rawKey.startsWith(prefix)) continue;
+
+      const stateKey = rawKey.slice(prefix.length);
+      if (ENGINE_KEYS.has(stateKey)) continue;
+
+      const cut = stateKey.indexOf(':');
+      if (cut === -1) continue;
+
+      const id = stateKey.slice(cut + 1);
+      if (!islandIds.has(id)) found.push({ key: stateKey, id });
+    }
+  } catch {
+    // Reporting is a courtesy; failing to report must never fail an import.
+    return [];
+  }
+
+  return found;
+}
+
 // --- Domain facades ---------------------------------------------------------
 
 export interface CheckpointState {

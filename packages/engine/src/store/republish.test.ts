@@ -26,8 +26,14 @@ vi.mock('idb-keyval', () => ({
   entries: async (store?: string) => [...bank(store).entries()],
 }));
 
-const { saveImportedBook, listImportedBooks, makeImportedBook, deleteImportedBook } =
-  await import('./importedBooks');
+const {
+  saveImportedBook,
+  listImportedBooks,
+  makeImportedBook,
+  deleteImportedBook,
+  importBook,
+  previewImport,
+} = await import('./importedBooks');
 const { saveState, loadState } = await import('./store');
 
 /** The store imported packages live in, for tests that plant legacy records. */
@@ -328,5 +334,65 @@ describe('books scoped by their author', () => {
     expect(stored.id).not.toContain('/');
     expect(stored.id).not.toContain(':');
     expect(stored.id.startsWith('imp-')).toBe(true);
+  });
+});
+
+/**
+ * `edition` earns its place only if it can answer "is this newer than what I
+ * have?" — otherwise every import is a silent replace, which is fine when the
+ * file is newer and quietly destructive when it is not (SPEC003 E1.2).
+ */
+describe('what an import does to a shelf', () => {
+  // The parameter is `version`, not `edition`, because the fixture that builds
+  // a package is itself called `edition` — named before the descriptor had a
+  // field of that name.
+  function published(version: string | undefined, prose = 'A book.'): ImportedPackage {
+    const pkg = edition(prose);
+    pkg.descriptor = { ...pkg.descriptor, authorId: 'alice.example', edition: version };
+    return pkg;
+  }
+
+  it('reports a book this reader has never had as new', async () => {
+    const { outcome } = await importBook(published('1.0.0'));
+    expect(outcome).toBe('new');
+  });
+
+  it('recognises a newer edition as an update', async () => {
+    await importBook(published('1.0.0'));
+    const { outcome, replaced } = await importBook(published('1.1.0'));
+
+    expect(outcome).toBe('update');
+    expect(replaced).toBe('1.0.0');
+  });
+
+  it('recognises the same edition as a duplicate', async () => {
+    await importBook(published('2026-09-04'));
+    expect((await importBook(published('2026-09-04'))).outcome).toBe('duplicate');
+  });
+
+  /** The case the whole field exists to catch. */
+  it('recognises an older edition as a downgrade', async () => {
+    await importBook(published('1.1.0'));
+    expect((await importBook(published('1.0.0'))).outcome).toBe('downgrade');
+  });
+
+  it('says it does not know when the editions cannot be ordered', async () => {
+    await importBook(published('2026-09-04'));
+    expect((await importBook(published('1.0.0'))).outcome).toBe('unknown');
+
+    await importBook(published(undefined));
+    expect((await importBook(published(undefined))).outcome).toBe('unknown');
+  });
+
+  /** Asking is not doing: a preview must leave the shelf exactly as it was. */
+  it('previews without importing', async () => {
+    await importBook(published('1.1.0'));
+
+    const preview = await previewImport(published('1.0.0'));
+    expect(preview.outcome).toBe('downgrade');
+
+    const shelved = await listImportedBooks();
+    expect(shelved).toHaveLength(1);
+    expect(shelved[0].descriptor.edition).toBe('1.1.0');
   });
 });
