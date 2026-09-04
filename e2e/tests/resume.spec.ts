@@ -115,6 +115,36 @@ test('a book never opened starts at its first chapter', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Getting started', level: 1 })).toBeVisible();
 });
 
+/**
+ * Resume is section-precise, and that has to survive the route above too.
+ *
+ * Redirecting to the chapter is only half the promise: the reader stopped
+ * part-way down it. The redirect lands on `#/<slug>/<chapter>` with no `?s=`,
+ * which is exactly the case the reader treats as "restore the saved spot", so
+ * the two mechanisms have to meet. Nothing tested that they did — the existing
+ * place-level test goes through a page load instead.
+ */
+test('returning through the library restores the place, not just the chapter', async ({ page }) => {
+  await page.goto(CHAPTER);
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  await page.evaluate(() => {
+    const heading = document.getElementById('play-to-learn');
+    window.scrollTo(0, heading.getBoundingClientRect().top + window.scrollY + 40);
+  });
+  const left = await page.evaluate(() => window.scrollY);
+  expect(left).toBeGreaterThan(0);
+  await page.waitForTimeout(1200);
+
+  await page.getByRole('link', { name: 'Smart Ebooks', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
+
+  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(left - 60);
+  expect(await page.evaluate(() => window.scrollY)).toBeLessThan(left + 60);
+});
+
 test('cover mode shows a skippable splash before resuming', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('resume-mode').selectOption('cover');
