@@ -17,6 +17,7 @@ import { useServiceWorker } from './useServiceWorker';
 import { useAppRoute } from './router';
 import { allowResume, hashFor, resumeChapter, suppressResume, useLaunchDecision } from './launch';
 import { Bookshelf } from './Bookshelf';
+import { ConfirmDialog } from './ConfirmDialog';
 import { CoverSplash } from './CoverSplash';
 import { BackupControls } from './BackupControls';
 import { BookExport } from './BookExport';
@@ -116,6 +117,14 @@ export default function App() {
     };
   }, [resumeSlug, chapters]);
 
+  /*
+   * Reset is the most destructive control in the app, and the only one with no
+   * way back: a deleted import returns with its progress intact if the reader
+   * still has the file, but scores and checkpoints thrown away here are gone.
+   * It sat behind a single click while delete had a confirmation.
+   */
+  const [resetting, setResetting] = useState<{ slug: string; title: string }>();
+
   async function resetBook(slug: string) {
     await clearBook(slug);
     location.reload();
@@ -173,7 +182,9 @@ export default function App() {
               <button
                 type="button"
                 className="reader__reset"
-                onClick={() => resetBook(activeBook.meta.slug)}
+                onClick={() =>
+                  setResetting({ slug: activeBook.meta.slug, title: activeBook.meta.title })
+                }
               >
                 Reset progress
               </button>
@@ -198,6 +209,31 @@ export default function App() {
         <CoverSplash book={pendingBook} chapterSlug={pending.chapterSlug} onDismiss={dismiss} />
       ) : (
         <Bookshelf books={books} onImported={reload} onDelete={handleDelete} />
+      )}
+
+      {resetting && (
+        <ConfirmDialog
+          title={`Reset your progress in ${resetting.title}?`}
+          confirmLabel="Reset progress"
+          onCancel={() => setResetting(undefined)}
+          onConfirm={() => {
+            const { slug } = resetting;
+            setResetting(undefined);
+            void resetBook(slug);
+          }}
+        >
+          <p>
+            This clears every quiz score, checkpoint and reading position for this book on this
+            device.
+          </p>
+          {/* Delete's dialog can promise the book comes back. This one cannot,
+              so it points at the only thing that would have made it reversible
+              — and says so before the reader finds out afterwards. */}
+          <p>
+            It cannot be undone. If you want to keep a copy, cancel and use <b>Export progress</b>{' '}
+            first.
+          </p>
+        </ConfirmDialog>
       )}
 
       <footer className="reader__footer">
