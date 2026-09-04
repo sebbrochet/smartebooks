@@ -79,6 +79,42 @@ test('the "always show my library" preference disables resume', async ({ page })
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 });
 
+/**
+ * The gap a reader reported, and the one the feature's name promises hardest:
+ * going back to the library and opening the same book again started it at
+ * chapter one.
+ *
+ * Nothing here is a fresh page load, so the launch decision — which is
+ * evaluated once and only ever redirects `#/` — never applies. Opening a book
+ * at `#/<slug>` simply rendered its first chapter, because that is what "no
+ * chapter in the route" had always meant.
+ */
+test('opening a book from the library returns to the chapter you were reading', async ({
+  page,
+}) => {
+  await page.goto(CHAPTER);
+  await expect(page.locator('article.prose')).toBeVisible();
+  // The position is written on a delay, not on every scroll frame.
+  await page.waitForTimeout(1200);
+
+  await page.getByRole('link', { name: 'Smart Ebooks', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+
+  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
+
+  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect(page.getByRole('heading', { name: 'The interactivity toolkit' })).toBeVisible();
+});
+
+/** …and a reader who has never opened the book still starts at the beginning. */
+test('a book never opened starts at its first chapter', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
+
+  await expect(page.locator('article.prose')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Getting started', level: 1 })).toBeVisible();
+});
+
 test('cover mode shows a skippable splash before resuming', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('resume-mode').selectOption('cover');

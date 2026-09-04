@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashFor, resolveLaunchRoute, type LaunchInputs } from './launch';
+import { hashFor, resolveLaunchRoute, resumeChapter, type LaunchInputs } from './launch';
 import type { AppRoute } from './router';
 
 const lastRead = { bookSlug: 'guide', chapterSlug: '02-interactivity-toolkit', at: 1 };
@@ -71,5 +71,69 @@ describe('hashFor', () => {
   it('builds book and chapter hashes', () => {
     expect(hashFor('guide')).toBe('#/guide');
     expect(hashFor('guide', '01-intro')).toBe('#/guide/01-intro');
+  });
+});
+
+describe('resumeChapter', () => {
+  const chapters = [
+    { slug: '01-intro' },
+    { slug: '02-interactivity-toolkit' },
+    { slug: '03-tracking' },
+  ];
+
+  it('opens the chapter the book itself remembers', () => {
+    expect(resumeChapter({ chapters, slug: 'guide', saved: { chapterSlug: '03-tracking' } })).toBe(
+      '03-tracking',
+    );
+  });
+
+  /**
+   * The device pointer is readable synchronously, which is the only reason it
+   * is consulted: it lets the common case redirect before anything paints.
+   */
+  it('falls back to the device pointer when it names this book', () => {
+    expect(resumeChapter({ chapters, slug: 'guide', lastRead })).toBe('02-interactivity-toolkit');
+  });
+
+  it('ignores the device pointer when it names a different book', () => {
+    expect(resumeChapter({ chapters, slug: 'chess', lastRead })).toBeUndefined();
+  });
+
+  it('prefers the book’s own record over the device pointer', () => {
+    expect(
+      resumeChapter({ chapters, slug: 'guide', lastRead, saved: { chapterSlug: '03-tracking' } }),
+    ).toBe('03-tracking');
+  });
+
+  it('does nothing for a book that has never been opened', () => {
+    expect(resumeChapter({ chapters, slug: 'guide' })).toBeUndefined();
+  });
+
+  /**
+   * A corrected edition may have renamed or dropped that chapter. Redirecting
+   * to a slug the book no longer has would open chapter one anyway, but with a
+   * URL that lies about it.
+   */
+  it('does nothing when the remembered chapter is gone', () => {
+    expect(
+      resumeChapter({ chapters, slug: 'guide', saved: { chapterSlug: '09-removed' } }),
+    ).toBeUndefined();
+  });
+
+  /** Rewriting the URL to say what it already means costs a history entry. */
+  it('does nothing when the answer is the first chapter', () => {
+    expect(
+      resumeChapter({ chapters, slug: 'guide', saved: { chapterSlug: '01-intro' } }),
+    ).toBeUndefined();
+  });
+
+  it('does nothing for a book with no chapters at all', () => {
+    expect(
+      resumeChapter({
+        chapters: [],
+        slug: 'guide',
+        saved: { chapterSlug: '02-interactivity-toolkit' },
+      }),
+    ).toBeUndefined();
   });
 });

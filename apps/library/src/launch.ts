@@ -49,6 +49,56 @@ export function hashFor(bookSlug: string, chapterSlug?: string): string {
   return chapterSlug ? `#/${bookSlug}/${chapterSlug}` : `#/${bookSlug}`;
 }
 
+/**
+ * Which chapter `#/<slug>` should actually open — the reader's place in that
+ * book, not its first page.
+ *
+ * `resolveLaunchRoute` above answers "which book, on a fresh load". This
+ * answers "where in a book, whenever one is opened without naming a chapter",
+ * and the two were never the same question. Going back to the library and
+ * opening the same book again is not a page load, so the launch decision never
+ * ran; `#/<slug>` meant "no chapter in the route", which the reader rendered as
+ * chapter one. A reader reported it, and they were right: it is the thing the
+ * word *resume* promises hardest.
+ *
+ * Two sources, deliberately in this order:
+ *
+ * - **The book's own `reading:position`** is authoritative. It is per book, so
+ *   it survives reading something else in between, and it is what a progress
+ *   backup carries.
+ * - **The device's `lastRead`** is consulted only when it names this same book.
+ *   It is worth having because it is readable *synchronously*, so the common
+ *   case — the book you were just in — redirects before anything paints,
+ *   instead of showing chapter one and then jumping.
+ *
+ * Returns `undefined` when there is nothing to do, including when the answer is
+ * the first chapter: rewriting the URL to say what it already means would spend
+ * a history entry to change nothing.
+ */
+export function resumeChapter({
+  chapters,
+  slug,
+  lastRead,
+  saved,
+}: {
+  chapters: readonly { slug: string }[];
+  slug: string;
+  lastRead?: LastRead;
+  saved?: { chapterSlug?: string };
+}): string | undefined {
+  const candidate =
+    saved?.chapterSlug ?? (lastRead?.bookSlug === slug ? lastRead.chapterSlug : undefined);
+  if (!candidate) return undefined;
+
+  // A corrected edition may have renamed or dropped the chapter the reader was
+  // on. Sending them to a slug the book no longer has would open chapter one
+  // anyway, but with a URL that lies about it.
+  if (!chapters.some((chapter) => chapter.slug === candidate)) return undefined;
+  if (candidate === chapters[0]?.slug) return undefined;
+
+  return candidate;
+}
+
 function prefersReducedMotion(): boolean {
   try {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;

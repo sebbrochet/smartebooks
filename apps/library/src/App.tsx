@@ -7,6 +7,7 @@ import {
   clearLastRead,
   deleteImportedBook,
   getLastRead,
+  reading,
   setLastRead,
   useMediaQuery,
   NARROW,
@@ -14,7 +15,7 @@ import {
 import { useShelfBooks } from './useShelfBooks';
 import { useServiceWorker } from './useServiceWorker';
 import { useAppRoute } from './router';
-import { allowResume, suppressResume, useLaunchDecision } from './launch';
+import { allowResume, hashFor, resumeChapter, suppressResume, useLaunchDecision } from './launch';
 import { Bookshelf } from './Bookshelf';
 import { CoverSplash } from './CoverSplash';
 import { BackupControls } from './BackupControls';
@@ -61,23 +62,59 @@ export default function App() {
     if (!activeBook) return;
 
     /*
-     * A part page and a search are places *in* a book, not chapters of it, so
-     * neither can name one — and writing `undefined` here would throw away the
-     * chapter the reader was actually on. They would then reopen the book at
-     * chapter one, having done nothing but glance at a contents page.
+     * A part page, a search, and `#/<slug>` itself are all places *in* a book
+     * that name no chapter — and writing `undefined` here would throw away the
+     * chapter the reader was actually on, which is the pointer the next line of
+     * this file depends on.
      *
      * So the chapter is carried over whenever the pointer already refers to
-     * this same book. Landing on a part page of a book never opened before
-     * records the book alone, which is all that is known.
+     * this same book. Opening a book never read before records the book alone,
+     * which is all that is known.
      */
     const slug = activeBook.meta.slug;
-    if (route.view === 'book') {
-      setLastRead(slug, route.chapterSlug);
+    const named = route.view === 'book' ? route.chapterSlug : undefined;
+    if (named) {
+      setLastRead(slug, named);
       return;
     }
     const previous = getLastRead();
     setLastRead(slug, previous?.bookSlug === slug ? previous.chapterSlug : undefined);
   }, [route, activeBook]);
+
+  /*
+   * Opening a book without naming a chapter means "take me back to it", not
+   * "start it again" — see `resumeChapter`.
+   *
+   * The URL is *replaced* rather than pushed: the reader came here from the
+   * library, and Back should return them there rather than to a redirect they
+   * never saw.
+   */
+  const wantsResume = route.view === 'book' && !route.chapterSlug;
+  const resumeSlug = wantsResume ? activeBook?.meta.slug : undefined;
+  const chapters = activeBook?.chapters;
+
+  useEffect(() => {
+    if (!resumeSlug || !chapters) return;
+
+    // The synchronous answer first, so the common case — the book just closed —
+    // never paints chapter one on the way.
+    const now = resumeChapter({ chapters, slug: resumeSlug, lastRead: getLastRead() });
+    if (now) {
+      window.location.replace(hashFor(resumeSlug, now));
+      return;
+    }
+
+    let cancelled = false;
+    void reading.get(resumeSlug).then((saved) => {
+      if (cancelled) return;
+      const target = resumeChapter({ chapters, slug: resumeSlug, saved });
+      if (target) window.location.replace(hashFor(resumeSlug, target));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeSlug, chapters]);
 
   async function resetBook(slug: string) {
     await clearBook(slug);
