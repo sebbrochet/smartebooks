@@ -1,4 +1,36 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
+
+/**
+ * Whether a reader could actually press this control.
+ *
+ * Not `isVisible()`. That returns **true** for the closed navigation drawer at
+ * every width down to 320px, because the drawer is moved out of frame with a
+ * transform and `isVisible` only asks about `display`, `visibility` and a
+ * non-empty box — all of which an off-screen element still satisfies. A test
+ * written on it passes whatever the stylesheet says, which is worse than no
+ * test: it reports a guarantee it is not making.
+ *
+ * So: on screen, and the thing a tap at its centre would land on.
+ */
+async function reachable(locator: Locator) {
+  if ((await locator.count()) === 0 || !(await locator.isVisible())) return false;
+
+  const box = await locator.boundingBox();
+  const view = locator.page().viewportSize();
+  if (!box || !view) return false;
+
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  if (x < 0 || y < 0 || x > view.width || y > view.height) return false;
+
+  return locator.evaluate(
+    (el, at) => {
+      const hit = document.elementFromPoint(at.x, at.y);
+      return !!hit && (el === hit || el.contains(hit) || hit.contains(el));
+    },
+    { x, y },
+  );
+}
 
 test('bookshelf lists books and opens one', async ({ page }) => {
   await page.goto('/');
@@ -202,6 +234,59 @@ test.describe('on a narrow screen', () => {
       page.locator('.toc__list').getByRole('link', { name: 'Watch it in action' }),
     ).toBeVisible();
   });
+
+  test('search is a tap away, not folded into the drawer', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+    await expect(page.locator('article.prose')).toBeVisible();
+
+    // The sidebar's search is inside the drawer at this width, so it is not the
+    // control a reader can reach — the toolbar's is.
+    await expect(page.locator('.sidebar__search')).toBeHidden();
+
+    const search = page.locator('.reader__search-toggle');
+    await expect(search).toBeVisible();
+
+    // …and it opens the same overlay `/` does. A phone has no `/` key to press,
+    // which is the whole reason this button exists.
+    await search.click();
+    const input = page.getByPlaceholder('Search this book…');
+    await expect(input).toBeFocused();
+    await input.pressSequentially('matching', { delay: 40 });
+    await expect(page.locator('.search-overlay__list li')).not.toHaveCount(0);
+  });
+});
+
+/**
+ * The handover between the two search controls, measured at the breakpoint.
+ *
+ * Neither control is visible at every width by design: above 720px search sits
+ * in the sidebar, below it in the toolbar, and each is hidden where the other
+ * takes over. That is fine until the two rules disagree about *where* 720px
+ * is, and then there is a band of widths with no way into search at all —
+ * invisible to every other test here, because they all run at one width.
+ *
+ * So this asserts the union rather than either control: at every width, a
+ * reader can start a search.
+ */
+test('there is no width where search cannot be reached', async ({ page }) => {
+  await page.goto('/#/guide/01-getting-started');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  const widths = [1400, 1100, 1000, 900, 800, 760, 740, 721, 720, 719, 600, 400, 320];
+  const unreachable: number[] = [];
+
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 800 });
+    // The drawer animates; measuring mid-slide reads a position neither state
+    // ever holds.
+    await page.waitForTimeout(350);
+
+    const sidebar = await reachable(page.locator('.sidebar__search'));
+    const toolbar = await reachable(page.locator('.reader__search-toggle'));
+    if (!sidebar && !toolbar) unreachable.push(width);
+  }
+
+  expect(unreachable).toEqual([]);
 });
 
 test('on a wide screen the controls are all in the header, with no disclosure', async ({
