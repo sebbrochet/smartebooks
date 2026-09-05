@@ -21,6 +21,8 @@ import { chapterPassages, type Heading } from '../markdown/headings';
 export interface IndexedPassage {
   chapterSlug: string;
   chapterTitle: string;
+  /** The chapter's place in the book, so results can fall back to reading order. */
+  chapterOrder: number;
   heading?: Heading;
   text: string;
 }
@@ -54,6 +56,7 @@ export function buildIndex(chapters: Chapter[]): BookIndex {
       passages.push({
         chapterSlug: chapter.slug,
         chapterTitle: chapter.title,
+        chapterOrder: chapter.order,
         heading: passage.heading,
         text: passage.text,
       });
@@ -122,6 +125,8 @@ export interface PassageHit {
 export interface ChapterHit {
   slug: string;
   title: string;
+  /** Place in the book. Ties are broken on this rather than on the title. */
+  order: number;
   score: number;
   passages: PassageHit[];
 }
@@ -189,7 +194,10 @@ export function queryIndex(index: BookIndex, query: string): SearchOutcome {
   const terms = [...matchedTerms];
   const byChapter = new Map<string, ChapterHit>();
 
-  for (const [position, frequency] of scores) {
+  // Walked in document order rather than in whatever order the postings
+  // yielded, because `Array.prototype.sort` is stable: everything downstream
+  // then falls back to the order the book is read in without saying so twice.
+  for (const [position, frequency] of [...scores].sort((a, b) => a[0] - b[0])) {
     const passage = index.passages[position];
 
     // Where a word appears is worth more than how often. A term in a chapter's
@@ -201,7 +209,13 @@ export function queryIndex(index: BookIndex, query: string): SearchOutcome {
 
     let chapter = byChapter.get(passage.chapterSlug);
     if (!chapter) {
-      chapter = { slug: passage.chapterSlug, title: passage.chapterTitle, score: 0, passages: [] };
+      chapter = {
+        slug: passage.chapterSlug,
+        title: passage.chapterTitle,
+        order: passage.chapterOrder,
+        score: 0,
+        passages: [],
+      };
       byChapter.set(passage.chapterSlug, chapter);
     }
 
@@ -215,7 +229,7 @@ export function queryIndex(index: BookIndex, query: string): SearchOutcome {
     chapter.score = Math.max(chapter.score, score);
   }
 
-  const chapters = [...byChapter.values()].sort(byScoreThenTitle);
+  const chapters = [...byChapter.values()].sort(byScoreThenOrder);
   for (const chapter of chapters) chapter.passages.sort(byScoreDescending);
 
   return { chapters, passageCount: scores.size, terms };
@@ -225,8 +239,23 @@ function byScoreDescending(a: { score: number }, b: { score: number }): number {
   return b.score - a.score;
 }
 
-function byScoreThenTitle(a: ChapterHit, b: ChapterHit): number {
-  return b.score - a.score || a.title.localeCompare(b.title);
+/**
+ * Relevance first, then the order the book is read in.
+ *
+ * The tie-break used to be `a.title.localeCompare(b.title)`, which sorts
+ * chapter *titles* as words. There is no book where that is the order a reader
+ * wants, and for a novel numbered in Roman numerals it is actively strange:
+ *
+ *     Chapitre II | Chapitre III | Chapitre IV | Chapitre IX |
+ *     Chapitre premier | Chapitre V | Chapitre VI | Chapitre X | Chapitre XVIII
+ *
+ * Relevance stays primary — a reader searching a name wants the chapter that
+ * is *about* it, not chapter one because it is first — but ties are common,
+ * since most passages score on frequency alone, so this is most of what the
+ * order looks like in practice.
+ */
+function byScoreThenOrder(a: ChapterHit, b: ChapterHit): number {
+  return b.score - a.score || a.order - b.order;
 }
 
 function containsAny(text: string, terms: string[]): boolean {

@@ -49,6 +49,79 @@ const chapters: Chapter[] = [
 
 const index = buildIndex(chapters);
 
+/**
+ * A book whose chapter titles sort alphabetically into the wrong order.
+ *
+ * Roman numerals are the case that makes it obvious, and they are what real
+ * numbered fiction uses: `localeCompare` puts II before IX before V, and drops
+ * "premier" in the middle of them. Every chapter below carries the same term
+ * exactly once, in body text only, so nothing separates them on relevance and
+ * the tie-break is the only thing under test.
+ */
+const numbered: Chapter[] = [
+  { slug: '01', order: 1, title: 'Chapitre premier', markdown: '# Chapitre premier\n\nZol entra.' },
+  { slug: '02', order: 2, title: 'Chapitre II', markdown: '# Chapitre II\n\nZol entra.' },
+  { slug: '05', order: 5, title: 'Chapitre V', markdown: '# Chapitre V\n\nZol entra.' },
+  { slug: '09', order: 9, title: 'Chapitre IX', markdown: '# Chapitre IX\n\nZol entra.' },
+  { slug: '10', order: 10, title: 'Chapitre X', markdown: '# Chapitre X\n\nZol entra.' },
+];
+
+describe('result order', () => {
+  it('breaks ties on the order the book is read in, not on the title', () => {
+    const { chapters: hits } = queryIndex(buildIndex(numbered), 'zol');
+
+    expect(hits.map((hit) => hit.score)).toEqual([1, 1, 1, 1, 1]);
+    expect(hits.map((hit) => hit.title)).toEqual([
+      'Chapitre premier',
+      'Chapitre II',
+      'Chapitre V',
+      'Chapitre IX',
+      'Chapitre X',
+    ]);
+  });
+
+  it('still puts relevance first', () => {
+    // The later chapter names the term in its title, which outranks a mention
+    // in the body of an earlier one. Reading order is the tie-break, not the
+    // sort.
+    const withTitle: Chapter[] = [
+      ...numbered,
+      { slug: '18', order: 18, title: 'Zol', markdown: '# Zol\n\nUne fin.' },
+    ];
+
+    const { chapters: hits } = queryIndex(buildIndex(withTitle), 'zol');
+    expect(hits[0].title).toBe('Zol');
+    expect(hits[0].order).toBe(18);
+  });
+
+  it('orders equally scoring passages within a chapter by where they appear', () => {
+    const long: Chapter[] = [
+      {
+        slug: '01',
+        order: 1,
+        title: 'Chapitre premier',
+        markdown: [
+          '# Chapitre premier',
+          '',
+          '## Le matin',
+          '',
+          'Zol entra.',
+          '',
+          '## Le soir',
+          '',
+          'Zol sortit.',
+        ].join('\n'),
+      },
+    ];
+
+    const { chapters: hits } = queryIndex(buildIndex(long), 'zol');
+    expect(hits[0].passages.map((passage) => passage.heading?.text)).toEqual([
+      'Le matin',
+      'Le soir',
+    ]);
+  });
+});
+
 describe('tokenize', () => {
   // `\w` splits "café" into "caf" and drops the rest, which matters for the
   // French and Spanish books this platform is aimed at.
