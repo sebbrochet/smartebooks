@@ -68,6 +68,7 @@ export {
   type SmartbookEngineRange,
   type SmartbookIslands,
   type SmartbookVisibility,
+  isLanguageTag,
 } from './package/spec';
 export {
   isAuthorId,

@@ -104,8 +104,7 @@ async function importFile(page: import('@playwright/test').Page, file: string) {
   await page.locator('[data-testid="import-book-input"]').setInputFiles(file);
 }
 
-/** A package that declares the chess pack but contains no chess directive. */
-function makeChessPackageFile(): string {
+/** A package that declares the chess pack but contains no chess directive. */ function makeChessPackageFile(): string {
   const manifest = {
     schemaVersion: 1,
     slug: 'chess-import',
@@ -159,6 +158,40 @@ test('an imported book pulls down the code its islands need, before it is opened
 
   // Still on the shelf. Nothing was opened to make any of that happen.
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+});
+
+/**
+ * SPEC010 M1, end to end: the descriptor says `fr`, and the prose says `fr`.
+ *
+ * Asserted on the **chapter** rather than the document, which stays `en`. The
+ * shell's language is not the book's, both are on screen at once, and it is
+ * the nearest `lang` that decides hyphenation and the voice a screen reader
+ * reads in. Marking the document would be wrong for whichever of the two it
+ * was not currently describing.
+ */
+test('a book written in French says so, on the prose rather than the page', async ({ page }) => {
+  const manifest = {
+    schemaVersion: 1,
+    slug: 'roman-francais',
+    title: 'Un roman',
+    language: 'fr',
+    chapters: [{ file: '01-chapitre.md', order: 1 }],
+  };
+  const zip = zipSync({
+    'smartbook.json': strToU8(JSON.stringify(manifest)),
+    'content/01-chapitre.md': strToU8('# Chapitre premier\n\nIl entra.\n'),
+  });
+  const path = join(tmpdir(), `smart-ebook-lang-${Date.now()}.smartbook.zip`);
+  // Built from `tmpdir()` and a timestamp; no user input reaches it.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  writeFileSync(path, zip);
+
+  await page.goto('/');
+  await importFile(page, path);
+  await page.getByRole('link', { name: /Un roman/ }).click();
+
+  await expect(page.locator('article.prose')).toHaveAttribute('lang', 'fr');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
 test('an older edition asks before it replaces a newer one', async ({ page }) => {

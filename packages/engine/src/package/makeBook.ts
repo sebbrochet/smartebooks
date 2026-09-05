@@ -49,6 +49,7 @@ export function makeBook(
       description: descriptor.description,
       cover: descriptor.cover,
       authors: descriptor.authors,
+      language: descriptor.language,
     },
     chapters,
     descriptor,

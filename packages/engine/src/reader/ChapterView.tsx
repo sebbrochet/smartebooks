@@ -47,7 +47,23 @@ export function ChapterView({
 
   return (
     <>
-      <article className="prose">{content}</article>
+      {/*
+       * `lang` sits on the prose, not on the document (SPEC010 M1).
+       *
+       * The shell's own language is not the book's, and the two are visible at
+       * once — a French novel is read through English controls, and the shelf
+       * behind it lists books in several languages. Marking the document would
+       * have to keep changing and would be wrong for whatever it is not
+       * currently describing; marking the prose is true wherever the reader
+       * looks.
+       *
+       * It is also the attribute that does the work. Hyphenation follows the
+       * nearest `lang`, and so does the voice a screen reader reads in, so this
+       * is the element that needs it.
+       */}
+      <article className="prose" lang={book.meta.language}>
+        {content}
+      </article>
       <nav className="chapter-nav" aria-label="Chapter navigation">
         {prev ? (
           <a className="chapter-nav__prev" href={`#${basePath}/${prev.slug}`}>

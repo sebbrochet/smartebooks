@@ -28,6 +28,7 @@ interface ChapterEntry {
 declare module '*/book-sources.mjs' {
   export function deriveChapters(descriptor: unknown, files: ChapterSource[]): ChapterEntry[];
   export function isAuthorId(value: unknown): boolean;
+  export function isLanguageTag(value: unknown): boolean;
   export function isOrderableEdition(value: unknown): boolean;
 }
 

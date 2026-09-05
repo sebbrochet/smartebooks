@@ -1,5 +1,10 @@
 import { unzipSync, strFromU8 } from 'fflate';
-import { MIN_SUPPORTED_SCHEMA, SMARTBOOK_SCHEMA_VERSION, type SmartbookDescriptor } from './spec';
+import {
+  MIN_SUPPORTED_SCHEMA,
+  SMARTBOOK_SCHEMA_VERSION,
+  isLanguageTag,
+  type SmartbookDescriptor,
+} from './spec';
 import { isAuthorId, isEdition } from './edition';
 
 /** A parsed, validated `.smartbook` package. */
@@ -66,6 +71,24 @@ function validateDescriptor(value: unknown): asserts value is SmartbookDescripto
       'Package has an invalid edition (expected an ISO date like 2026-09-04, or semver like 1.2.0).',
     );
   }
+
+  /*
+   * A bad `language` is *not* fatal, unlike the two above.
+   *
+   * Those are about identity, and getting them wrong silently corrupts a
+   * reader's shelf. This one ends up in a `lang` attribute: wrong means the
+   * hyphenation and the screen-reader voice a book would have had anyway
+   * without it. Refusing to open a book over a mistyped locale would trade a
+   * cosmetic fault for a total one.
+   *
+   * Dropped rather than kept, so nothing downstream has to wonder whether the
+   * value it holds was checked.
+   *
+   * Tested against the value itself rather than `!= null`, which is the guard
+   * the two fields above use: a `null` passes that test and survives, and the
+   * point of this line is that what remains is either a language or nothing.
+   */
+  if (!isLanguageTag(d.language)) delete d.language;
 
   if (d.chapters != null && !Array.isArray(d.chapters))
     throw new Error('Package has invalid chapters.');

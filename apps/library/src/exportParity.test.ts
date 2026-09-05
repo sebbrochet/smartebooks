@@ -6,10 +6,16 @@ import {
   defaultIslands,
   isAuthorId as engineIsAuthorId,
   isEdition as engineIsEdition,
+  isLanguageTag as engineIsLanguageTag,
   type SmartbookDescriptor,
 } from '@smart-ebooks/engine';
 import { chessIslands } from '@smart-ebooks/islands-chess';
-import { deriveChapters, isAuthorId, isOrderableEdition } from '../../../scripts/book-sources.mjs';
+import {
+  deriveChapters,
+  isAuthorId,
+  isLanguageTag,
+  isOrderableEdition,
+} from '../../../scripts/book-sources.mjs';
 import { usedIslands } from '../../../scripts/lint-islands.mjs';
 
 /**
@@ -156,5 +162,27 @@ describe('the linter and the reader agree on identity', () => {
 
   it.each(editions)('orders, or refuses to order, %s the same way', (value) => {
     expect(isOrderableEdition(value)).toBe(engineIsEdition(value));
+  });
+
+  const languages = [
+    'fr',
+    'en',
+    'en-GB',
+    'pt-BR',
+    'zh-Hant-TW',
+    'fra',
+    'f',
+    'french',
+    'en_GB',
+    'en-',
+    '-en',
+    'en--GB',
+    'en GB',
+    '<script>',
+    '',
+  ];
+
+  it.each(languages)('accepts, or refuses, the language %s the same way', (value) => {
+    expect(isLanguageTag(value)).toBe(engineIsLanguageTag(value));
   });
 });

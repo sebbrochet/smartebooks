@@ -133,8 +133,70 @@ export interface SmartbookDescriptor {
   assets?: string[];
   /** Island packs this book declares (SPEC006 F1.1). */
   islands?: SmartbookIslands;
+  /**
+   * The language this book is written in, as a BCP 47 tag: `fr`, `en-GB`,
+   * `pt-BR` (SPEC010 M1).
+   *
+   * The reader marks the book's prose with it, which is what decides
+   * hyphenation and how a screen reader pronounces the text. Absent means the
+   * shell's own language, which is the behaviour every book had before this
+   * field existed.
+   *
+   * Deliberately **one** language. A book in two languages is two books
+   * grouped by the library — see SPEC010, which reversed SPEC001 Q8 on this.
+   */
+  language?: string;
   /** Publication intent; absent means `private` (SPEC003 E1.1). */
   visibility?: SmartbookVisibility;
+}
+
+/** The longest a BCP 47 tag may be before it stops being a language. */
+const MAX_LANGUAGE_LENGTH = 35;
+
+/**
+ * Whether `value` is a language tag we are willing to put in a `lang`
+ * attribute.
+ *
+ * A permissive subset of BCP 47 rather than the grammar: a primary subtag of
+ * two or three letters, then any number of alphanumeric subtags of two to
+ * eight characters. That accepts `fr`, `en-GB`, `zh-Hant-TW` and `pt-BR`, and
+ * rejects the things that matter — an empty tag, a sentence, a leading or
+ * doubled hyphen, anything long enough to be a payload.
+ *
+ * **Checked subtag by subtag rather than with one pattern.** The obvious regex
+ * nests a quantifier inside a quantifier, which is the shape that backtracks
+ * badly on a hostile string, and this value arrives inside a zip from
+ * somewhere else. `isAuthorId` is written the same way for the same reason.
+ */
+export function isLanguageTag(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length === 0) return false;
+  if (value.length > MAX_LANGUAGE_LENGTH) return false;
+
+  const subtags = value.split('-');
+  const [primary, ...rest] = subtags;
+
+  if (primary.length < 2 || primary.length > 3) return false;
+  if (!isAlpha(primary)) return false;
+
+  return rest.every((subtag) => subtag.length >= 2 && subtag.length <= 8 && isAlphanumeric(subtag));
+}
+
+function isAlpha(subtag: string): boolean {
+  for (const character of subtag) {
+    const code = character.toLowerCase().charCodeAt(0);
+    if (code < 97 || code > 122) return false;
+  }
+  return true;
+}
+
+function isAlphanumeric(subtag: string): boolean {
+  for (const character of subtag) {
+    const code = character.toLowerCase().charCodeAt(0);
+    const letter = code >= 97 && code <= 122;
+    const digit = code >= 48 && code <= 57;
+    if (!letter && !digit) return false;
+  }
+  return true;
 }
 
 /**

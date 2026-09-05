@@ -81,6 +81,12 @@ export interface BookMeta {
   /** Cover image path (usually `assets/…`), resolved at render time. */
   cover?: string;
   authors?: string[];
+  /**
+   * BCP 47 tag for the book's prose, marked on the chapter (SPEC010 M1).
+   * Absent means the shell's language, which is what every book had before
+   * the descriptor could say.
+   */
+  language?: string;
 }
 
 /** A complete book: metadata plus its ordered chapters. */

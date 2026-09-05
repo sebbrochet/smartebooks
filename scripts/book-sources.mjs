@@ -75,6 +75,23 @@ export function isOrderableEdition(value) {
 }
 
 /**
+ * A BCP 47 language tag, permissively: two or three letters, then alphanumeric
+ * subtags of two to eight. Subtag by subtag for the same reason `isAuthorId` is
+ * label by label — the one-pattern version nests quantifiers.
+ *
+ * Mirrors `isLanguageTag` in the engine; `book-sources.test.mjs` holds the two
+ * to a shared table.
+ */
+export function isLanguageTag(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 35) return false;
+
+  const [primary, ...rest] = value.split('-');
+  if (!/^[a-z]{2,3}$/i.test(primary)) return false;
+
+  return rest.every((subtag) => /^[a-z0-9]{2,8}$/i.test(subtag));
+}
+
+/**
  * Every folder under `books/` that has a descriptor.
  *
  * Deliberately follows symlinks and Windows junctions. An author previewing a
@@ -234,7 +251,8 @@ export function validateBook(folder) {
     return problems;
   }
 
-  const { schemaVersion, slug, title, visibility, chapters, authorId, edition } = descriptor;
+  const { schemaVersion, slug, title, visibility, chapters, authorId, edition, language } =
+    descriptor;
 
   if (!Number.isInteger(schemaVersion) || schemaVersion < MIN_SCHEMA) {
     fail('schema-version', `schemaVersion must be an integer >= ${MIN_SCHEMA}.`);
@@ -281,6 +299,16 @@ export function validateBook(folder) {
       'edition-invalid',
       'edition must be an ISO date (2026-09-04) or semver (1.2.0), so editions can be ordered.',
     );
+  }
+
+  /*
+   * The reader drops a bad `language` rather than refusing the book, because a
+   * mistyped locale is a cosmetic fault and a rejected book is a total one.
+   * An author gets told instead: here the value is still editable, and silence
+   * would leave them believing their French book announces itself as French.
+   */
+  if (language !== undefined && !isLanguageTag(language)) {
+    fail('language-invalid', 'language must be a BCP 47 tag such as "fr", "en-GB" or "pt-BR".');
   }
 
   // The D1 guard: publication must be a decision, never a default.

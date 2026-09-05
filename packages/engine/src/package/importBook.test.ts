@@ -27,6 +27,52 @@ describe('parseSmartbook', () => {
     expect(pkg.content['content/01-hello.md']).toContain('Hello');
   });
 
+  describe('the language a book declares', () => {
+    const withLanguage = (language: unknown) =>
+      parseSmartbook(
+        zip({
+          'smartbook.json': JSON.stringify({
+            schemaVersion: 1,
+            slug: 'imported-demo',
+            title: 'Imported Demo',
+            language,
+            chapters: [{ file: '01-hello.md', order: 1 }],
+          }),
+          'content/01-hello.md': '# Bonjour\n\nSalut.',
+        }),
+      );
+
+    it('is kept when it is a language', () => {
+      expect(withLanguage('fr').descriptor.language).toBe('fr');
+      expect(withLanguage('pt-BR').descriptor.language).toBe('pt-BR');
+    });
+
+    /*
+     * Unlike `authorId` and `edition`, which are fatal. Those decide identity,
+     * and getting them wrong corrupts a shelf silently. This one ends up in a
+     * `lang` attribute: wrong costs the hyphenation and the screen-reader voice
+     * the book would not have had anyway. Refusing to open a book over a
+     * mistyped locale trades a cosmetic fault for a total one.
+     */
+    it('is dropped rather than fatal when it is not', () => {
+      for (const bad of ['french', 'en_GB', 'e', '', 'x'.repeat(40), 42, null]) {
+        expect(withLanguage(bad).descriptor.language).toBeUndefined();
+      }
+    });
+
+    it('reaches the book the reader opens', () => {
+      const pkg = withLanguage('fr');
+      const book = makeImportedBook({
+        id: 'imp-demo',
+        descriptor: pkg.descriptor,
+        content: pkg.content,
+        assets: {},
+      } as StoredImport);
+
+      expect(book.meta.language).toBe('fr');
+    });
+  });
+
   it('rejects a package with no smartbook.json', () => {
     expect(() => parseSmartbook(zip({ 'content/01-hello.md': '# Hi' }))).toThrow(
       /missing smartbook/i,
