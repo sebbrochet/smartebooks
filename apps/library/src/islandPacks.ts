@@ -3,8 +3,16 @@ import {
   type IslandDefinition,
   type SmartbookDescriptor,
 } from '@smart-ebooks/engine';
-import { chessIslands, type ChessIslandsOptions } from '@smart-ebooks/islands-chess';
-import { mermaidIslands, type MermaidIslandsOptions } from '@smart-ebooks/islands-mermaid';
+import {
+  chessIslands,
+  preloadChessIslands,
+  type ChessIslandsOptions,
+} from '@smart-ebooks/islands-chess';
+import {
+  mermaidIslands,
+  preloadMermaidIslands,
+  type MermaidIslandsOptions,
+} from '@smart-ebooks/islands-mermaid';
 
 /**
  * Maps an island **pack name** declared in a book's `smartbook.json` to the
@@ -73,4 +81,48 @@ export function resolveImportedIslands(descriptor: SmartbookDescriptor): IslandD
   });
 
   return [...defaultIslands, ...extra];
+}
+
+/**
+ * How to pull a pack's on-demand code onto the device.
+ *
+ * Beside `packs` on purpose: a pack that can be resolved but not warmed is a
+ * book that imports cleanly and then fails on a train, and the two maps
+ * disagreeing is exactly the kind of thing nobody notices until then.
+ *
+ * The built-in islands need no entry. They are imported statically by
+ * `defaultIslands`, so they are part of the shell the service worker precaches
+ * — already on the device before any book is.
+ */
+const warmers: Record<string, (base: string) => Promise<void>> = {
+  chess: (base) => preloadChessIslands(base),
+  mermaid: () => preloadMermaidIslands(),
+};
+
+/**
+ * Fetch the code a book needs, so that having the book means being able to
+ * read it.
+ *
+ * An imported package puts its text and images in IndexedDB immediately, but
+ * the islands are `lazy` — their chunks are still requests waiting to happen,
+ * and the service worker only keeps what it has seen fetched. So a book could
+ * be fully "on the device" and still show `This chess-board could not be
+ * displayed` in a tunnel.
+ *
+ * Called at **import** rather than at open, because that is when the reader is
+ * demonstrably online and is the moment they decided they want the book.
+ *
+ * Deliberately best-effort. A failure here means the reader is on a poor
+ * connection, which is not a reason to refuse them a book whose text is already
+ * safely stored — they simply get what today already gives them.
+ */
+export async function warmIslandPacks(
+  descriptor: SmartbookDescriptor,
+  base = import.meta.env.BASE_URL,
+): Promise<void> {
+  const declared = Object.keys(descriptor.islands?.packs ?? {});
+
+  await Promise.all(
+    declared.map((name) => warmers[name]?.(base)?.catch(() => undefined) ?? Promise.resolve()),
+  );
 }

@@ -14,6 +14,36 @@ interface Props {
 
 interface State {
   failed: boolean;
+  missingCode: boolean;
+}
+
+/**
+ * Whether this looks like code that never arrived rather than code that broke.
+ *
+ * Islands are `lazy`, so their component is a separate file fetched the first
+ * time one is shown. Miss that fetch — a tunnel, a hotel wifi that resolves but
+ * does not carry — and the import rejects and lands here, where it used to be
+ * reported as `This chess-board could not be displayed`. That is the sentence
+ * for a *broken* island, and it tells a reader nothing they can act on. "Needs
+ * a connection the first time" is something they can act on.
+ *
+ * Two signals, because neither is sufficient. Browsers word a failed module
+ * load differently and none of it is specified, so the message test is a union
+ * of what Chromium, Firefox and WebKit actually say — it will miss a wording
+ * nobody has seen yet. `navigator.onLine` catches those, but only when the
+ * device knows it is offline, which in the case that prompted this it did not.
+ *
+ * Wrong in the safe direction: an island that genuinely threw while the reader
+ * happened to be offline is described as needing a connection. They reload, and
+ * then they see the honest message.
+ */
+function looksLikeMissingCode(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+
+  const message = error instanceof Error ? error.message : String(error);
+  return /dynamically imported module|importing a module script failed|error loading dynamically imported module|failed to fetch/i.test(
+    message,
+  );
 }
 
 /**
@@ -29,10 +59,10 @@ interface State {
  * A class component because React offers no hook for this.
  */
 export class IslandBoundary extends Component<Props, State> {
-  state: State = { failed: false };
+  state: State = { failed: false, missingCode: false };
 
-  static getDerivedStateFromError(): State {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown): State {
+    return { failed: true, missingCode: looksLikeMissingCode(error) };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -48,7 +78,16 @@ export class IslandBoundary extends Component<Props, State> {
     }
     return (
       <div className="island island--unknown" role="note">
-        This <code>{this.props.type}</code> could not be displayed.
+        {this.state.missingCode ? (
+          <>
+            This <code>{this.props.type}</code> needs a connection the first time it is shown. The
+            text of this book is already on your device.
+          </>
+        ) : (
+          <>
+            This <code>{this.props.type}</code> could not be displayed.
+          </>
+        )}
       </div>
     );
   }

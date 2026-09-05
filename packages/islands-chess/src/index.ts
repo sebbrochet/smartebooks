@@ -62,6 +62,44 @@ export interface ChessIslandsOptions {
 }
 
 /**
+ * Fetch everything this pack loads on demand, so a book that uses it works
+ * with no network afterwards.
+ *
+ * The components are `lazy`, which is what keeps Chessground and a 7 MB engine
+ * off the wire for readers who open neither. The cost is that "I have this
+ * book" and "I can read this book" are different statements: the text of an
+ * imported package is in IndexedDB the moment it lands, while the code that
+ * draws a board is still a request waiting to happen. A reader who imported a
+ * chess book at home and opened it on a train met the second half of that.
+ *
+ * The service worker caches what it sees fetched, so simply *asking* for these
+ * modules is enough — this function does not need their exports and ignores
+ * them.
+ *
+ * The engine is included because the reader asked for it: it is the difference
+ * between a board and a board that can answer a question. It is also 7 MB, so
+ * this is deliberately a per-book decision made by the descriptor declaring the
+ * pack, not a default paid by every reader.
+ */
+export async function preloadChessIslands(base = '/'): Promise<void> {
+  await Promise.all([
+    import('./ChessBoardIsland'),
+    import('./ChessPuzzleIsland'),
+    import('./ChessDiagramIsland'),
+    import('./ChessGameIsland'),
+    import('./ChessMovesIsland'),
+    import('./StockfishAnalysisIsland'),
+    // Not a module: the engine is a worker script plus its WebAssembly, both
+    // fetched by URL at run time. `no-store` would defeat the point — the
+    // service worker's copy is exactly what is wanted here.
+    ...[
+      `${base}stockfish/stockfish-18-lite-single.js`,
+      `${base}stockfish/stockfish-18-lite-single.wasm`,
+    ].map((url) => fetch(url).catch(() => undefined)),
+  ]);
+}
+
+/**
  * Builds the chess islands for one book. Components are lazy so Chessground /
  * chessops / Stockfish only ship with books that use them, and the extractors
  * stay dependency-light (raw body + attributes) since they run at parse time.

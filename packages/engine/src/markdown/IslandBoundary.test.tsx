@@ -14,6 +14,11 @@ function Boom(): never {
   throw new Error('island exploded');
 }
 
+/** What a browser throws when a `lazy` island's chunk never arrives. */
+function Missing(): never {
+  throw new Error('Failed to fetch dynamically imported module: /assets/ChessBoardIsland.js');
+}
+
 let container: HTMLDivElement;
 let root: Root;
 
@@ -41,6 +46,37 @@ describe('IslandBoundary', () => {
       </IslandBoundary>,
     );
     expect(container.textContent).toContain('the quiz');
+  });
+
+  /*
+   * An island's component is a separate file, fetched the first time one is
+   * shown. Miss that fetch and the reader was told the block "could not be
+   * displayed" — the sentence for a broken island, and nothing they can act
+   * on. They can act on "needs a connection".
+   */
+  it('says a missing chunk needs a connection, not that the island is broken', () => {
+    show(
+      <IslandBoundary type="chess-board">
+        <Missing />
+      </IslandBoundary>,
+    );
+
+    expect(container.textContent).toContain('needs a connection the first time');
+    // And says the part that is *not* at risk, because the reader has just
+    // watched half the page render.
+    expect(container.textContent).toContain('already on your device');
+    expect(container.textContent).not.toContain('could not be displayed');
+  });
+
+  it('still says an island is broken when it is', () => {
+    show(
+      <IslandBoundary type="quiz">
+        <Boom />
+      </IslandBoundary>,
+    );
+
+    expect(container.textContent).toContain('could not be displayed');
+    expect(container.textContent).not.toContain('needs a connection');
   });
 
   it('replaces a throwing island with a placeholder instead of losing the page', () => {

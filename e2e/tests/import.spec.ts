@@ -104,6 +104,63 @@ async function importFile(page: import('@playwright/test').Page, file: string) {
   await page.locator('[data-testid="import-book-input"]').setInputFiles(file);
 }
 
+/** A package that declares the chess pack but contains no chess directive. */
+function makeChessPackageFile(): string {
+  const manifest = {
+    schemaVersion: 1,
+    slug: 'chess-import',
+    title: 'Chess Import Demo',
+    description: 'Declares the chess pack.',
+    chapters: [{ file: '01-hello.md', order: 1 }],
+    islands: { packs: { chess: {} } },
+  };
+  const zip = zipSync({
+    'smartbook.json': strToU8(JSON.stringify(manifest)),
+    'content/01-hello.md': strToU8('# Openings\n\nProse only, on purpose.\n'),
+  });
+  const path = join(tmpdir(), `smart-ebook-chess-${Date.now()}.smartbook.zip`);
+  // Built from `tmpdir()` and a timestamp; no user input reaches it.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  writeFileSync(path, zip);
+  return path;
+}
+
+/**
+ * The reason this asserts on requests rather than on anything visible: warming
+ * is invisible when it works, and the failure it prevents happens days later in
+ * a tunnel. The only place the behaviour exists is the network.
+ *
+ * The package deliberately contains **no chess directive**. Rendering one would
+ * pull the chunk anyway and prove nothing — the point is that declaring the
+ * pack is enough, so the book is complete before it is opened.
+ */
+test('an imported book pulls down the code its islands need, before it is opened', async ({
+  page,
+}) => {
+  const asked: string[] = [];
+  page.on('request', (request) => asked.push(request.url()));
+
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+  asked.length = 0; // Everything so far is the shell, which is precached anyway.
+
+  await importFile(page, makeChessPackageFile());
+  await expect(page.getByRole('link', { name: /Chess Import Demo/ })).toBeVisible();
+
+  // The board component…
+  await expect
+    .poll(() => asked.some((url) => /ChessBoardIsland/.test(url)), { timeout: 10_000 })
+    .toBe(true);
+
+  // …and the engine, which is 7 MB and therefore a deliberate per-book choice
+  // rather than something every reader pays for. Asserted on the request, not
+  // the response: this is about it being asked for, not about waiting for it.
+  expect(asked.some((url) => /stockfish-18-lite-single\.(js|wasm)/.test(url))).toBe(true);
+
+  // Still on the shelf. Nothing was opened to make any of that happen.
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+});
+
 test('an older edition asks before it replaces a newer one', async ({ page }) => {
   await page.goto('/');
   await importFile(page, makeEditionFile('1.1.0', 'q-1'));

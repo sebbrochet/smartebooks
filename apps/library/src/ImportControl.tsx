@@ -9,6 +9,8 @@ import {
   type ImportedPackage,
 } from '@smart-ebooks/engine';
 import { ConfirmDialog } from './ConfirmDialog';
+import { keepLibrary } from './keepLibrary';
+import { warmIslandPacks } from './islandPacks';
 
 /**
  * Import a `.smartbook` package (untrusted). Parses + validates client-side,
@@ -23,6 +25,10 @@ import { ConfirmDialog } from './ConfirmDialog';
  * - After an update, any of the reader's work the new edition can no longer
  *   show is **reported, never deleted**. A dropped island id is usually a
  *   rename or a chapter pulled for editing, not a decision to destroy answers.
+ *
+ * Import is also where a book is made to *keep* working: the reader is online
+ * by definition here, so it is the moment to ask the browser to hold the
+ * library and to pull down the code the book's islands need (SPEC003 E2.1).
  */
 export function ImportControl({ onImported }: { onImported: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -35,6 +41,17 @@ export function ImportControl({ onImported }: { onImported: () => void }) {
   async function store(pkg: ImportedPackage) {
     const { stored, outcome } = await importBook(pkg);
     const book = makeImportedBook(stored);
+
+    /*
+     * Two things that make the book *stay* readable, both deliberately after
+     * the import itself and before the reader is told it worked.
+     *
+     * Neither can fail the import. The package is already in IndexedDB by this
+     * point; a reader on a poor connection should get their book and the
+     * behaviour they have today, not an error about a warm-up.
+     */
+    void keepLibrary();
+    void warmIslandPacks(stored.descriptor);
 
     // Nothing can be orphaned by a book this reader has never had.
     const orphans =

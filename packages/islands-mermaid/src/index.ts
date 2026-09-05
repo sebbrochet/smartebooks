@@ -45,6 +45,17 @@ export function resolveTheme(value: unknown, fallback: MermaidTheme = DEFAULT_TH
  * The component is lazy: Mermaid is a large dependency and should only reach
  * readers of books that actually draw something.
  */
+/**
+ * Fetch what this pack loads on demand, so a book using it works offline.
+ *
+ * Mermaid itself is imported by the component rather than by this module, so
+ * pulling the component pulls the library behind it. The service worker caches
+ * what it sees fetched; the exports are not wanted here.
+ */
+export async function preloadMermaidIslands(): Promise<void> {
+  await import('./MermaidIsland');
+}
+
 export function mermaidIslands(options: MermaidIslandsOptions = {}): IslandDefinition[] {
   const bookTheme = resolveTheme(options?.theme);
 
