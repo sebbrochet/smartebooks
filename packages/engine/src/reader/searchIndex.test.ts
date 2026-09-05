@@ -70,7 +70,9 @@ describe('result order', () => {
   it('breaks ties on the order the book is read in, not on the title', () => {
     const { chapters: hits } = queryIndex(buildIndex(numbered), 'zol');
 
-    expect(hits.map((hit) => hit.score)).toEqual([1, 1, 1, 1, 1]);
+    // Nothing here is *about* Zol — no title or heading names him — so nothing
+    // separates these chapters and the book decides.
+    expect(hits.map((hit) => hit.score)).toEqual([0, 0, 0, 0, 0]);
     expect(hits.map((hit) => hit.title)).toEqual([
       'Chapitre premier',
       'Chapitre II',
@@ -78,6 +80,25 @@ describe('result order', () => {
       'Chapitre IX',
       'Chapitre X',
     ]);
+  });
+
+  it('does not let a chapter outrank an earlier one by saying the word more often', () => {
+    // The defect this replaced: searching a novel for its protagonist ranked
+    // the book by how often he is named, so chapter XV came first and chapter
+    // one came last. A chapter is not more *about* someone for mentioning them
+    // twice as much — that is mostly a longer chapter.
+    const repetitive: Chapter[] = [
+      { slug: '01', order: 1, title: 'Chapitre premier', markdown: '# Chapitre premier\n\nPaul.' },
+      {
+        slug: '02',
+        order: 2,
+        title: 'Chapitre II',
+        markdown: '# Chapitre II\n\nPaul, Paul, Paul, Paul et encore Paul.',
+      },
+    ];
+
+    const { chapters: hits } = queryIndex(buildIndex(repetitive), 'paul');
+    expect(hits.map((hit) => hit.order)).toEqual([1, 2]);
   });
 
   it('still puts relevance first', () => {

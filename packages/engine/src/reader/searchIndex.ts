@@ -197,13 +197,28 @@ export function queryIndex(index: BookIndex, query: string): SearchOutcome {
   // Walked in document order rather than in whatever order the postings
   // yielded, because `Array.prototype.sort` is stable: everything downstream
   // then falls back to the order the book is read in without saying so twice.
-  for (const [position, frequency] of [...scores].sort((a, b) => a[0] - b[0])) {
+  for (const [position] of [...scores].sort((a, b) => a[0] - b[0])) {
     const passage = index.passages[position];
 
-    // Where a word appears is worth more than how often. A term in a chapter's
-    // title or a section's heading is what that section is *about*; the same
-    // term buried in a paragraph may be an aside.
-    let score = frequency;
+    /*
+     * **Where a word appears, not how often.**
+     *
+     * The frequency accumulated above decides *which* passages match — every
+     * term has to be present — and then stops. It deliberately does not rank
+     * them, because counting occurrences answers a question no reader asked:
+     * searching a novel for its protagonist ranked the book by how often he is
+     * named, which put chapter XV first, then V, then XVIII, and buried
+     * chapter one at the bottom with a score of 2.
+     *
+     * Frequency looks like relevance and is mostly length. A long chapter says
+     * every word more often; a chapter is not more *about* a character because
+     * he is on the page twice as much. So what survives into the score is the
+     * claim the author made — the term in a chapter's title, or in a section's
+     * heading — and everything else is left to the order the book is read in.
+     *
+     * This is the rule this comment already asserted before the code did it.
+     */
+    let score = 0;
     if (containsAny(passage.chapterTitle, terms)) score += TITLE_BOOST;
     if (passage.heading && containsAny(passage.heading.text, terms)) score += HEADING_BOOST;
 
