@@ -5,7 +5,7 @@ import remarkDirective from 'remark-directive';
 import { visit } from 'unist-util-visit';
 import type { Root } from 'mdast';
 import type { IslandRegistry } from '../islandRegistry';
-import type { QuizQuestion } from '../types';
+import type { Book, QuizQuestion } from '../types';
 
 /**
  * Something in a chapter the reader can be measured against.
@@ -83,4 +83,27 @@ export function chapterScorables(markdown: string, registry: IslandRegistry): Sc
   });
 
   return found;
+}
+
+/**
+ * Whether this book measures the reader at all.
+ *
+ * The progress dashboard used to render for every book, so a novel was told
+ * `0 sections done · 0/0 quiz points · 0 quizzes taken` permanently — three
+ * numbers no reader of that book can ever move, because there is nothing in it
+ * to score. The shell was reporting an absence as a result.
+ *
+ * **The question is about the book, not about the reader.** `readBookStats`
+ * cannot answer it: its totals come from *stored scores*, so it reports zero
+ * both for a novel and for a quiz-heavy book nobody has opened yet — and those
+ * two must not be conflated. A book full of quizzes has to show `0/40` on the
+ * first day, because there the zero is the reader's position and moving it is
+ * the point. So the denominator has to come from the content, which is what
+ * this walks.
+ *
+ * Stops at the first scorable it finds: the answer is a yes or a no, and books
+ * that have any usually have one early.
+ */
+export function hasScorables(book: Book, registry: IslandRegistry): boolean {
+  return book.chapters.some((chapter) => chapterScorables(chapter.markdown, registry).length > 0);
 }

@@ -17,6 +17,7 @@ import { useActiveSection, scrollToSpot } from './reader/useActiveSection';
 import { furthestOf } from './reader/furthest';
 import './reader/reader.css';
 import { chapterHeadings, headingHref } from './markdown/headings';
+import { hasScorables } from './markdown/scorables';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
 export interface ReaderProps {
@@ -71,6 +72,10 @@ export function Reader({
   // Islands the book says it needs but this reader has no implementation for.
   // Reported once here rather than as scattered placeholders (SPEC001 P2.1).
   const missing = useMemo(() => missingIslands(book.descriptor, book.islands), [book]);
+
+  // Whether this book measures the reader at all — parses the content, so it is
+  // memoised against the book rather than recomputed per view.
+  const scored = useMemo(() => hasScorables(book, registry), [book, registry]);
 
   const activePart = useMemo(
     () => (view === 'part' && partId ? findSection(book, partId) : undefined),
@@ -264,7 +269,17 @@ export function Reader({
               . The text is complete; those blocks appear as placeholders.
             </div>
           )}
-          <ProgressDashboard />
+          {/*
+           * The dashboard exists only for books that measure the reader
+           * (SPEC002 S11). A novel has nothing to score, so rendering it there
+           * reports `0 sections done · 0/0 quiz points` for ever — three
+           * numbers nothing the reader does can move.
+           *
+           * Guarded on the *book*, never on the reader's stored scores: a book
+           * full of quizzes must still show its zeros on the first day, where
+           * the zero is a position rather than an absence.
+           */}
+          {scored && <ProgressDashboard />}
           {view === 'search' ? (
             <SearchView book={book} basePath={basePath} query={query ?? ''} />
           ) : view === 'part' ? (

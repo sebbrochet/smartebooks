@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createIslandRegistry } from '../islandRegistry';
 import { defaultIslands } from '../islands/defaults';
-import { chapterScorables } from './scorables';
+import { chapterScorables, hasScorables } from './scorables';
+import type { Book } from '../types';
 
 const registry = createIslandRegistry(defaultIslands);
 
@@ -89,5 +90,43 @@ describe('chapterScorables', () => {
     const markdown = `# Chapter\n\n:::selftest{id="a"}\n\n### Q?\n\n- [x] Yes\n- [ ] No\n\n:::\n`;
 
     expect(chapterScorables(markdown, aliased)).toEqual([{ kind: 'quiz', id: 'a', points: 1 }]);
+  });
+});
+
+describe('whether a book measures the reader', () => {
+  const book = (...markdown: string[]): Book =>
+    ({
+      meta: { slug: 'b', title: 'B' },
+      chapters: markdown.map((text, i) => ({
+        slug: `c${i}`,
+        order: i,
+        title: `C${i}`,
+        markdown: text,
+      })),
+    }) as Book;
+
+  it('is false for a book of prose', () => {
+    // The novel. Three permanent zeros is what this stops.
+    expect(hasScorables(book('# Chapitre premier\n\nIl entra.'), registry)).toBe(false);
+  });
+
+  /*
+   * The case the guard must not catch, and the reason it reads the content
+   * rather than the store: a book full of quizzes shows `0/40` on the first
+   * day. That zero is the reader's position, not an absence, and hiding it
+   * would hide the thing they are about to move.
+   */
+  it('is true before anything has been answered', () => {
+    expect(hasScorables(book('# Chapter\n\n' + quiz('a', 12)), registry)).toBe(true);
+  });
+
+  it('is true for a book scored only by checkpoints', () => {
+    expect(hasScorables(book('# Chapter\n\n::checkpoint{id="done"}\n'), registry)).toBe(true);
+  });
+
+  it('looks past the first chapter', () => {
+    // A study guide that opens with a preface would otherwise be told it has
+    // nothing to measure.
+    expect(hasScorables(book('# Preface\n\nWhy this book.', quiz('a', 1)), registry)).toBe(true);
   });
 });

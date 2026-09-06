@@ -161,6 +161,76 @@ test('an imported book pulls down the code its islands need, before it is opened
 });
 
 /**
+ * Import is the better moment to warm, but it only helps books imported after
+ * it shipped. A shelf filled before that would stay one tunnel away from a
+ * board that cannot draw, and re-importing a dozen books is not a thing to ask
+ * of anyone.
+ *
+ * The reload is what makes this test about *opening*: it empties the module
+ * registry, so a second `import()` is a second request rather than a lookup of
+ * something already loaded. Without it the assertion would pass on the warming
+ * that import already did.
+ */
+test('opening a book warms it too, for books imported before warming existed', async ({ page }) => {
+  await page.goto('/');
+  await importFile(page, makeChessPackageFile());
+  await expect(page.getByRole('link', { name: /Chess Import Demo/ })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+
+  const asked: string[] = [];
+  page.on('request', (request) => asked.push(request.url()));
+
+  await page.getByRole('link', { name: /Chess Import Demo/ }).click();
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  // The book has no chess directive, so nothing on the page could have pulled
+  // this. Only opening the book did.
+  await expect
+    .poll(() => asked.some((url) => /ChessBoardIsland/.test(url)), { timeout: 10_000 })
+    .toBe(true);
+});
+
+/**
+ * SPEC002 S11. The dashboard is for books that measure the reader; a novel was
+ * told `0 sections done · 0/0 quiz points · 0 quizzes taken` for ever.
+ *
+ * Both halves in one test on purpose — the guard is only correct if it keeps
+ * the zeros a quiz book has to show.
+ */
+test('a book with nothing to score is not given a scoreboard', async ({ page }) => {
+  const manifest = {
+    schemaVersion: 1,
+    slug: 'prose-only',
+    title: 'Prose Only',
+    chapters: [{ file: '01-hello.md', order: 1 }],
+  };
+  const zip = zipSync({
+    'smartbook.json': strToU8(JSON.stringify(manifest)),
+    'content/01-hello.md': strToU8('# One\n\nJust words.\n'),
+  });
+  const path = join(tmpdir(), `smart-ebook-prose-${Date.now()}.smartbook.zip`);
+  // Built from `tmpdir()` and a timestamp; no user input reaches it.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  writeFileSync(path, zip);
+
+  const dashboard = page.getByRole('status', { name: 'Your progress' });
+
+  await page.goto('/');
+  await importFile(page, path);
+  await page.getByRole('link', { name: /Prose Only/ }).click();
+  await expect(page.locator('article.prose')).toBeVisible();
+  await expect(dashboard).toHaveCount(0);
+
+  // …and a book that does measure the reader still shows its zeros, because
+  // there the zero is a position rather than an absence.
+  await page.goto('/#/guide/01-getting-started');
+  await expect(dashboard).toBeVisible();
+  await expect(dashboard).toContainText('quiz points');
+});
+
+/**
  * SPEC010 M1, end to end: the descriptor says `fr`, and the prose says `fr`.
  *
  * Asserted on the **chapter** rather than the document, which stays `en`. The

@@ -14,6 +14,7 @@ import {
 } from '@smart-ebooks/engine';
 import { useShelfBooks } from './useShelfBooks';
 import { useServiceWorker } from './useServiceWorker';
+import { warmIslandPacks } from './islandPacks';
 import { useAppRoute } from './router';
 import { allowResume, hashFor, resumeChapter, suppressResume, useLaunchDecision } from './launch';
 import { Bookshelf } from './Bookshelf';
@@ -81,6 +82,30 @@ export default function App() {
     const previous = getLastRead();
     setLastRead(slug, previous?.bookSlug === slug ? previous.chapterSlug : undefined);
   }, [route, activeBook]);
+
+  /*
+   * Pull down the code this book's islands need, the first time it is opened
+   * in this session.
+   *
+   * Import does this too, and import is the better moment — the reader is
+   * demonstrably online and the book is complete before it is ever needed. But
+   * import only helps books imported *after* that shipped: a shelf full of
+   * books added earlier would stay one tunnel away from `This chess-board
+   * could not be displayed`, and re-importing every one of them is not a thing
+   * to ask of anybody.
+   *
+   * Cheap to repeat. Everything here is already cached after the first success,
+   * so this is a no-op on every open but the first, and best-effort besides —
+   * a reader opening a book offline gets exactly what they get today.
+   */
+  const openedSlug = activeBook?.meta.slug;
+  useEffect(() => {
+    if (!activeBook) return;
+    void warmIslandPacks(activeBook.descriptor);
+    // Keyed on the slug rather than the book: an imported book is rebuilt on
+    // every shelf reload, and warming once per book is the point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openedSlug]);
 
   /*
    * Opening a book without naming a chapter means "take me back to it", not
