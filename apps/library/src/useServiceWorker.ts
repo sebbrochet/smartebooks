@@ -1,4 +1,12 @@
 import { useEffect, useState } from 'react';
+import { STALE_BUILD_EVENT } from '@smart-ebooks/engine';
+
+/**
+ * Once per tab. A build whose chunks are missing *and* whose replacement does
+ * not fix it would otherwise reload forever, which is worse than the broken
+ * island it is trying to repair.
+ */
+const RECOVERED = 'smart-ebooks:recovered-stale-build';
 
 /**
  * Registers the service worker and reports when a new version of the app is
@@ -10,6 +18,13 @@ import { useEffect, useState } from 'react';
  * they opened, and the failure mode is a blank page or a lost place — during
  * the exact activity the offline support exists to protect. So a waiting worker
  * sits and waits, and the reader is offered a reload.
+ *
+ * With one exception, and it is the case that proves the rule: when an island's
+ * code is **already** missing, this build has stopped working. Waiting politely
+ * protects nothing — the reader is looking at a placeholder where a chess game
+ * should be, and no action available to them fixes it, because a reload is
+ * served the same cached shell. So a stale-build report activates the waiting
+ * worker and reloads, once. See `IslandBoundary`.
  *
  * Nothing here runs in development: an installed worker serving a cached shell
  * is precisely what a dev server must not do, and debugging a stale worker
@@ -23,9 +38,54 @@ export function useServiceWorker(): { updateReady: boolean; update: () => void }
     if (!('serviceWorker' in navigator)) return;
 
     let cancelled = false;
+    let current: ServiceWorkerRegistration | undefined;
+    let recovering = false;
+
+    /** Take the new worker now, because the one running here is broken. */
+    const takeOver = (worker: ServiceWorker) => {
+      navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), {
+        once: true,
+      });
+      worker.postMessage('SKIP_WAITING');
+    };
+
+    const onStale = () => {
+      if (cancelled || !current) return;
+      try {
+        if (sessionStorage.getItem(RECOVERED)) return;
+        sessionStorage.setItem(RECOVERED, '1');
+      } catch {
+        // Private mode with no storage: better to try once than never.
+      }
+
+      /*
+       * The check, not just a fetch. The boundary cannot tell a deleted chunk
+       * from a dead network — the error text differs by host and by browser —
+       * so it reports the symptom and this settles it: a worker that installs
+       * means the build really has moved on. If none does, the network is at
+       * fault and the reader keeps the message they already have.
+       *
+       * The result is picked up in `updatefound` below rather than from
+       * `update()` resolving, because **`update()` resolves when the check
+       * completes, not when the new worker has installed**. Reading
+       * `registration.waiting` straight after it finds null nearly every time,
+       * and with the one-shot guard above that meant the page never recovered.
+       * Measured, not reasoned: the offline suite's stale-build test failed on
+       * exactly this.
+       */
+      recovering = true;
+      if (current.waiting) {
+        takeOver(current.waiting);
+        return;
+      }
+      void current.update().catch(() => {
+        // Offline after all. The placeholder already says so.
+      });
+    };
 
     const watch = (registration: ServiceWorkerRegistration) => {
       if (cancelled) return;
+      current = registration;
 
       // A worker can already be waiting when the page loads — the reader may
       // have opened a tab, been given an update, and closed it again.
@@ -39,11 +99,16 @@ export function useServiceWorker(): { updateReady: boolean; update: () => void }
           // Announcing "update available" to someone who has just arrived would
           // be both untrue and alarming.
           if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-            if (!cancelled) setWaiting(installing);
+            if (cancelled) return;
+            // Asked for by a broken page: apply it rather than offering it.
+            if (recovering) takeOver(installing);
+            else setWaiting(installing);
           }
         });
       });
     };
+
+    window.addEventListener(STALE_BUILD_EVENT, onStale);
 
     // `import.meta.env.BASE_URL` rather than a literal: a project page is served
     // from `/<repo>/`, and a worker registered at the origin root would have a
@@ -60,6 +125,7 @@ export function useServiceWorker(): { updateReady: boolean; update: () => void }
 
     return () => {
       cancelled = true;
+      window.removeEventListener(STALE_BUILD_EVENT, onStale);
     };
   }, []);
 

@@ -36,6 +36,7 @@ export { searchChapters, type SearchResult } from './reader/search';
 // Content + rendering
 export { renderMarkdown } from './markdown/render';
 export { mdastToText, extractDirectiveCode, extractJsonConfig } from './markdown/extract';
+export { STALE_BUILD_EVENT } from './markdown/IslandBoundary';
 
 // Book packaging (.smartbook)
 export { makeBook } from './package/makeBook';

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
@@ -226,6 +226,140 @@ function deployNewVersion(): string {
 // from the same `dist` — does not ship a worker this test edited.
 test.afterAll(() => {
   if (pristine) writeFileSync(SW, pristine);
+});
+
+// Chunks come back after *each* test, not at the end: two tests in a row remove
+// the same one, and the second found nothing left to remove.
+test.afterEach(() => {
+  for (const [path, bytes] of removed) writeFileSync(path, bytes);
+  removed.clear();
+});
+
+/*
+ * A deployment that *removes* a chunk, which is the half of the update path the
+ * tests above do not reach.
+ *
+ * Every island is a `lazy` import, so its code is a separate content-hashed
+ * chunk fetched the first time one is shown. A deploy emits new hashes and
+ * deletes the old files — and a reader still on the previous shell, which is
+ * every reader who has not accepted the update, then asks for a name the server
+ * no longer has.
+ *
+ * This is not hypothetical. It shipped: on 2026-09-06 every board in a book
+ * whose chapters are all `chess-game` read `This chess-game could not be
+ * displayed`, because `ChessGameIsland-chIHKmyi.js` returned 404 while the
+ * deployed build wanted `ChessGameIsland-CRG_pFwF.js`. Only chunks the reader
+ * had never loaded broke, so the failure looked book-specific and was global.
+ *
+ * The suite above could not have caught it: every one of its tests asserts that
+ * *cached* things keep working. Nothing asserted what happens when the server
+ * has moved on and the cache has not.
+ */
+const ASSETS = resolve('apps/library/dist/assets');
+const removed = new Map<string, Buffer>();
+
+/** Deletes a built island chunk, as a deploy that renamed it would. */
+function deleteIslandChunk(island: string): string {
+  const name = readdirSync(ASSETS).find(
+    (file) => file.startsWith(`${island}-`) && file.endsWith('.js'),
+  );
+  if (!name) throw new Error(`No built chunk for ${island} in ${ASSETS}.`);
+
+  const path = resolve(ASSETS, name);
+  if (!removed.has(path)) removed.set(path, readFileSync(path));
+  rmSync(path);
+  return name;
+}
+
+/**
+ * The symptom, guarded directly.
+ *
+ * Deliberately loose about *which* actionable message appears, because that
+ * depends on the host: one that answers a missing path with a real 404 produces
+ * a network error, and one that answers with the SPA fallback — `index.html`,
+ * as `text/html` — produces a MIME error instead. Both are now named. The thing
+ * that must never come back is the third outcome, where the reader is told the
+ * island itself is broken and has nothing to act on.
+ */
+test('an island whose code the server no longer has is never reported as broken', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForController(page);
+
+  // Removed *after* the shell is cached, so this is a reader mid-session when
+  // the deploy lands rather than someone arriving to a broken site.
+  deleteIslandChunk('ChessGameIsland');
+
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  const placeholder = page.locator('.island--unknown').first();
+  await expect(placeholder).toBeVisible();
+  await expect(placeholder).not.toContainText('could not be displayed');
+  await expect(placeholder).toContainText(/needs a connection|version of the reader/);
+
+  // The rest of the chapter is still there — one missing chunk must not cost
+  // the page, which is the boundary's older promise.
+  await expect(page.locator('article.prose')).toContainText('A game you can lay out');
+});
+
+/**
+ * And having been named, it has to be *repaired* — by the app, not the reader.
+ *
+ * Nothing available to them fixes this: a reload is served the same cached
+ * shell, so the only way out is activating the worker that is waiting. That is
+ * the one case where taking the update unprompted is right, because the build
+ * they are on has already stopped working.
+ *
+ * The island is not asserted to render afterwards, and cannot be: a real deploy
+ * would serve the chunk under its new name, but this test deleted it outright
+ * rather than paying for a second three-minute build. What is asserted is that
+ * the reader ends up on the new version **without being asked**, which is the
+ * behaviour that was missing.
+ */
+test('a stale build repairs itself when an island turns out to be missing', async ({ page }) => {
+  await page.goto('/');
+  await waitForController(page);
+
+  const version = deployNewVersion();
+  deleteIslandChunk('ChessGameIsland');
+
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  /*
+   * Read through a tolerated failure, because the thing being asserted destroys
+   * the context doing the asserting: recovery reloads the page, and an evaluate
+   * that happens to be in flight dies with "Execution context was destroyed".
+   * That error *is* the reload, so it is treated as "not yet" rather than as a
+   * failure, and the poll continues into the new document.
+   */
+  const cacheNames = async () => {
+    try {
+      return await page.evaluate(() => caches.keys());
+    } catch {
+      return null;
+    }
+  };
+
+  // No click, no prompt: the app notices the code is gone and takes the update.
+  await expect.poll(cacheNames, { timeout: 30_000 }).toEqual([`smart-ebooks-${version}`]);
+
+  await expect
+    .poll(async () => {
+      try {
+        return await page.evaluate(async () => {
+          const registration = await navigator.serviceWorker.getRegistration();
+          return Boolean(registration?.waiting);
+        });
+      } catch {
+        return null;
+      }
+    })
+    .toBe(false);
+
+  // It reloaded rather than leaving a half-dead page behind.
+  await expect(page.locator('article.prose')).toBeVisible();
 });
 
 test('an update waits for the reader, and installs only when they ask', async ({ page }) => {
