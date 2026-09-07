@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react';
+import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Icon } from './Icon';
 import { ThemeToggle } from './ThemeToggle';
 import { ReadingSettings } from './ReadingSettings';
@@ -47,8 +47,41 @@ interface ReaderBarProps {
  * back to; a reader on a shelf does.
  */
 export function ReaderBar({ title, leading, actions, navigation }: ReaderBarProps) {
+  const barRef = useRef<HTMLElement>(null);
+
+  /*
+   * The bar publishes its own height, and everything that sticks below it reads
+   * that instead of guessing (SPEC009 T2 / V13).
+   *
+   * **Measured, not declared.** Three rules used to carry hand-tuned offsets —
+   * `top: 4rem` twice and `scroll-margin-top: 5rem` — all chosen against a
+   * header that was ~88px on a phone. When the bar was rebuilt to 45px every
+   * one of them silently became wrong: the rails floated 19px low and a `?s=`
+   * deep link left 35px of dead space above the heading it aimed at. Nothing
+   * looked broken, which is why it survived the change that caused it. A
+   * constant reading `45px` would just be a fourth literal in a token's
+   * clothes, so this reports what the bar actually is.
+   */
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+
+    const publish = () =>
+      document.documentElement.style.setProperty('--ui-bar-h', `${bar.offsetHeight}px`);
+
+    publish();
+    // The height moves with the reader's type size and with the labels
+    // appearing at 720px, so a single measurement on mount would go stale.
+    const observer = new ResizeObserver(publish);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--ui-bar-h');
+    };
+  }, []);
+
   return (
-    <header className="reader__header">
+    <header className="reader__header" ref={barRef}>
       {leading}
       {/*
        * The title is allowed to shrink and truncate; the controls are not. On a

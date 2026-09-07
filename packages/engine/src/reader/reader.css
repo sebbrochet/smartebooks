@@ -118,6 +118,13 @@
     --text-leading: 1.65;
     /* The measure: how wide a line of prose is allowed to get. */
     --measure: 44rem;
+    /*
+   * The height of the sticky bar. A fallback only: `ReaderBar` measures itself
+   * and overwrites this, because a number written here is a literal that goes
+   * stale the moment the bar changes — which is exactly what happened to the
+   * three offsets that consume it (SPEC009 V13).
+   */
+    --ui-bar-h: 45px;
   }
 
   /* Dark palette, shared by system-dark (no explicit choice) and data-theme="dark". */
@@ -405,7 +412,8 @@
      without following the reader down the page. */
     .toc {
       position: sticky;
-      top: 4rem;
+      /* Below the bar, whatever the bar currently measures (SPEC009 V13). */
+      top: calc(var(--ui-bar-h) + 1rem);
       margin: 0;
       border: 0;
       border-left: 1px solid var(--border);
@@ -451,7 +459,7 @@
   .sidebar {
     grid-area: sidebar;
     position: sticky;
-    top: 4rem;
+    top: calc(var(--ui-bar-h) + 1rem);
     align-self: start;
     /*
    * Clamped to the viewport, with its own scrollbar.
@@ -1103,7 +1111,12 @@
     line-height: 1.25;
     /* Text-wrap balance keeps a two-line heading from leaving one orphan word. */
     text-wrap: balance;
-    scroll-margin-top: 5rem;
+    /*
+   * So a `?s=` link lands the heading below the bar rather than behind it.
+   * This was `5rem`, chosen when the bar was ~88px: after it shrank to 45px
+   * every deep link left 35px of dead space above its own heading (V13).
+   */
+    scroll-margin-top: calc(var(--ui-bar-h) + 1rem);
   }
 
   .prose h1 {

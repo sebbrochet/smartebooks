@@ -335,9 +335,44 @@ test('a move named in a sentence drives every board on the page', async ({ page 
   );
 });
 
-test('a pinned board stays where it was put', async ({ page }) => {
+/**
+ * SPEC008 C18/G7. The container's premise is that prose drives the board, and
+ * in the flow that held only while the annotation was shorter than a screen:
+ * past that, `:move[…]` moved a board the reader had scrolled away from, so
+ * clicking a move appeared to do nothing.
+ *
+ * Every other chess test clicks a move with the board comfortably on screen,
+ * which is why none of them caught it.
+ */
+test('the board holds still while the prose scrolls past it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
+  const board = page.locator('.chess-game > .chessboard-island').first();
+  const game = page.locator('.chess-game').first();
+
+  // The game starts below the fold, so bring it on screen first: the claim is
+  // about what happens while reading it, not about where the chapter opens.
+  await game.scrollIntoViewIfNeeded();
+  await expect(board).toBeInViewport();
+
+  // Scroll to the last thing inside the game: from here the board would have
+  // left the screen entirely when it sat in the flow.
+  await game.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    window.scrollTo(0, window.scrollY + box.bottom - window.innerHeight);
+  });
+
+  await expect(board).toBeInViewport();
+
+  // And it lets go at the end of the game rather than following the reader
+  // down the rest of the chapter — sticky is scoped to the container.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(board).not.toBeInViewport();
+});
+
+test('a pinned board stays where it was put', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
   // Two boards, one live and one pinned with `at`.
   await expect(page.locator('.chessboard-island .cg-wrap')).toHaveCount(2);
 
