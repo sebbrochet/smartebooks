@@ -289,14 +289,32 @@ test('there is no width where search cannot be reached', async ({ page }) => {
   expect(unreachable).toEqual([]);
 });
 
-test('on a wide screen the controls are all in the header, with no disclosure', async ({
-  page,
-}) => {
+/**
+ * This test used to assert the opposite: that on a wide screen the secondary
+ * controls sit in the header with no disclosure, because there was room for
+ * them. There was room, and it still cost too much — measured at 721px the bar
+ * came to 97px in four rows, with 27px-tall targets (SPEC009 T10). The reason
+ * N6 gave for hiding them on a phone, that these are touched about once a
+ * month, was never a fact about phones.
+ */
+test('the secondary controls are behind a disclosure at every width', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
 
-  await expect(page.getByRole('button', { name: /Tools/ })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Reset progress' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export progress' })).toBeVisible();
+  const tools = page.locator('.reader__tools');
+  await expect(tools).toBeHidden();
+
+  await page.getByRole('button', { name: /Tools/ }).click();
+  await expect(tools).toBeVisible();
+  await expect(tools.getByRole('button', { name: 'Reset progress' })).toBeVisible();
+  await expect(tools.getByRole('button', { name: 'Export progress' })).toBeVisible();
+
+  // The controls that are used *while reading* stay out in the bar. Scoped to
+  // the bar because `name` matches a substring: the sidebar's "Search this
+  // book" answers to `Search` too.
+  const bar = page.locator('.reader__header');
+  await expect(bar.getByRole('button', { name: /Theme:/ })).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Contents' })).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Search', exact: true })).toBeVisible();
 });
 
 test('a long chapter offers a way back to the top', async ({ page }) => {

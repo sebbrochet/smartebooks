@@ -61,7 +61,7 @@ test('a deep link is never hijacked by resume', async ({ page }) => {
 
 test('choosing the library keeps you there, even after a refresh', async ({ page }) => {
   await page.goto(CHAPTER);
-  await page.getByRole('link', { name: 'Smart Ebooks', exact: true }).click();
+  await page.getByRole('link', { name: 'Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 
   await page.reload();
@@ -97,7 +97,7 @@ test('opening a book from the library returns to the chapter you were reading', 
   // The position is written on a delay, not on every scroll frame.
   await page.waitForTimeout(1200);
 
-  await page.getByRole('link', { name: 'Smart Ebooks', exact: true }).click();
+  await page.getByRole('link', { name: 'Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 
   await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
@@ -136,7 +136,7 @@ test('returning through the library restores the place, not just the chapter', a
   expect(left).toBeGreaterThan(0);
   await page.waitForTimeout(1200);
 
-  await page.getByRole('link', { name: 'Smart Ebooks', exact: true }).click();
+  await page.getByRole('link', { name: 'Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
   await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
 

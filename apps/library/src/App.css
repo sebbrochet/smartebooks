@@ -55,29 +55,18 @@
     left: 0;
   }
 
-  .reader__header {
-    position: sticky;
-    top: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 0;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    z-index: 10;
-  }
-
+  /*
+   * `.reader__header`, `.reader__booktitle` and `.reader__actions` are the
+   * engine's (SPEC009 T10) and are deliberately *not* repeated here. They were,
+   * until the bar moved: because `reader.css` is layered and this file is not,
+   * the app's copy silently won the cascade and kept 24px of padding on a bar
+   * that had been rebuilt to have none. The bar measured 69px instead of 45.
+   */
   .reader__brand {
     font-weight: 700;
     color: var(--fg);
     text-decoration: none;
-  }
-
-  .reader__booktitle {
-    color: var(--muted);
-    font-size: 0.9rem;
-    border-left: 1px solid var(--border);
-    padding-left: 0.75rem;
+    padding: 0 0.5rem;
   }
 
   .reader__version {
@@ -85,22 +74,31 @@
     font-size: 0.8rem;
   }
 
-  .reader__actions {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.5rem;
-  }
-
-  /* The secondary controls. One row beside the theme toggle on a wide screen; a
-   panel below the header on a phone, where five buttons cannot share a line. */
+  /*
+   * The secondary controls, behind a disclosure at **every** width.
+   *
+   * N6 put them behind one on a phone because five buttons could not share a
+   * line. The reason it gave — these are touched about once a month — was never
+   * a fact about phones, and inline above 720px the bar measured 97px in four
+   * rows at 721px and 62px in three at 768px, with 27px-tall targets. Out of
+   * the header's flow, so opening it pushes nothing around: the reader is
+   * looking at the page, not at the toolbar.
+   */
   .reader__tools {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 12;
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 12rem;
     gap: 0.5rem;
+    padding: 0.6rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
   }
 
   /* `hidden` is only a presentation hint and this is a flex row, so without an
@@ -110,26 +108,19 @@
   }
 
   @media (max-width: 720px) {
-    /* Out of the header's flow so opening it pushes nothing around: the reader
-     is looking at the page, not at the toolbar. */
-    .reader__tools {
-      position: absolute;
-      top: 100%;
-      right: 0;
-      z-index: 12;
-      flex-direction: column;
-      align-items: stretch;
-      min-width: 12rem;
-      padding: 0.6rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
-    }
-
-    /* The book's own title is the first thing in the chapter anyway. */
+    /*
+     * At 320px six 44px controls leave 56px — three characters and an ellipsis,
+     * which reads as breakage rather than as a title. From 360px there is room
+     * for a word of it, and the bar's centre is otherwise empty (SPEC009 T10).
+     */
     .reader__booktitle {
       display: none;
+    }
+  }
+
+  @media (min-width: 360px) {
+    .reader__booktitle {
+      display: block;
     }
   }
 

@@ -8,6 +8,18 @@ function checkpoint(page: import('@playwright/test').Page) {
 }
 
 /**
+ * Backup, export and reset live behind the Tools disclosure at every width
+ * (SPEC009 T10). They used to sit in the header on a wide screen, which is why
+ * these tests could reach them directly.
+ */
+async function openTools(page: import('@playwright/test').Page) {
+  const panel = page.locator('.reader__tools');
+  if (await panel.isVisible()) return;
+  await page.getByRole('button', { name: 'Tools' }).click();
+  await expect(panel).toBeVisible();
+}
+
+/**
  * The confirm button restates the action, so it carries the same name as the
  * control that opened it. Scoped to the dialog rather than renamed: "Reset
  * progress" is what the reader is agreeing to, and a vaguer word on the button
@@ -23,6 +35,7 @@ test('progress export then import restores state after a reset', async ({ page }
   await expect(checkpoint(page)).toBeChecked();
 
   // Export the backup file.
+  await openTools(page);
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export progress' }).click(),
@@ -30,6 +43,7 @@ test('progress export then import restores state after a reset', async ({ page }
   const file = await download.path();
 
   // Reset wipes this book's progress (and reloads) — once confirmed.
+  await openTools(page);
   await page.locator('.reader__tools').getByRole('button', { name: 'Reset progress' }).click();
   await confirmReset(page).click();
   await expect(checkpoint(page)).not.toBeChecked();
@@ -49,6 +63,7 @@ test('resetting progress asks first, and cancelling keeps everything', async ({ 
   await checkpoint(page).check();
   await expect(checkpoint(page)).toBeChecked();
 
+  await openTools(page);
   await page.locator('.reader__tools').getByRole('button', { name: 'Reset progress' }).click();
 
   const dialog = page.getByRole('alertdialog');
@@ -63,6 +78,7 @@ test('resetting progress asks first, and cancelling keeps everything', async ({ 
   await expect(checkpoint(page)).toBeChecked();
 
   // Escape is a second way out, and must not destroy anything either.
+  await openTools(page);
   await page.locator('.reader__tools').getByRole('button', { name: 'Reset progress' }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -71,6 +87,7 @@ test('resetting progress asks first, and cancelling keeps everything', async ({ 
 
 test('a book can be exported as a .smartbook package', async ({ page }) => {
   await page.goto(CHAPTER);
+  await openTools(page);
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export book' }).click(),

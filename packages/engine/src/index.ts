@@ -22,6 +22,7 @@ export { usePersistentState } from './store/usePersistentState';
 export { useAssetResolver, type AssetResolver } from './reader/useAssetResolver';
 export { ThemeToggle } from './reader/ThemeToggle';
 export { ReadingSettings } from './reader/ReadingSettings';
+export { Icon, type IconName } from './reader/Icon';
 export { useReadingPreferences, applyReadingPreferences } from './reader/useReadingPreferences';
 export {
   getReadingPreferences,

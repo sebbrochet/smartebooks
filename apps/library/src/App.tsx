@@ -3,14 +3,13 @@ import {
   Reader,
   ThemeToggle,
   ReadingSettings,
+  Icon,
   clearBook,
   clearLastRead,
   deleteImportedBook,
   getLastRead,
   reading,
   setLastRead,
-  useMediaQuery,
-  NARROW,
 } from '@smart-ebooks/engine';
 import { useShelfBooks } from './useShelfBooks';
 import { useServiceWorker } from './useServiceWorker';
@@ -31,17 +30,17 @@ export default function App() {
   const activeBook = active?.book;
 
   /*
-   * On a phone the header used to wrap to **154px of a 780px screen** — brand,
+   * The header used to wrap to **154px of a 780px screen** on a phone — brand,
    * book title and five buttons, none of which folded. A fifth of the viewport
    * spent on controls a reader touches once a month, before a word of the book.
    *
    * The theme toggle stays out: it is the one control readers use while
    * reading. Everything else — progress backup, export, reset — goes behind a
-   * disclosure (SPEC002, header note).
+   * disclosure (SPEC002, header note), now at **every** width: that reasoning
+   * was never a fact about phones, and inline above 720px the bar still
+   * measured 97px in four rows (SPEC009 T10).
    */
-  const narrow = useMediaQuery(NARROW);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const toolsVisible = !narrow || toolsOpen;
 
   // Reopening on every navigation would put the panel back over the text.
   useEffect(() => setToolsOpen(false), [route]);
@@ -162,6 +161,44 @@ export default function App() {
     await reload();
   }
 
+  /*
+   * The host's own actions: backup, export, reset. They are about packaging and
+   * the library rather than about reading, which is why the engine takes them
+   * as a slot instead of owning them (SPEC009 T10). The same cluster serves the
+   * shelf's header and the reader's bar.
+   */
+  const tools = (
+    <>
+      <button
+        type="button"
+        className="ui-btn reader__tools-toggle"
+        aria-expanded={toolsOpen}
+        aria-controls="reader-tools"
+        aria-label="Tools"
+        title="Tools"
+        onClick={() => setToolsOpen((open) => !open)}
+      >
+        <Icon name="more" />
+        <span className="ui-btn__label">Tools</span>
+      </button>
+      <div className="reader__tools" id="reader-tools" hidden={!toolsOpen}>
+        <BackupControls bookSlug={activeBook?.meta.slug} />
+        {activeBook && <BookExport book={activeBook} />}
+        {activeBook && (
+          <button
+            type="button"
+            className="reader__reset"
+            onClick={() =>
+              setResetting({ slug: activeBook.meta.slug, title: activeBook.meta.title })
+            }
+          >
+            Reset progress
+          </button>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="reader">
       <a className="skip-link" href="#main">
@@ -181,42 +218,22 @@ export default function App() {
           </button>
         </div>
       )}
-      <header className="reader__header">
-        <a className="reader__brand" href="#/">
-          Smart Ebooks
-        </a>
-        {activeBook && <span className="reader__booktitle">{activeBook.meta.title}</span>}
-        <div className="reader__actions">
-          <ThemeToggle />
-          <ReadingSettings />
-          {narrow && (
-            <button
-              type="button"
-              className="reader__reset reader__tools-toggle"
-              aria-expanded={toolsOpen}
-              aria-controls="reader-tools"
-              onClick={() => setToolsOpen((open) => !open)}
-            >
-              <span aria-hidden="true">⋯</span> Tools
-            </button>
-          )}
-          <div className="reader__tools" id="reader-tools" hidden={!toolsVisible}>
-            <BackupControls bookSlug={activeBook?.meta.slug} />
-            {activeBook && <BookExport book={activeBook} />}
-            {activeBook && (
-              <button
-                type="button"
-                className="reader__reset"
-                onClick={() =>
-                  setResetting({ slug: activeBook.meta.slug, title: activeBook.meta.title })
-                }
-              >
-                Reset progress
-              </button>
-            )}
+      {/*
+       * Only when no book is open. With a book, the engine renders the one bar
+       * and this would be a second one (SPEC009 V10).
+       */}
+      {!activeBook && (
+        <header className="reader__header">
+          <a className="reader__brand" href="#/">
+            Smart Ebooks
+          </a>
+          <div className="reader__actions">
+            <ThemeToggle />
+            <ReadingSettings />
+            {tools}
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {activeBook ? (
         <Reader
@@ -229,6 +246,19 @@ export default function App() {
           highlight={route.view === 'book' ? route.highlight : undefined}
           query={route.view === 'search' ? route.query : undefined}
           trusted={active?.trusted ?? true}
+          /*
+           * The way back to the shelf. It lives here rather than in the engine
+           * because the engine renders *a book* and must not learn that a
+           * library exists — a single-book installable reader would have
+           * nowhere to go (SPEC009 T10).
+           */
+          leading={
+            <a className="ui-btn reader__home" href="#/" aria-label="Library" title="Library">
+              <Icon name="back" />
+              <span className="ui-btn__label">Library</span>
+            </a>
+          }
+          actions={tools}
         />
       ) : pending && pendingBook ? (
         <CoverSplash book={pendingBook} chapterSlug={pending.chapterSlug} onDismiss={dismiss} />

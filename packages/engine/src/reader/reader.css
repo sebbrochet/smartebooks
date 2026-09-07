@@ -847,30 +847,99 @@
   }
 
   /*
- * Navigation on a narrow screen.
+ * The bar (SPEC009 T10).
  *
- * Below 720px the sidebar used to sit in the flow above the chapter, which put
- * every chapter link between the reader and the first sentence — a forty
- * chapter book opened on forty links. It becomes a drawer instead, and the
- * toolbar that opens it only exists at that width.
+ * Rendered by the engine so that every host draws the same chrome, with two
+ * slots the engine cannot fill for itself: `leading` (the host's way back to
+ * wherever it came from) and `actions`. The app uses these same rules for its
+ * shelf header rather than repeating them — it repeated them once, and because
+ * `reader.css` is layered and `App.css` is not, the unlayered copy won and kept
+ * 24px of padding on a bar rebuilt to have none.
  */
-  .reader__toolbar {
-    display: none;
+  .reader__header {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
+    /* No vertical padding: the 44px controls set the height now, and padding on
+     top of them was how the bar reached 88px. */
+    padding: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+
+  .reader__booktitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    /* The one thing in the bar allowed to lose: a clipped title costs a few
+     characters, a wrapped control costs a whole row. */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .reader__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    /* Deliberately *not* `flex-wrap: wrap`. Wrapping is what turned the header
+     into four rows on a 320px screen; the controls must stay on one line and
+     the title must yield instead. */
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 0.15rem;
+  }
+
+  /*
+ * Controls in the bar (SPEC009 T11).
+ *
+ * One class for every control the platform draws, which is the shared control
+ * shape T2 asks for and V4 says is missing. Two things it fixes at once: the
+ * old buttons were ~28px tall against a 44px touch guideline, and their labels
+ * were words that wrapped the header to four rows on a 320px screen.
+ */
+  .ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    /* Not padding: a fixed floor means the target stays 44px whether the label
+     is showing or the icon is alone. */
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 0.6rem;
+    font-size: 0.85rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  .ui-btn:hover {
+    background: var(--island-bg);
+  }
+
+  .ui-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .ui-btn .icon {
+    /* The glyphs are drawn on a 24px grid but read better a little smaller
+     next to 0.85rem text. */
+    width: 20px;
+    height: 20px;
+    flex: none;
   }
 
   .reader__nav-toggle,
   .reader__search-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    padding: 0.4rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--island-bg);
-    color: var(--fg);
-    cursor: pointer;
   }
 
   .reader__scrim {
@@ -881,16 +950,21 @@
     .reader__body {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas:
-        'nav'
         'toc'
         'main';
     }
 
-    /* The search button is otherwise inside the drawer, two taps away. */
-    .reader__toolbar {
-      grid-area: nav;
-      display: flex;
-      justify-self: start;
+    /*
+   * Labels go, icons stay (SPEC009 T11). The accessible name does not go with
+   * them — every control carries its own `aria-label`, because `display: none`
+   * removes text from the accessibility tree as well as from the screen.
+   */
+    .ui-btn__label {
+      display: none;
+    }
+
+    .ui-btn {
+      padding: 0;
     }
 
     /* The grid gap already separates the rail from the chapter; its own bottom

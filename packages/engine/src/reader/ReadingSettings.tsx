@@ -7,6 +7,7 @@ import {
   type ReadingPreferences,
 } from '../store/platformSettings';
 import { useReadingPreferences } from './useReadingPreferences';
+import { Icon } from './Icon';
 
 /** The words a reader would use, rather than the values they map to. */
 const LABELS: Record<string, string> = {
@@ -67,12 +68,18 @@ export function ReadingSettings() {
       <button
         type="button"
         ref={buttonRef}
-        className="theme-toggle"
+        className="ui-btn theme-toggle"
         aria-expanded={open}
         aria-controls="reading-settings"
+        // Named explicitly because the visible label is hidden on a phone, and
+        // `display: none` removes text from the accessibility tree as well as
+        // from the screen (SPEC009 T10).
+        aria-label="Reading settings"
+        title="Reading settings"
         onClick={() => setOpen((was) => !was)}
       >
-        <span aria-hidden="true">Aa</span> Reading
+        <Icon name="text" />
+        <span className="ui-btn__label">Reading</span>
       </button>
 
       <div className="reading-settings__panel" id="reading-settings" hidden={!open}>

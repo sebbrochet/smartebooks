@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Book } from './types';
 import { createIslandRegistry } from './islandRegistry';
 import { missingIslands } from './package/islandRequirements';
@@ -6,6 +6,7 @@ import { BookProvider } from './reader/BookContext';
 import { useAssetResolver } from './reader/useAssetResolver';
 import { reading } from './store/store';
 import { Sidebar } from './reader/Sidebar';
+import { ReaderBar } from './reader/ReaderBar';
 import { ChapterView } from './reader/ChapterView';
 import { SearchView } from './reader/SearchView';
 import { PartView } from './reader/PartView';
@@ -42,6 +43,13 @@ export interface ReaderProps {
   query?: string;
   /** Whether the book is trusted. Imported books pass `false` (sanitized). */
   trusted: boolean;
+  /**
+   * The host's control at the start of the bar — typically the way back to its
+   * library. Optional: a single-book reader has no shelf (SPEC009 T10).
+   */
+  leading?: ReactNode;
+  /** The host's own actions at the end of the bar: export, reset, backup. */
+  actions?: ReactNode;
 }
 
 /**
@@ -59,6 +67,8 @@ export function Reader({
   highlight,
   query,
   trusted,
+  leading,
+  actions,
 }: ReaderProps) {
   const mainRef = useRef<HTMLElement>(null);
   const navToggleRef = useRef<HTMLButtonElement>(null);
@@ -214,26 +224,16 @@ export function Reader({
       resolveAsset={resolveAsset}
       registry={registry}
     >
+      <ReaderBar
+        title={book.meta.title}
+        leading={leading}
+        actions={actions}
+        navOpen={navOpen}
+        onToggleNav={() => setNavOpen((open) => !open)}
+        navToggleRef={navToggleRef}
+        onOpenSearch={() => setSearchOpen(true)}
+      />
       <div className="reader__body">
-        <div className="reader__toolbar">
-          <button
-            type="button"
-            ref={navToggleRef}
-            className="reader__nav-toggle"
-            aria-expanded={navOpen}
-            aria-controls="book-nav"
-            onClick={() => setNavOpen((open) => !open)}
-          >
-            <span aria-hidden="true">☰</span> Contents
-          </button>
-          <button
-            type="button"
-            className="reader__search-toggle"
-            onClick={() => setSearchOpen(true)}
-          >
-            <span aria-hidden="true">⌕</span> Search
-          </button>
-        </div>
         {navOpen && (
           <div
             className="reader__scrim"

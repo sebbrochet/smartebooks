@@ -51,7 +51,7 @@ test('import a .smartbook package, then open and delete it', async ({ page }) =>
   await expect(page.locator('article.prose img')).toHaveAttribute('src', /^blob:/);
 
   // Back to the shelf and delete it — which asks first.
-  await page.getByRole('link', { name: 'Smart Ebooks' }).click();
+  await page.getByRole('link', { name: 'Library' }).click();
   await page.getByRole('button', { name: /Delete imported book Imported Demo Book/ }).click();
 
   const confirm = page.getByRole('alertdialog', { name: /Delete Imported Demo Book/ });
@@ -304,7 +304,7 @@ test('an update reports the answers it can no longer show, and deletes none', as
   await expect(page.locator('.quiz__result')).toContainText('1 / 1');
 
   // A new edition that renamed the quiz.
-  await page.getByRole('link', { name: 'Smart Ebooks', exact: true }).click();
+  await page.getByRole('link', { name: 'Library', exact: true }).click();
   await importFile(page, makeEditionFile('1.1.0', 'q-renamed'));
 
   const status = page.locator('.shelf__import');
