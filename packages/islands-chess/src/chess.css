@@ -67,6 +67,25 @@
   overflow-y: auto;
 }
 
+/*
+ * A standalone board with its score holds still too (SPEC008 G7, revised
+ * 2026-09-07).
+ *
+ * G7.5 scoped the sticky board to `:::chess-game`, on the argument that a
+ * standalone board is a figure rather than a companion. That is true of a
+ * diagram and false of `::chess-board{moves=on pgn="…"}`, which is the same
+ * reading act in one island: a score long enough to scroll is a score that
+ * scrolls the board away, and the moves are clickable — so the reader clicks a
+ * move and cannot see what it did.
+ *
+ * Scoped to boards that *have* a score, so a plain diagram is untouched.
+ */
+.chessboard-island:has(.chess-moves) .chessboard-island__board {
+  position: sticky;
+  top: calc(var(--ui-bar-h, 45px) + 0.5rem);
+  z-index: 1;
+}
+
 .chess-moves__line {
   margin: 0.35rem 0;
   line-height: 1.9;
@@ -208,12 +227,31 @@
 }
 
 /*
- * A game containing several islands. No box, no border: the container is a
- * coordination device, not a visual one, and the prose the author wrote inside
- * it should read as prose.
+ * A game containing several islands.
+ *
+ * It used to carry no box, on the argument that the container is a
+ * coordination device and the prose inside it should read as prose. Seen on a
+ * phone that reasoning failed: the board *is* an island and gets the island
+ * box, so the game rendered as a bordered board floating above unbordered
+ * prose — two things, where the whole point is that they are one. The box goes
+ * on the container instead, and the board inside gives its own up.
  */
 .chess-game {
   display: block;
+  margin: 1.5rem 0;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 10px;
+  background: var(--island-bg, transparent);
+  padding: 1rem 1.25rem;
+}
+
+/* One card, not a card inside a card. */
+.chess-game > .chessboard-island {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
 /*
@@ -240,7 +278,8 @@
   /* Under the bar, over the prose it sits on top of. */
   z-index: 1;
   padding-bottom: 0.5rem;
-  background: var(--bg);
+  /* The card's own surface, so pinned prose does not show through it. */
+  background: var(--island-bg, var(--bg));
 }
 
 /*
@@ -250,11 +289,18 @@
  * viewport before a word of the prose that is supposed to be driving it. Held
  * still, the board has to leave room for the sentence doing the driving, so it
  * takes the smaller of the column and a share of the viewport height.
+ *
+ * **Width and `aspect-ratio`, never a percentage height.** `height: min(100%,
+ * 42vh)` looks symmetrical and collapses the board to a strip: the percentage
+ * resolves against a parent of `height: auto`, and inside `min()` there is no
+ * `auto` to fall back to. Shipped that way on 2026-09-07 and reported from a
+ * phone the same day.
  */
 @media (max-width: 899px) {
   .chess-game > .chessboard-island .chessboard-island__board {
     width: min(100%, 42vh);
-    height: min(100%, 42vh);
+    height: auto;
+    aspect-ratio: 1;
   }
 }
 
@@ -266,7 +312,8 @@
 @media (max-width: 899px) and (orientation: landscape) {
   .chess-game > .chessboard-island .chessboard-island__board {
     width: min(45vw, 70vh);
-    height: min(45vw, 70vh);
+    height: auto;
+    aspect-ratio: 1;
   }
 }
 

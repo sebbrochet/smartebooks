@@ -371,6 +371,34 @@ test('the board holds still while the prose scrolls past it', async ({ page }) =
   await expect(board).not.toBeInViewport();
 });
 
+/**
+ * The height budget of G7.4, asserted as a shape rather than a number.
+ *
+ * The first cut capped the board with `height: min(100%, 42vh)`, which reads as
+ * the symmetrical partner of the width and is not: the percentage resolves
+ * against a parent of `height: auto`, and inside `min()` there is no `auto` to
+ * fall back to, so the board collapsed to a strip of coordinates and controls.
+ * It shipped, and was reported from a phone the same day.
+ *
+ * A board is square and a square is the one thing this can check without
+ * pinning the exact arithmetic of the cap.
+ */
+test('the held board is still a board on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const board = page.locator('.chess-game .chessboard-island__board').first();
+  await board.scrollIntoViewIfNeeded();
+
+  const box = await board.boundingBox();
+  expect(box, 'the board has a box at all').not.toBeNull();
+  expect(box.height, 'a collapsed board is the regression this guards').toBeGreaterThan(150);
+  // Square to within a pixel of rounding.
+  expect(Math.abs(box.width - box.height), `${box.width}x${box.height} is not square`).toBeLessThan(
+    2,
+  );
+});
+
 test('a pinned board stays where it was put', async ({ page }) => {
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
   // Two boards, one live and one pinned with `at`.
