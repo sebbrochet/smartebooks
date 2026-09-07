@@ -40,6 +40,8 @@ interface Metrics {
   toolbars: number;
   overflow: number;
   title: boolean;
+  /** What `--ui-bar-h` says the bar is, which should be what the bar is. */
+  token: number;
   smallest: { name: string; w: number; h: number } | null;
 }
 
@@ -86,6 +88,19 @@ async function measure(page: Page, width: number): Promise<Metrics> {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
     title: await page.locator('.reader__booktitle').isVisible(),
+    /*
+     * Read from the element's **inline** style, not the computed value.
+     *
+     * `ReaderBar` measures itself and publishes the result; the stylesheet
+     * carries a fallback of the same 45px. So a computed read cannot tell a
+     * working measurement from a broken one that fell back to a number which
+     * happens to be right today — proved by disabling the effect and watching
+     * this test pass. The inline property is empty unless the effect ran, so
+     * this asserts the mechanism rather than a coincidence (SPEC009 V13).
+     */
+    token: await page.evaluate(() =>
+      Math.round(parseFloat(document.documentElement.style.getPropertyValue('--ui-bar-h') || '0')),
+    ),
     smallest: targets.sort((a, b) => a.w * a.h - b.w * b.h)[0] ?? null,
   };
 }
@@ -102,6 +117,7 @@ test('the reader spends one bar on itself, not two', async ({ page }) => {
     (m) =>
       `  ${String(m.width).padStart(4)}px  bar ${String(m.bar).padStart(3)}px` +
       `  rows ${m.rows}  toolbars ${m.toolbars}  overflow ${m.overflow}` +
+      `  --ui-bar-h ${m.token}` +
       `  title ${m.title ? 'shown' : 'hidden'}` +
       `  smallest ${m.smallest?.w}x${m.smallest?.h}`,
   );
@@ -112,6 +128,12 @@ test('the reader spends one bar on itself, not two', async ({ page }) => {
     expect(m.bar, `${m.width}px: header height`).toBeLessThanOrEqual(MAX_BAR);
     expect(m.rows, `${m.width}px: header controls should sit on one row`).toBe(1);
     expect(m.overflow, `${m.width}px: the bar should not overflow the viewport`).toBe(0);
+    // The three sticky offsets are only as right as this number is — and it is
+    // only right if the bar actually measured itself, not if the fallback
+    // happened to match.
+    expect(m.token, `${m.width}px: --ui-bar-h should be published from the bar's own height`).toBe(
+      m.bar,
+    );
     expect(
       m.smallest?.h ?? 0,
       `${m.width}px: smallest control "${m.smallest?.name}"`,
