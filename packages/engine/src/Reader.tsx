@@ -228,10 +228,12 @@ export function Reader({
         title={book.meta.title}
         leading={leading}
         actions={actions}
-        navOpen={navOpen}
-        onToggleNav={() => setNavOpen((open) => !open)}
-        navToggleRef={navToggleRef}
-        onOpenSearch={() => setSearchOpen(true)}
+        navigation={{
+          navOpen,
+          onToggleNav: () => setNavOpen((open) => !open),
+          navToggleRef,
+          onOpenSearch: () => setSearchOpen(true),
+        }}
       />
       <div className="reader__body">
         {navOpen && (

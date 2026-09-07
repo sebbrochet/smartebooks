@@ -216,6 +216,33 @@ test.describe('on a narrow screen', () => {
     await expect(toggle).toBeFocused();
   });
 
+  /**
+   * SPEC009 V9. The skip link and the drawer's scrim were both `z-index: 20`,
+   * and the scrim comes later in the tree — so with the drawer open, a focused
+   * skip link was painted over by it. Fixed by moving the link to 30; asserted
+   * here because the stacking order is still five literals with no scale behind
+   * them (T2), and the next one to be added will be chosen by guesswork.
+   *
+   * `elementFromPoint` rather than `toBeVisible`: a covered element is still
+   * "visible" to Playwright, which is exactly how this defect survived review.
+   */
+  test('a focused skip link is not painted over by the drawer', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+    await page.getByRole('button', { name: /Contents/ }).click();
+    await expect(page.locator('.sidebar')).toBeVisible();
+
+    const link = page.locator('.skip-link');
+    await link.focus();
+    await expect(link).toBeFocused();
+
+    const onTop = await link.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return hit === node || node.contains(hit);
+    });
+    expect(onTop, 'the skip link is the element under its own centre').toBe(true);
+  });
+
   test('the contents rail is folded away, not stacked on top of the chapter', async ({ page }) => {
     await page.goto('/#/guide/01-getting-started');
 

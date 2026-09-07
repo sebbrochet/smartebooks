@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Reader,
-  ThemeToggle,
-  ReadingSettings,
+  ReaderBar,
   Icon,
   clearBook,
   clearLastRead,
@@ -220,19 +219,19 @@ export default function App() {
       )}
       {/*
        * Only when no book is open. With a book, the engine renders the one bar
-       * and this would be a second one (SPEC009 V10).
+       * and this would be a second one (SPEC009 V10) — which is also why the
+       * shelf borrows the engine's bar rather than keeping a second layout:
+       * two headers that look alike drift apart, and this one already had.
        */}
       {!activeBook && (
-        <header className="reader__header">
-          <a className="reader__brand" href="#/">
-            Smart Ebooks
-          </a>
-          <div className="reader__actions">
-            <ThemeToggle />
-            <ReadingSettings />
-            {tools}
-          </div>
-        </header>
+        <ReaderBar
+          leading={
+            <a className="reader__brand" href="#/">
+              Smart Ebooks
+            </a>
+          }
+          actions={tools}
+        />
       )}
 
       {activeBook ? (

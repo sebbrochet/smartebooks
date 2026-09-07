@@ -4,8 +4,8 @@ import { ThemeToggle } from './ThemeToggle';
 import { ReadingSettings } from './ReadingSettings';
 
 interface ReaderBarProps {
-  /** The book's title, shown when there is room for it. */
-  title: string;
+  /** The book's title, shown when there is room for it. Absent on a shelf. */
+  title?: string;
   /**
    * The host's own control, rendered first: on the shelf app, the way back to
    * the library. The engine renders *a book* and cannot know whether there is
@@ -19,10 +19,17 @@ interface ReaderBarProps {
    * they belong to the host and not to the engine.
    */
   actions?: ReactNode;
-  navOpen: boolean;
-  onToggleNav: () => void;
-  navToggleRef: RefObject<HTMLButtonElement>;
-  onOpenSearch: () => void;
+  /**
+   * The controls that only mean something inside a book. Omitted when there is
+   * no book — a shelf has no contents to open and nothing of its own to search
+   * — so that one bar serves both rather than two bars drifting apart.
+   */
+  navigation?: {
+    navOpen: boolean;
+    onToggleNav: () => void;
+    navToggleRef: RefObject<HTMLButtonElement>;
+    onOpenSearch: () => void;
+  };
 }
 
 /**
@@ -39,15 +46,7 @@ interface ReaderBarProps {
  * documentation site puts its hamburger first because it has nowhere to go
  * back to; a reader on a shelf does.
  */
-export function ReaderBar({
-  title,
-  leading,
-  actions,
-  navOpen,
-  onToggleNav,
-  navToggleRef,
-  onOpenSearch,
-}: ReaderBarProps) {
+export function ReaderBar({ title, leading, actions, navigation }: ReaderBarProps) {
   return (
     <header className="reader__header">
       {leading}
@@ -57,35 +56,39 @@ export function ReaderBar({
        * clipped title is far cheaper than a control that wrapped to a second
        * row — which is what used to happen.
        */}
-      <span className="reader__booktitle">{title}</span>
+      {title && <span className="reader__booktitle">{title}</span>}
       <div className="reader__actions">
-        <button
-          type="button"
-          ref={navToggleRef}
-          className="ui-btn reader__nav-toggle"
-          aria-expanded={navOpen}
-          aria-controls="book-nav"
-          onClick={onToggleNav}
-          // The label is hidden on a phone but never removed from the
-          // accessibility tree: `aria-label` keeps the accessible name stable
-          // at every width, which is what assistive technology announces and
-          // what the e2e suite queries by (SPEC009 T10).
-          aria-label="Contents"
-          title="Contents"
-        >
-          <Icon name="menu" />
-          <span className="ui-btn__label">Contents</span>
-        </button>
-        <button
-          type="button"
-          className="ui-btn reader__search-toggle"
-          onClick={onOpenSearch}
-          aria-label="Search"
-          title="Search"
-        >
-          <Icon name="search" />
-          <span className="ui-btn__label">Search</span>
-        </button>
+        {navigation && (
+          <>
+            <button
+              type="button"
+              ref={navigation.navToggleRef}
+              className="ui-btn reader__nav-toggle"
+              aria-expanded={navigation.navOpen}
+              aria-controls="book-nav"
+              onClick={navigation.onToggleNav}
+              // The label is hidden on a phone but never removed from the
+              // accessibility tree: `aria-label` keeps the accessible name
+              // stable at every width, which is what assistive technology
+              // announces and what the e2e suite queries by (SPEC009 T10).
+              aria-label="Contents"
+              title="Contents"
+            >
+              <Icon name="menu" />
+              <span className="ui-btn__label">Contents</span>
+            </button>
+            <button
+              type="button"
+              className="ui-btn reader__search-toggle"
+              onClick={navigation.onOpenSearch}
+              aria-label="Search"
+              title="Search"
+            >
+              <Icon name="search" />
+              <span className="ui-btn__label">Search</span>
+            </button>
+          </>
+        )}
         <ThemeToggle />
         <ReadingSettings />
         {actions}
