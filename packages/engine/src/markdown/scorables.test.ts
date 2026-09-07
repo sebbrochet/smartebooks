@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createIslandRegistry } from '../islandRegistry';
 import { defaultIslands } from '../islands/defaults';
-import { chapterScorables, hasScorables } from './scorables';
+import { chapterScorables, bookTotals } from './scorables';
 import type { Book } from '../types';
 
 const registry = createIslandRegistry(defaultIslands);
@@ -107,7 +107,10 @@ describe('whether a book measures the reader', () => {
 
   it('is false for a book of prose', () => {
     // The novel. Three permanent zeros is what this stops.
-    expect(hasScorables(book('# Chapitre premier\n\nIl entra.'), registry)).toBe(false);
+    expect(bookTotals(book('# Chapitre premier\n\nIl entra.'), registry)).toEqual({
+      sections: 0,
+      points: 0,
+    });
   });
 
   /*
@@ -116,17 +119,39 @@ describe('whether a book measures the reader', () => {
    * day. That zero is the reader's position, not an absence, and hiding it
    * would hide the thing they are about to move.
    */
-  it('is true before anything has been answered', () => {
-    expect(hasScorables(book('# Chapter\n\n' + quiz('a', 12)), registry)).toBe(true);
+  it('counts every question in the book, before anything has been answered', () => {
+    expect(bookTotals(book('# Chapter\n\n' + quiz('a', 12)), registry)).toEqual({
+      sections: 0,
+      points: 12,
+    });
   });
 
   it('is true for a book scored only by checkpoints', () => {
-    expect(hasScorables(book('# Chapter\n\n::checkpoint{id="done"}\n'), registry)).toBe(true);
+    expect(bookTotals(book('# Chapter\n\n::checkpoint{id="done"}\n'), registry)).toEqual({
+      sections: 1,
+      points: 0,
+    });
   });
 
   it('looks past the first chapter', () => {
     // A study guide that opens with a preface would otherwise be told it has
     // nothing to measure.
-    expect(hasScorables(book('# Preface\n\nWhy this book.', quiz('a', 1)), registry)).toBe(true);
+    expect(bookTotals(book('# Preface\n\nWhy this book.', quiz('a', 1)), registry)).toEqual({
+      sections: 0,
+      points: 1,
+    });
+  });
+
+  /*
+   * The denominator must not depend on the reader. `readBookStats` totalled
+   * only the quizzes already attempted, so it grew as they answered — which is
+   * the one thing a denominator cannot do.
+   */
+  it('adds up across chapters, so the total is the whole book', () => {
+    const shape = book(
+      '# One\n\n' + quiz('a', 3) + '\n::checkpoint{id="c1"}\n',
+      '# Two\n\n' + quiz('b', 5) + '\n::checkpoint{id="c2"}\n',
+    );
+    expect(bookTotals(shape, registry)).toEqual({ sections: 2, points: 8 });
   });
 });

@@ -1492,21 +1492,47 @@
     font-size: 0.85rem;
   }
 
-  /* Progress dashboard */
+  /*
+ * Progress dashboard (SPEC009 T12).
+ *
+ * A grid, not a wrapping flex row. As three sentences it wrapped to two rows on
+ * every phone — 90px against 50px on a desktop, measured at 320–420px — and the
+ * cause was not the viewport: the stats are sized by their own text, so they
+ * were the same 109/104/108px wide at 1280px as at 320px. Three equal columns
+ * are one row structurally, at any width and for any length of number.
+ */
   .dashboard {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
     margin: 1rem 0;
-    padding: 0.75rem 1rem;
+    /* Tighter than the 0.75rem it had as a sentence: a two-line cell brings its
+     own height, and the box should not add to it twice over. */
+    padding: 0.5rem 1rem;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--island-bg);
     font-size: 0.9rem;
   }
 
-  .dashboard__stat strong {
+  .dashboard__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    gap: 0.1rem;
+  }
+
+  /* The value is what a reader scans for; the caption only says which one. */
+  .dashboard__value {
     color: var(--accent);
+    font-size: 1.15rem;
+    line-height: 1.2;
+  }
+
+  .dashboard__label {
+    color: var(--muted);
+    font-size: 0.8rem;
   }
 
   /* Flashcard */

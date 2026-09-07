@@ -134,6 +134,34 @@ test('the reader spends one bar on itself, not two', async ({ page }) => {
   }
 });
 
+/**
+ * SPEC009 T12. The progress dashboard was three sentences in a wrapping flex
+ * row, so it took two rows and 90px on every phone against 50px on a desktop.
+ * The stats were the same width at both — they are sized by their own text —
+ * which is why the fix is a grid rather than a smaller font.
+ */
+test('the progress dashboard is one row, at every width', async ({ page }) => {
+  const out: string[] = [];
+
+  for (const width of [320, 360, 390, 420, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/#/guide/01-getting-started');
+    const dash = page.locator('.dashboard');
+    await dash.waitFor();
+
+    const tops = await dash
+      .locator('.dashboard__stat')
+      .evaluateAll((nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().top)));
+    const height = Math.round((await dash.boundingBox())?.height ?? 0);
+
+    out.push(`  ${String(width).padStart(4)}px  height ${height}  rows ${new Set(tops).size}`);
+    expect(tops.length, `${width}px: three stats`).toBe(3);
+    expect(new Set(tops).size, `${width}px: the stats should sit on one row`).toBe(1);
+  }
+
+  process.stdout.write(`SPEC009 T12 — dashboard\n${out.join('\n')}\n`);
+});
+
 test('the way back to the shelf survives on a phone', async ({ page }) => {
   // The brand link was the only route back to the library, and an icon bar is
   // exactly where it would get lost.

@@ -18,7 +18,7 @@ import { useActiveSection, scrollToSpot } from './reader/useActiveSection';
 import { furthestOf } from './reader/furthest';
 import './reader/reader.css';
 import { chapterHeadings, headingHref } from './markdown/headings';
-import { hasScorables } from './markdown/scorables';
+import { bookTotals } from './markdown/scorables';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
 export interface ReaderProps {
@@ -85,7 +85,10 @@ export function Reader({
 
   // Whether this book measures the reader at all — parses the content, so it is
   // memoised against the book rather than recomputed per view.
-  const scored = useMemo(() => hasScorables(book, registry), [book, registry]);
+  // One walk of the content, not two: the totals answer both "does this book
+  // measure the reader at all" and "out of what" (SPEC009 T12).
+  const totals = useMemo(() => bookTotals(book, registry), [book, registry]);
+  const scored = totals.sections + totals.points > 0;
 
   const activePart = useMemo(
     () => (view === 'part' && partId ? findSection(book, partId) : undefined),
@@ -281,7 +284,7 @@ export function Reader({
            * full of quizzes must still show its zeros on the first day, where
            * the zero is a position rather than an absence.
            */}
-          {scored && <ProgressDashboard />}
+          {scored && <ProgressDashboard totals={totals} />}
           {view === 'search' ? (
             <SearchView book={book} basePath={basePath} query={query ?? ''} />
           ) : view === 'part' ? (

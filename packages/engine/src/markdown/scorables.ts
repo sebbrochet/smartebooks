@@ -85,8 +85,17 @@ export function chapterScorables(markdown: string, registry: IslandRegistry): Sc
   return found;
 }
 
+/** What a book offers to be measured against, in total. */
+export interface BookTotals {
+  /** Checkpoints in the whole book — the denominator for "sections". */
+  sections: number;
+  /** Every quiz question in the book — the denominator for "points". */
+  points: number;
+}
+
 /**
- * Whether this book measures the reader at all.
+ * The denominators, and with them the answer to whether this book measures the
+ * reader at all.
  *
  * The progress dashboard used to render for every book, so a novel was told
  * `0 sections done · 0/0 quiz points · 0 quizzes taken` permanently — three
@@ -96,14 +105,27 @@ export function chapterScorables(markdown: string, registry: IslandRegistry): Sc
  * **The question is about the book, not about the reader.** `readBookStats`
  * cannot answer it: its totals come from *stored scores*, so it reports zero
  * both for a novel and for a quiz-heavy book nobody has opened yet — and those
- * two must not be conflated. A book full of quizzes has to show `0/40` on the
- * first day, because there the zero is the reader's position and moving it is
- * the point. So the denominator has to come from the content, which is what
- * this walks.
+ * two must not be conflated.
  *
- * Stops at the first scorable it finds: the answer is a yes or a no, and books
- * that have any usually have one early.
+ * The same mistake was buried in the denominator it did show. `quizTotal` meant
+ * "points available in the quizzes you have already attempted", so it **grew as
+ * the reader answered**: `8/10` in the morning and `8/24` in the afternoon
+ * describes no progress at all. A denominator that moves is not one.
+ *
+ * So both numbers come from the content. A book full of quizzes shows `0/40` on
+ * the first day, because there the zero is the reader's position and moving it
+ * is the point.
  */
-export function hasScorables(book: Book, registry: IslandRegistry): boolean {
-  return book.chapters.some((chapter) => chapterScorables(chapter.markdown, registry).length > 0);
+export function bookTotals(book: Book, registry: IslandRegistry): BookTotals {
+  let sections = 0;
+  let points = 0;
+
+  for (const chapter of book.chapters) {
+    for (const scorable of chapterScorables(chapter.markdown, registry)) {
+      if (scorable.kind === 'checkpoint') sections += 1;
+      else points += scorable.points;
+    }
+  }
+
+  return { sections, points };
 }

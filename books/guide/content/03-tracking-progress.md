@@ -9,13 +9,15 @@ chapter explains what gets tracked and lets you watch the progress dashboard upd
 ## Checkpoints
 
 A `:::checkpoint` records that you finished a section. Tick the box and watch the
-"sections done" count rise in the dashboard above.
+"sections" count rise in the dashboard above — it is measured against every
+checkpoint in the book, so you can see how far through you are.
 
 ::checkpoint{id="ch3-checkpoints" label="I understand checkpoints"}
 
 ## Scores add up
 
-Quiz points from every chapter are totaled in the dashboard. Try this one:
+Quiz points from every chapter are totaled in the dashboard, out of every point
+the book has to give. Try this one:
 
 :::quiz{id="ch3-tracking"}
 
