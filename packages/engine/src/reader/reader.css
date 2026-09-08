@@ -1745,6 +1745,25 @@
     }
 
     /*
+     * Anything that scrolls on screen prints whole (SPEC009 V14, SPEC008 G9.1).
+     *
+     * T8 hid what cannot be operated on paper and stopped there; it never asked
+     * what had been *clipped*. A capped pane keeps its `max-height` on paper, so
+     * it prints the slice that happened to be on screen and drops the rest in
+     * silence — measured at 287px of 362px on the chess book's game score, with
+     * 75px of moves simply absent. The reader finds out after printing.
+     *
+     * `.ui-scroll-pane` is the marker, not a list of known offenders: a pack can
+     * add a pane the engine has never heard of, and enumerating them here would
+     * mean this bug returns with the next one. Anything that sets its own
+     * scrollport wears the class and prints in full.
+     */
+    .ui-scroll-pane {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    /*
      * Things that read as one unit. A callout split across a page break loses
      * the bar that made it a callout, and half a chess diagram is not a
      * diagram.

@@ -39,7 +39,11 @@ export default function MoveList({ tree, path, onSelect, scroll = false }: MoveL
   return (
     <div
       ref={ref}
-      className={`chess-moves${scroll ? ' chess-moves--scroll' : ''}`}
+      // `ui-scroll-pane` is the engine's marker for "this has its own
+      // scrollport": the print stylesheet releases the cap so the whole score
+      // reaches the page (SPEC008 G9.1). Without it a printed game stops
+      // wherever the reader happened to have scrolled to.
+      className={`chess-moves${scroll ? ' chess-moves--scroll ui-scroll-pane' : ''}`}
       data-testid="chess-move-list"
     >
       {intro && (

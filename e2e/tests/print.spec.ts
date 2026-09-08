@@ -101,4 +101,46 @@ test.describe('on paper', () => {
      * behaviour follows from the selector rather than from a test.
      */
   });
+
+  /**
+   * SPEC009 V14 / SPEC008 G9.1. A pane that scrolls on screen must print whole.
+   *
+   * T8 hid what cannot be operated on paper and never asked what had been
+   * *clipped*. The chess book's game score kept its `max-height` on paper, so
+   * it printed the slice the reader happened to be looking at — measured at
+   * 287px of 362px, with 75px of moves silently absent. Nothing failed, no
+   * warning appeared, and the reader would only find out holding the page.
+   *
+   * Asserted through `scrollHeight` rather than by eye, because "the rest of
+   * the moves are missing" is invisible in a screenshot of the part that did
+   * print.
+   */
+  test('a pane that scrolls on screen prints in full', async ({ page }) => {
+    await page.goto('/#/chess/03-a-game-from-a-file');
+    const score = page.locator('.chess-moves').first();
+    await score.waitFor();
+
+    // On screen it is capped, and that is deliberate: the board has to stay
+    // visible while the reader works through a 23-move game.
+    const onScreen = await score.evaluate((n) => ({
+      clipped: n.scrollHeight > n.clientHeight,
+      overflowY: getComputedStyle(n).overflowY,
+    }));
+    expect(onScreen.clipped, 'the score is capped on screen').toBe(true);
+    expect(onScreen.overflowY).toBe('auto');
+
+    await page.emulateMedia({ media: 'print' });
+
+    const onPaper = await score.evaluate((n) => ({
+      client: n.clientHeight,
+      scroll: n.scrollHeight,
+      maxHeight: getComputedStyle(n).maxHeight,
+    }));
+
+    expect(onPaper.maxHeight, 'the cap is released on paper').toBe('none');
+    expect(
+      onPaper.client,
+      `${onPaper.scroll - onPaper.client}px of the score would not print`,
+    ).toBe(onPaper.scroll);
+  });
 });
