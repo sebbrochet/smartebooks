@@ -336,67 +336,82 @@ test('a move named in a sentence drives every board on the page', async ({ page 
 });
 
 /**
- * SPEC008 C18/G7. The container's premise is that prose drives the board, and
- * in the flow that held only while the annotation was shorter than a screen:
- * past that, `:move[…]` moved a board the reader had scrolled away from, so
- * clicking a move appeared to do nothing.
+ * SPEC008 C18/G7, **reverted 2026-09-08.** The board inside `:::chess-game` no
+ * longer holds still, so the tests that asserted it did are gone rather than
+ * left inverted. What replaced them is the diagram test below: a game may hold
+ * several boards, and sticky pinned all of them.
  *
- * Every other chess test clicks a move with the board comfortably on screen,
- * which is why none of them caught it.
+ * C18 itself is reopened — past a screen of annotation, `:move[…]` still moves
+ * a board the reader has scrolled away from. That is a real fault with no fix
+ * in this commit.
  */
-test('the board holds still while the prose scrolls past it', async ({ page }) => {
+test('a diagram in a game does not follow the reader', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
-  const board = page.locator('.chess-game > .chessboard-island').first();
-  const game = page.locator('.chess-game').first();
+  // The `at=` board at the end of the game: "it does not follow the reader, it
+  // marks a moment", as the chapter itself says. Sticky made it pin, and pin
+  // *over* the board above it — two boards on screen at once, overlapping.
+  const boards = page.locator('.chess-game .chessboard-island__board');
+  const diagram = boards.last();
+  await diagram.scrollIntoViewIfNeeded();
 
-  // The game starts below the fold, so bring it on screen first: the claim is
-  // about what happens while reading it, not about where the chapter opens.
-  await game.scrollIntoViewIfNeeded();
-  await expect(board).toBeInViewport();
+  const before = await diagram.boundingBox();
+  await page.evaluate(() => window.scrollBy(0, 200));
+  const after = await diagram.boundingBox();
 
-  // Scroll to the last thing inside the game: from here the board would have
-  // left the screen entirely when it sat in the flow.
-  await game.evaluate((node) => {
-    const box = node.getBoundingClientRect();
-    window.scrollTo(0, window.scrollY + box.bottom - window.innerHeight);
-  });
+  expect(before, 'the diagram is on the page').not.toBeNull();
+  // It moved with the page: 200px of scroll, 200px of travel, give or take
+  // rounding and any smooth-scroll settling.
+  expect(
+    Math.abs(before.y - after.y - 200),
+    `the diagram moved ${Math.round(before.y - after.y)}px for 200px of scroll`,
+  ).toBeLessThan(4);
 
-  await expect(board).toBeInViewport();
-
-  // And it lets go at the end of the game rather than following the reader
-  // down the rest of the chapter — sticky is scoped to the container.
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(board).not.toBeInViewport();
+  // And no two boards are stacked on top of each other.
+  const rects = await boards.evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const r = n.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    }),
+  );
+  for (let i = 1; i < rects.length; i++) {
+    expect(
+      rects[i].top >= rects[i - 1].bottom - 1,
+      `board ${i} overlaps board ${i - 1}`,
+    ).toBeTruthy();
+  }
 });
 
 /**
- * The height budget of G7.4, asserted as a shape rather than a number.
+ * SPEC008 §4.1.1. A shown score caps its own height, so the board stays on
+ * screen while the reader works through it.
  *
- * The first cut capped the board with `height: min(100%, 42vh)`, which reads as
- * the symmetrical partner of the width and is not: the percentage resolves
- * against a parent of `height: auto`, and inside `min()` there is no `auto` to
- * fall back to, so the board collapsed to a strip of coordinates and controls.
- * It shipped, and was reported from a phone the same day.
+ * `moves=on` used to mean uncapped, and the difference was invisible in review
+ * because the demo game is short. Read on a phone it was not: the score ran
+ * past the screen, the board went with it, and since every move is a button the
+ * reader could click one and never see what it did.
  *
- * A board is square and a square is the one thing this can check without
- * pinning the exact arithmetic of the cap.
+ * Asserted on the `on` chapter specifically, because `scroll` was always fine.
  */
-test('the held board is still a board on a phone', async ({ page }) => {
+test('a score keeps its board on screen instead of pushing it away', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
-  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+  await page.goto('/#/chess/02-reading-an-annotated-game');
 
-  const board = page.locator('.chess-game .chessboard-island__board').first();
+  const board = page.locator('.chessboard-island__board').first();
+  const moves = page.locator('.chess-moves').first();
+  await moves.waitFor();
+
+  // The pane scrolls itself rather than taking the page with it.
+  const scrollable = await moves.evaluate((n) => n.scrollHeight > n.clientHeight + 1);
+  expect(scrollable, 'the score should be a pane the reader scrolls').toBe(true);
+
   await board.scrollIntoViewIfNeeded();
+  await expect(board).toBeInViewport();
 
-  const box = await board.boundingBox();
-  expect(box, 'the board has a box at all').not.toBeNull();
-  expect(box.height, 'a collapsed board is the regression this guards').toBeGreaterThan(150);
-  // Square to within a pixel of rounding.
-  expect(Math.abs(box.width - box.height), `${box.width}x${box.height} is not square`).toBeLessThan(
-    2,
-  );
+  // Reading to the end of the score must not cost the board.
+  await moves.evaluate((n) => n.scrollTo(0, n.scrollHeight));
+  await expect(board).toBeInViewport();
 });
 
 test('a pinned board stays where it was put', async ({ page }) => {

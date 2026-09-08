@@ -67,25 +67,6 @@
   overflow-y: auto;
 }
 
-/*
- * A standalone board with its score holds still too (SPEC008 G7, revised
- * 2026-09-07).
- *
- * G7.5 scoped the sticky board to `:::chess-game`, on the argument that a
- * standalone board is a figure rather than a companion. That is true of a
- * diagram and false of `::chess-board{moves=on pgn="…"}`, which is the same
- * reading act in one island: a score long enough to scroll is a score that
- * scrolls the board away, and the moves are clickable — so the reader clicks a
- * move and cannot see what it did.
- *
- * Scoped to boards that *have* a score, so a plain diagram is untouched.
- */
-.chessboard-island:has(.chess-moves) .chessboard-island__board {
-  position: sticky;
-  top: calc(var(--ui-bar-h, 45px) + 0.5rem);
-  z-index: 1;
-}
-
 .chess-moves__line {
   margin: 0.35rem 0;
   line-height: 1.9;
@@ -255,67 +236,30 @@
 }
 
 /*
- * The board holds still while the prose moves (SPEC008 G7).
+ * The board does **not** hold still. Sticky was tried and reverted (SPEC008 G7,
+ * reverted 2026-09-08).
  *
- * `:::chess-game` exists so that prose drives the board — `:move[Bc4]` in a
- * sentence moves the pieces. In the flow that works for exactly as long as the
- * annotation is shorter than a screen: past that, every `:move` still moves a
- * board the reader has scrolled away from, and clicking one appears to do
- * nothing. A real annotated game is pages of prose against one board, which is
- * the shape the container was built for and the only shape it failed at (C18).
+ * C18 is real: `:::chess-game` exists so prose drives the board, and past a
+ * screen of annotation `:move[…]` moves a board the reader has scrolled away
+ * from. Sticky was the obvious answer and was wrong twice over.
  *
- * **Sticky is scoped to the container, not to the viewport.** It pins the board
- * while the reader is inside this game and lets go at its end, so the board
- * does not follow them into the next section's prose. No scroll listener and
- * no state that can disagree with where the reader actually is.
+ * 1. **It cannot tell which board it is pinning.** `.chess-game >
+ *    .chessboard-island` matches *every* board in the container, and a game may
+ *    hold several — chapter 4 ends with `::chess-board{at="4. Qxf7#"}`, whose
+ *    documented purpose is that it "does not follow the reader, it marks a
+ *    moment". Sticky made two boards pin at once and overlap each other, which
+ *    is both a visual fault and a contradiction of what the book says.
+ * 2. **Fixed chrome inside prose reads badly**, reported twice from a phone: the
+ *    text slides under a board that will not move, and the reader loses the
+ *    ordinary sense that scrolling moves the thing they are reading.
  *
- * (Not to be confused with the board's own `pinned` attribute, which means "this
- * board shows one fixed position" — an unrelated sense of the same word.)
+ * A standalone board solves the same problem by capping its own score
+ * (§4.1.1), because there the scrolling content belongs to the island. Inside
+ * `:::chess-game` the content is the author's prose, which cannot be put in a
+ * pane without breaking find-in-page, deep links and the reading column. So
+ * C18 is **reopened**, and the next attempt should move the board to the reader
+ * rather than freezing it in front of them.
  */
-.chess-game > .chessboard-island {
-  position: sticky;
-  top: calc(var(--ui-bar-h, 45px) + 0.5rem);
-  /* Under the bar, over the prose it sits on top of. */
-  z-index: 1;
-  padding-bottom: 0.5rem;
-  /* The card's own surface, so pinned prose does not show through it. */
-  background: var(--island-bg, var(--bg));
-}
-
-/*
- * The height budget, which is the part most easily got wrong.
- *
- * A 320px board plus a 45px bar is 365px of a 320×568 phone — 64% of the
- * viewport before a word of the prose that is supposed to be driving it. Held
- * still, the board has to leave room for the sentence doing the driving, so it
- * takes the smaller of the column and a share of the viewport height.
- *
- * **Width and `aspect-ratio`, never a percentage height.** `height: min(100%,
- * 42vh)` looks symmetrical and collapses the board to a strip: the percentage
- * resolves against a parent of `height: auto`, and inside `min()` there is no
- * `auto` to fall back to. Shipped that way on 2026-09-07 and reported from a
- * phone the same day.
- */
-@media (max-width: 899px) {
-  .chess-game > .chessboard-island .chessboard-island__board {
-    width: min(100%, 42vh);
-    height: auto;
-    aspect-ratio: 1;
-  }
-}
-
-/*
- * Landscape is how a game gets replayed, and 42vh of a short viewport is a
- * board barely worth looking at. Given the width that orientation brings, the
- * board can take its share from the width instead.
- */
-@media (max-width: 899px) and (orientation: landscape) {
-  .chess-game > .chessboard-island .chessboard-island__board {
-    width: min(45vw, 70vh);
-    height: auto;
-    aspect-ratio: 1;
-  }
-}
 
 /*
  * A move named in a sentence. Styled as text that happens to be clickable

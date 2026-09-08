@@ -7,9 +7,9 @@ can name a packaged file instead of carrying the moves in its body.
 
 ## The Immortal Game, from `assets/immortal.pgn`
 
-`moves=scroll` caps the height of the score, because a 23-move game with
-commentary is a lot of page. The arrows, the glyphs and the annotator's notes
-all come from the file.
+A shown score caps its own height, because a 23-move game with commentary is a
+lot of page and a board you have scrolled away from is no use to you. The
+arrows, the glyphs and the annotator's notes all come from the file.
 
 :::chess-board{id="chess-immortal" moves=scroll pgn="assets/immortal.pgn"}
 :::

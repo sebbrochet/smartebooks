@@ -216,9 +216,18 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
           {moveLabel(node)}
         </span>
       </div>
-      {movesMode !== 'off' && (
-        <MoveList tree={tree} path={path} onSelect={setStored} scroll={movesMode === 'scroll'} />
-      )}
+      {/*
+        A shown score always caps its own height, so the board it belongs to
+        stays on screen while the reader scrolls it (SPEC008 §4.1.1).
+
+        `on` used to mean "uncapped": past a screen of moves the board scrolled
+        away, and since every move is a button the reader could click one and
+        not see what it did. Merging the two is safe because a `max-height`
+        does nothing until the content exceeds it — a short game renders
+        exactly as before. `scroll` is kept as an accepted spelling so books
+        that name it still work.
+      */}
+      {movesMode !== 'off' && <MoveList tree={tree} path={path} onSelect={setStored} scroll />}
       {movesMode === 'off' && comment && (
         // `role="status"` because stepping through a game changes this text
         // without moving focus — a screen-reader user would otherwise never
