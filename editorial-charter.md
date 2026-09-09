@@ -278,15 +278,13 @@ Ra8# — a back-rank mate.
 #### `:::chess-game` — a game you lay out yourself
 
 ````markdown
-:::chess-game{id="ch4-scholars" pieces="unicode"}
+:::chess-game{id="ch4-scholars" pieces="unicode" analysis}
 
 ```pgn
 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6?? 4. Qxf7# {Scholar's mate.}
 ```
 
 White opens with :move[1. e4], and Black mirrors with :move[e5].
-
-::chess-board
 
 Now :move[2. Bc4] eyes **f7**, and :move[3. Qh5] threatens mate in one.
 
@@ -304,25 +302,35 @@ After :move[4. Qxf7#] it is over.
 critical moment, more prose, the score where you want it. Use it whenever the commentary matters as
 much as the moves; use `chess-board` when you just want a game on the page.
 
+**The board is chrome, and the game draws it for you.** A `chess-game` is two parts: one board that
+holds still, and your prose in a pane beneath it that scrolls. So the commentary can run for pages
+and the board is still there at the end of it — which is the whole reason to write a game this way,
+and the thing a board sitting in the middle of the text could never do. You do not place the live
+board, and there is no attribute to turn it off.
+
+What you *do* place is everything a printed chess book places: **diagrams** at the interesting
+moments, the score, and the prose.
+
 **What you must write, and what you may leave out.** Only two things are required: the
 `:::chess-game` itself with an `id`, and **a game for it to hold** — either a fenced ` ```pgn ` block
-in the body or a `pgn="assets/…"` attribute. Everything inside is optional, including the board:
-a game with prose, `:move` marks and no `::chess-board` at all is valid, and so is one with six
-boards.
+in the body or a `pgn="assets/…"` attribute. Everything inside is optional: a game that is nothing
+but prose and `:move` marks is valid.
 
 **The PGN is the only source of moves.** `:move[2. Bc4]` does not *make* a move — it names one that
 must already be in the game, and renders as the words you typed if it is not. Without a PGN there is
 no game: every mark becomes plain text and every board and score inside says so.
 
-- `chess-game` (container): `pgn`, `shapes`, plus `theme` / `pieces` / `orientation`. It owns the
-  game and the position and **draws nothing itself** — it renders the body you wrote. The fenced
-  ` ```pgn ` block is configuration, not content: it is consumed, not printed.
-- `::chess-board` **inside** a game takes no PGN and no `id` of its own — the container holds one
-  position for every board in it. Zero, one or a dozen are fine, and they all show that position.
-  It is otherwise the same board: `analysis` still offers the engine, bound to wherever the reader
-  is, and the arrow keys still step through the game.
-  - `at` pins one to a fixed position and takes its controls away, which is what a printed diagram
-    does. Its value is a move, written as you would write it in prose: `at="4. Qxf7#"`.
+- `chess-game` (container): `pgn`, `shapes`, `analysis`, plus `theme` / `pieces` / `orientation`. It
+  owns the game, the position and the board. The fenced ` ```pgn ` block is configuration, not
+  content: it is consumed, not printed.
+  - `analysis` offers Stockfish under the game's board, bound to wherever the reader is. It belongs
+    to the game rather than to a board because a game has one board.
+- `::chess-board{at="…"}` **inside** a game is a **diagram**: a position pinned where you put it,
+  with no controls, which is what a printed diagram is. Its value is a move written as you would
+  write it in prose: `at="4. Qxf7#"`. It takes no PGN and no `id` — the container holds the game.
+  - A `::chess-board` with no `at` inside a game still works, and still follows the reader, but you
+    almost certainly do not want one: the game already gives you a board, and a second live board
+    shows the same position twice.
   - `moves`, `pgn` and `at` are **context-bound** (`attribute-ignored`): the first two mean nothing
     inside a game, because the container owns the score and the game; `at` means nothing outside one,
     because there is no published position to pin to. Inside a game, the score is `::chess-moves`.

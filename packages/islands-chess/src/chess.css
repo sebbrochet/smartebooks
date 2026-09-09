@@ -216,18 +216,84 @@
  * box, so the game rendered as a bordered board floating above unbordered
  * prose — two things, where the whole point is that they are one. The box goes
  * on the container instead, and the board inside gives its own up.
+ *
+ * **The board is chrome, not content** (SPEC008 G9.2, §4.11). The game is two
+ * regions: a board that does not scroll, and a pane holding the author's prose
+ * that does. That is what both dedicated chess readers do, and it is why the
+ * board cannot overlap the text or be scrolled away from — it was never in the
+ * prose flow to begin with.
+ *
+ * `max-height` rather than `height`, and `flex: 0 1 auto` on the pane, so a
+ * two-paragraph game stays two paragraphs tall and only a long one is capped.
+ * **The subtraction is flex's, not ours**: "viewport minus bar minus board"
+ * would otherwise be arithmetic over a board whose real height includes
+ * controls, a move label and an optional engine panel — five literals with no
+ * scale behind them, which is the fault SPEC009 V9 exists to name.
  */
 .chess-game {
-  display: block;
+  display: flex;
+  flex-direction: column;
   margin: 1.5rem 0;
   border: 1px solid var(--border, #ddd);
   border-radius: 10px;
   background: var(--island-bg, transparent);
   padding: 1rem 1.25rem;
+  /* 3rem: the game must not fill the screen edge to edge, or the reader loses
+     the sense that it sits on a page. `--ui-bar-h` is measured by the bar
+     itself (SPEC008 G7.1), not guessed at. */
+  max-height: calc(100vh - var(--ui-bar-h, 45px) - 3rem);
+}
+
+.chess-game__board {
+  flex: none;
+}
+
+.chess-game__prose {
+  flex: 0 1 auto;
+  /* Without this a flex child refuses to shrink below its content, and the
+     cap above would push the board off instead of scrolling the prose. */
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/*
+ * The board is sized against the *viewport*, not the column, because its job
+ * is to leave room for the prose beneath it. A phone at 320×568 gets ~227px of
+ * board and the rest of the screen to read in; a 800px-tall desktop gets 320px
+ * and four paragraphs.
+ *
+ * Both axes are lengths, and **no percentage belongs in here**. G7.4 wrote
+ * `height: min(100%, 42vh)` as the symmetrical partner of the width: a
+ * percentage against a parent of `height: auto` has no `auto` to fall back to
+ * inside `min()`, so the board rendered 0px tall — and every test passed,
+ * because a board of zero height is still in the viewport. G9.2 then repeated
+ * it in the width axis with `min(420px, 100%, 55vh)`, where `100%` resolves
+ * against a shrink-to-fit flex parent whose width depends on this element.
+ * The base rule's separate `max-width: 100%` is fine: a used value applied
+ * after intrinsic sizing is not a term inside `min()`.
+ *
+ * One size at every width, having tried two:
+ *
+ * - **Two columns above 900px** (SPEC008 G7.3) is worse, and the blocker was
+ *   misdiagnosed. G7.3 says grid cannot group arbitrary authored content into
+ *   a board column and a prose column — true, and no longer relevant once the
+ *   container provides the two boxes. The real blocker is `--measure`: a game
+ *   lives in the reading column, so a 645px card minus a 360px board, a gap
+ *   and padding leaves **221px of prose, about 28 characters a line**. The
+ *   reference readers get away with it because their board is chrome owned by
+ *   the *shell* and the split is the whole viewport (SPEC008 G9.7).
+ * - **A bigger board on a wide screen**, to close the space beside it, spends
+ *   55vh on the board and leaves two paragraphs visible. The gutter is
+ *   cosmetic; the room to read is not.
+ */
+.chess-game__board .chessboard-island__board {
+  --chess-board-size: min(320px, 90vw, 40vh);
+  width: var(--chess-board-size);
+  height: var(--chess-board-size);
 }
 
 /* One card, not a card inside a card. */
-.chess-game > .chessboard-island {
+.chess-game .chessboard-island {
   margin: 0;
   border: 0;
   border-radius: 0;
@@ -236,29 +302,11 @@
 }
 
 /*
- * The board does **not** hold still. Sticky was tried and reverted (SPEC008 G7,
- * reverted 2026-09-08).
- *
- * C18 is real: `:::chess-game` exists so prose drives the board, and past a
- * screen of annotation `:move[…]` moves a board the reader has scrolled away
- * from. Sticky was the obvious answer and was wrong twice over.
- *
- * 1. **It cannot tell which board it is pinning.** `.chess-game >
- *    .chessboard-island` matches *every* board in the container, and a game may
- *    hold several — chapter 4 ends with `::chess-board{at="4. Qxf7#"}`, whose
- *    documented purpose is that it "does not follow the reader, it marks a
- *    moment". Sticky made two boards pin at once and overlap each other, which
- *    is both a visual fault and a contradiction of what the book says.
- * 2. **Fixed chrome inside prose reads badly**, reported twice from a phone: the
- *    text slides under a board that will not move, and the reader loses the
- *    ordinary sense that scrolling moves the thing they are reading.
- *
- * A standalone board solves the same problem by capping its own score
- * (§4.1.1), because there the scrolling content belongs to the island. Inside
- * `:::chess-game` the content is the author's prose, which cannot be put in a
- * pane without breaking find-in-page, deep links and the reading column. So
- * C18 is **reopened**, and the next attempt should move the board to the reader
- * rather than freezing it in front of them.
+ * A live board in the flow still works — an authored `::chess-board` with no
+ * `at` follows the container exactly as it always did, and silently
+ * reinterpreting it would be C16's fault again. It is simply no longer how a
+ * game is laid out, because the container provides the board the reader
+ * actually uses.
  */
 
 /*

@@ -355,6 +355,10 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         ...boardAttributes,
         shapes: { type: 'boolean', default: true },
         pgn: { type: 'asset' },
+        // The engine under the game's own board. It moved here from the child
+        // board when the container started providing one (SPEC008 G9.2): a
+        // game has one live board, so `analysis` is a property of the game.
+        analysis: { type: 'boolean', default: false },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>

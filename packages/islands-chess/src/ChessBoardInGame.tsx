@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
-import { attrFlag, attrText, type IslandComponentProps } from '@smart-ebooks/engine';
 import { orientationFor } from './boardOptions';
 import { findByLabel, moveLabel } from './score';
 import { nodeAt, parentPath } from './tree';
@@ -16,6 +15,13 @@ import './themes.css';
 // anywhere in it never pulls the Stockfish client.
 const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
 
+export interface GameBoardProps {
+  /** Pin to one position, by the same move label `:move[…]` takes. */
+  at?: string;
+  /** Offer the engine under this board. */
+  analysis?: boolean;
+}
+
 /**
  * A board **inside** a `:::chess-game` (SPEC001 §4.1, SPEC008 G4.1).
  *
@@ -27,15 +33,16 @@ const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
  * the printed diagram, which stays put while the interactive board follows the
  * reader.
  *
- * Everything else a standalone board does, it does. `analysis` is per board
- * rather than per game on purpose: a chapter may want the engine under the
- * board at the critical moment and nowhere else.
+ * **Plain props rather than `IslandComponentProps`** (SPEC008 G9.2): the
+ * container renders one of these itself, as the fixed board above its prose,
+ * and it has no directive to read attributes from. The dispatcher adapts.
  */
-export default function ChessBoardInGame({ attributes }: IslandComponentProps) {
+export default function ChessBoardInGame({
+  at = '',
+  analysis: analysisOn = false,
+}: GameBoardProps) {
   const game = useGame();
   const sequence = useSequence();
-  const at = attrText(attributes.at);
-  const analysisOn = attrFlag(attributes.analysis);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);

@@ -8,19 +8,27 @@ import {
 import { mainline, mainlinePath, nodeAt, pgnToTree } from './tree';
 import { DEFAULT_BOARD_OPTIONS, type BoardOptions } from './boardOptions';
 import { GameProvider, SequenceProvider } from './gameContext';
+import ChessBoardInGame from './ChessBoardInGame';
 import './chess.css';
 
 /**
- * A game the author lays out themselves (SPEC001 §4.1, SPEC008 G4.1).
+ * A game the author lays out themselves (SPEC001 §4.1, SPEC008 G4.1), read the
+ * way the dedicated chess readers are read (SPEC008 G9.2).
  *
- * `:::chess-game` renders **only its children**: prose, and `::chess-board` /
- * `::chess-moves` wherever the author puts them, with `:move` marks inside the
- * sentences. That is how printed chess books are written — a paragraph, a
- * diagram at the critical moment, more paragraphs — and it is the thing a board
- * pinned above a block of commentary cannot do.
+ * **The board is chrome, not content.** It sits in a region of its own above a
+ * pane holding the author's prose, and that pane is the only thing that
+ * scrolls. Which is why it cannot overlap the text, cannot be scrolled away
+ * from, and needs no `position: sticky` — it was never in the prose flow.
  *
- * The container owns the game and the position and publishes both; it draws
- * nothing itself.
+ * That reverses G4.1's arrangement, where the author placed a live board
+ * among their paragraphs and it left the viewport as soon as the annotation
+ * ran past a screen (C18). Every attempt to rescue that shape failed on the
+ * same fact: a board in the flow of the prose it drives is a board the reader
+ * scrolls away from. Chessable and ForwardChess both put it outside.
+ *
+ * The author still places *diagrams* — `::chess-board{at=…}`, `::chess-diagram`
+ * — exactly as a printed book does, and the score wherever it belongs. What
+ * they no longer have to place is the live board.
  */
 export default function ChessGameIsland({
   id,
@@ -33,6 +41,7 @@ export default function ChessGameIsland({
   const body = parsed.pgn ?? '';
   const board = parsed.board ?? DEFAULT_BOARD_OPTIONS;
   const shapes = attrFlag(attributes.shapes, true);
+  const analysis = attrFlag(attributes.analysis);
 
   // Same rule as a standalone board: only a *packaged* file is read, never a
   // URL an imported book chose.
@@ -70,7 +79,22 @@ export default function ChessGameIsland({
   return (
     <GameProvider value={game}>
       <SequenceProvider positions={positions} current={current} onGo={setStored}>
-        <div className="chess-game">{children as ReactNode}</div>
+        {/*
+         * `ui-scroll-pane` on both, and only the inner one is literally a
+         * scrollport. The class is the engine's marker for *this clips on
+         * screen*, which the print stylesheet releases (SPEC008 G9.1/C19) — and
+         * a height budget that bounds a scrolling child clips exactly as surely
+         * as the child does. Leaving the outer cap unmarked would print the game
+         * as a viewport-tall box with its prose spilling over whatever follows.
+         */}
+        <div className="chess-game ui-scroll-pane" data-testid="chess-game">
+          <div className="chess-game__board">
+            <ChessBoardInGame analysis={analysis} />
+          </div>
+          <div className="chess-game__prose ui-scroll-pane" data-testid="chess-game-prose">
+            {children as ReactNode}
+          </div>
+        </div>
       </SequenceProvider>
     </GameProvider>
   );

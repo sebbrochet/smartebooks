@@ -28,7 +28,7 @@ function inGame(pgn: string, child: ReactNode) {
   );
 }
 
-const board = <ChessBoardInGame id="b" attributes={{}} packagedAssets={[]} />;
+const board = <ChessBoardInGame />;
 const moves = <ChessMovesIsland id="m" attributes={{}} packagedAssets={[]} />;
 
 let host: HTMLDivElement;

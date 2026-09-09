@@ -80,7 +80,8 @@
       "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
       "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
       "shapes": { "type": "boolean" },
-      "pgn": { "type": "asset" }
+      "pgn": { "type": "asset" },
+      "analysis": { "type": "boolean" }
     },
     "chess-moves": { "scroll": { "type": "boolean" } },
     "move": {},

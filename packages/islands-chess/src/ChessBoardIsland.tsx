@@ -40,7 +40,10 @@ export default function ChessBoardIsland(props: IslandComponentProps) {
   if (game) {
     return (
       <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
-        <ChessBoardInGame {...props} />
+        <ChessBoardInGame
+          at={attrText(props.attributes.at)}
+          analysis={attrFlag(props.attributes.analysis)}
+        />
       </Suspense>
     );
   }

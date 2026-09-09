@@ -336,51 +336,125 @@ test('a move named in a sentence drives every board on the page', async ({ page 
 });
 
 /**
- * SPEC008 C18/G7, **reverted 2026-09-08.** The board inside `:::chess-game` no
- * longer holds still, so the tests that asserted it did are gone rather than
- * left inverted. What replaced them is the diagram test below: a game may hold
- * several boards, and sticky pinned all of them.
+ * It is still a board, at both widths.
  *
- * C18 itself is reopened — past a screen of annotation, `:move[…]` still moves
- * a board the reader has scrolled away from. That is a real fault with no fix
- * in this commit.
+ * G7.4 sized one with `height: min(100%, 42vh)` against a parent of
+ * `height: auto`; a percentage with nothing to resolve against collapses
+ * inside `min()`, the board rendered 0px tall, and every assertion kept
+ * passing, because a board of zero height is still in the viewport.
+ *
+ * G9.2 then did it again in the *width* axis, in a `@media (min-width: 900px)`
+ * branch — two rules below a comment warning about it. Nothing caught it,
+ * because the layout test runs at 390px and the fault only exists above 900.
+ * Hence both widths here: a board sized per breakpoint needs checking per
+ * breakpoint.
  */
-test('a diagram in a game does not follow the reader', async ({ page }) => {
+test('the board is a board, at every width', async ({ page }) => {
+  for (const [width, height] of [
+    [390, 700],
+    [1280, 800],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+    const board = page.locator('.chess-game__board .chessboard-island__board');
+    await board.waitFor();
+    const box = await board.boundingBox();
+
+    expect(box.height, `${width}px: the board has collapsed`).toBeGreaterThan(150);
+    expect(
+      Math.abs(box.width - box.height),
+      `${width}px: the board is ${Math.round(box.width)}×${Math.round(box.height)}`,
+    ).toBeLessThan(2);
+    // And it has left room to read in.
+    expect(box.height, `${width}px: the board has eaten the prose`).toBeLessThan(height * 0.6);
+  }
+});
+
+/**
+ * SPEC008 G9.2 — the board is chrome, not content.
+ *
+ * **The test §7.10 asked for and never got.** Every other chess test clicks a
+ * move while the board is comfortably on screen, which is exactly why C18
+ * shipped, was "fixed" with sticky, and came back. The assertion has to be:
+ * read to the end of the annotation, and is the board still there?
+ *
+ * It is, and for a structural reason rather than a CSS trick — the board is
+ * not in the prose flow at all, so there is nothing for scrolling to take
+ * away. Sticky lifted a box out of flow and produced overlap; this moves the
+ * prose *under* nothing.
+ */
+test('the board holds still while the prose scrolls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
-  // The `at=` board at the end of the game: "it does not follow the reader, it
-  // marks a moment", as the chapter itself says. Sticky made it pin, and pin
-  // *over* the board above it — two boards on screen at once, overlapping.
-  const boards = page.locator('.chess-game .chessboard-island__board');
-  const diagram = boards.last();
-  await diagram.scrollIntoViewIfNeeded();
+  const board = page.locator('.chess-game__board .chessboard-island__board');
+  const prose = page.getByTestId('chess-game-prose');
+  await board.waitFor();
+  await board.scrollIntoViewIfNeeded();
+  await expect(board).toBeInViewport();
 
-  const before = await diagram.boundingBox();
-  await page.evaluate(() => window.scrollBy(0, 200));
-  const after = await diagram.boundingBox();
+  const before = await board.boundingBox();
 
-  expect(before, 'the diagram is on the page').not.toBeNull();
-  // It moved with the page: 200px of scroll, 200px of travel, give or take
-  // rounding and any smooth-scroll settling.
+  // The premise: this game has more annotation than fits beside its board, and
+  // the prose is a scrollport of its own. Without both, the test would pass
+  // against a board that never moved because nothing ever scrolled.
+  const pane = await prose.evaluate((n) => ({
+    clipped: n.scrollHeight > n.clientHeight + 1,
+    overflowY: getComputedStyle(n).overflowY,
+  }));
+  expect(pane.overflowY, 'the prose should be a pane the reader scrolls').toBe('auto');
+  expect(pane.clipped, 'the game should be longer than its pane').toBe(true);
+
+  // Read to the very end of it…
+  await prose.evaluate((n) => n.scrollTo(0, n.scrollHeight));
+
+  // …and the board has not moved a pixel.
+  const after = await board.boundingBox();
+  await expect(board).toBeInViewport();
   expect(
-    Math.abs(before.y - after.y - 200),
-    `the diagram moved ${Math.round(before.y - after.y)}px for 200px of scroll`,
-  ).toBeLessThan(4);
+    Math.abs(before.y - after.y),
+    `the board moved ${Math.round(Math.abs(before.y - after.y))}px`,
+  ).toBeLessThan(1);
 
-  // And no two boards are stacked on top of each other.
-  const rects = await boards.evaluateAll((nodes) =>
-    nodes.map((n) => {
-      const r = n.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom };
-    }),
-  );
-  for (let i = 1; i < rects.length; i++) {
-    expect(
-      rects[i].top >= rects[i - 1].bottom - 1,
-      `board ${i} overlaps board ${i - 1}`,
-    ).toBeTruthy();
-  }
+  // And the last mark in the annotation still drives it, where the reader can
+  // see it happen. That is the whole of C18 in one assertion.
+  await prose.locator('.chess-move', { hasText: '4. Qxf7#' }).first().click();
+  await expect(page.getByTestId('chess-move')).toHaveText('4. Qxf7#');
+  await expect(board).toBeInViewport();
+});
+
+/**
+ * The other half: a diagram *is* content, and content moves.
+ *
+ * This test used to assert the same thing against the page scroll, when the
+ * whole game sat in the document flow and sticky had made two boards pin and
+ * overlap. The chapter's claim is unchanged — "it does not follow the reader,
+ * it marks a moment" — but the thing it must not follow is now the pane.
+ */
+test('a diagram in a game moves with the prose that holds it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const board = page.locator('.chess-game__board .chessboard-island__board');
+  const diagram = page.locator('.chess-game__prose .chessboard-island__board');
+  const prose = page.getByTestId('chess-game-prose');
+  await diagram.waitFor();
+
+  const boardBefore = await board.boundingBox();
+  const diagramBefore = await diagram.boundingBox();
+
+  await prose.evaluate((n) => n.scrollBy(0, 120));
+
+  const boardAfter = await board.boundingBox();
+  const diagramAfter = await diagram.boundingBox();
+
+  // 120px of pane travelled by the diagram, none by the board.
+  expect(
+    Math.abs(diagramBefore.y - diagramAfter.y - 120),
+    `the diagram moved ${Math.round(diagramBefore.y - diagramAfter.y)}px for 120px of scroll`,
+  ).toBeLessThan(4);
+  expect(Math.abs(boardBefore.y - boardAfter.y), 'the board moved with it').toBeLessThan(1);
 });
 
 /**

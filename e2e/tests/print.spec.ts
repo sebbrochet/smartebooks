@@ -143,4 +143,43 @@ test.describe('on paper', () => {
       `${onPaper.scroll - onPaper.client}px of the score would not print`,
     ).toBe(onPaper.scroll);
   });
+
+  /**
+   * SPEC008 G9.2 put a second cap on the page, and C19 is what happens when a
+   * new one is added without asking what it does on paper.
+   *
+   * A game is now a board above a pane of prose, bounded to the viewport. Two
+   * boxes clip: the pane, which is a real scrollport, and the game itself,
+   * whose height budget is what makes the pane scroll at all. Releasing only
+   * the pane would print the game as a viewport-tall box with its annotation
+   * spilling over whatever follows it.
+   */
+  test('a game bounded to the viewport prints whole', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+    const game = page.getByTestId('chess-game');
+    const prose = page.getByTestId('chess-game-prose');
+    await game.waitFor();
+
+    // On screen the prose is a pane, which is the whole point of G9.2.
+    expect(await prose.evaluate((n) => n.scrollHeight > n.clientHeight + 1)).toBe(true);
+
+    await page.emulateMedia({ media: 'print' });
+
+    for (const [name, box] of [
+      ['the game', game],
+      ['its prose', prose],
+    ] as const) {
+      const onPaper = await box.evaluate((n) => ({
+        client: n.clientHeight,
+        scroll: n.scrollHeight,
+        maxHeight: getComputedStyle(n).maxHeight,
+      }));
+      expect(onPaper.maxHeight, `${name}: the cap is released on paper`).toBe('none');
+      expect(onPaper.client, `${name}: ${onPaper.scroll - onPaper.client}px would not print`).toBe(
+        onPaper.scroll,
+      );
+    }
+  });
 });
