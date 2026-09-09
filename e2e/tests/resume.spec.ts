@@ -159,3 +159,88 @@ test('cover mode shows a skippable splash before resuming', async ({ page }) => 
   await page.getByRole('button', { name: 'Continue now' }).click();
   await expect(page).toHaveURL(/02-interactivity-toolkit/);
 });
+
+/**
+ * SPEC008 G9.5 — resume must follow the pane.
+ *
+ * Every test above scrolls the window, because today the chapter *is* the
+ * document. G9.2 puts the prose in a pane beside a fixed board, and at that
+ * point `window.scrollY` stops being where the reader is: the page does not
+ * move at all. Both halves of resume assumed it did — the measurement, which
+ * read `window.scrollY` and never heard a pane scroll, and the restore, which
+ * called `window.scrollTo` and would have moved nothing.
+ *
+ * The pane is made here rather than waited for, so the mechanism can be
+ * settled before the layout that needs it is built (SPEC008 §7). It is one
+ * rule against a real browser doing real layout, which is the part jsdom
+ * cannot check.
+ */
+/**
+ * A crude stand-in for G9.2's layout, and crude on purpose: the reading column
+ * is the only thing that scrolls, and the page around it fits the screen. Both
+ * halves matter. Cap the column alone and the document is still a pixel or two
+ * taller than the viewport, which is enough to hide the third bug this test
+ * exists to catch — "is the reader at the end", asked of a page that never
+ * moves, is true from the moment the chapter opens.
+ *
+ * `overflow: hidden` rather than `auto` on the wrapper, so it stays a clipping
+ * box and the column remains the scrollport.
+ */
+const PANE_CSS = `.reader__body {
+  max-height: calc(100vh - 6rem) !important;
+  overflow: hidden !important;
+}
+.reader__main {
+  height: 400px !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}`;
+
+test('resume follows a pane, not the page', async ({ page }) => {
+  // At document start, so the pane exists before the reader restores into it.
+  // Added with `page.addStyleTag` it would be a race against the chapter.
+  await page.addInitScript((css) => {
+    const inject = () => {
+      if (!document.documentElement) return void requestAnimationFrame(inject);
+      const style = document.createElement('style');
+      style.textContent = css;
+      document.documentElement.appendChild(style);
+    };
+    inject();
+  }, PANE_CSS);
+
+  await page.goto('/#/guide/01-getting-started');
+  const pane = page.locator('.reader__main');
+  await expect(page.locator('article.prose')).toBeVisible();
+
+  // Read down to a section — by scrolling the pane, which is the only thing
+  // that scrolls now.
+  await pane.evaluate((el) => {
+    const heading = document.getElementById('play-a-matching-game');
+    el.scrollTop += heading.getBoundingClientRect().top - el.getBoundingClientRect().top - 40;
+  });
+
+  const left = await pane.evaluate((el) => el.scrollTop);
+  expect(left).toBeGreaterThan(0);
+  // The premise: the reader has moved a long way and the page has not moved.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  // The same measurement drives the contents rail, and it is where a page-only
+  // reading of "has the reader reached the end?" shows up first: the document
+  // no longer scrolls, so it is at its end permanently, and the rail marks the
+  // *last* section from the moment the chapter opens.
+  await expect(page.locator('.toc__list a[aria-current="true"]')).toHaveText(
+    'Play a matching game',
+  );
+
+  // The position is written on a delay, not on every scroll frame. It is only
+  // written at all if the measurement heard the pane scroll.
+  await page.waitForTimeout(1200);
+
+  await page.goto('/');
+  await expect(page).toHaveURL(/01-getting-started/);
+
+  // Within a line or two of where they stopped — in the pane.
+  await expect.poll(() => pane.evaluate((el) => el.scrollTop)).toBeGreaterThan(left - 60);
+  expect(await pane.evaluate((el) => el.scrollTop)).toBeLessThan(left + 60);
+});
