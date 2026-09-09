@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { Chessground } from 'chessground';
 import { attrText, type IslandComponentProps } from '@smart-ebooks/engine';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
+import { findByFen } from './score';
+import { useGame, useSequence } from './gameContext';
 import { parseShapes } from './shapes';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
@@ -19,6 +21,13 @@ import './themes.css';
  *
  * `shapes` takes the same token syntax as PGN's `[%cal …]` / `[%csl …]` tags,
  * so an author only ever learns one spelling for an arrow.
+ *
+ * **Inside a `:::chess-game` it is also an input** (SPEC008 G9.3). Tapping it
+ * sends its position to the game's live board, which is how a reader gets from
+ * a moment printed in the prose to the board they can move pieces on. The
+ * position is matched against the game rather than declared, so an author adds
+ * nothing: a diagram of a position this game reaches becomes a control, and one
+ * of a position it does not stays a figure.
  */
 export default function ChessDiagramIsland({ attributes, data }: IslandComponentProps) {
   const {
@@ -32,6 +41,14 @@ export default function ChessDiagramIsland({ attributes, data }: IslandComponent
   const shapes = attrText(attributes.shapes);
   const side = orientationFor(orientation, fen);
   const boardRef = useRef<HTMLDivElement>(null);
+
+  const game = useGame();
+  const sequence = useSequence();
+  const path = game && fen ? findByFen(game.tree, fen) : undefined;
+  // `''` is the starting position and a perfectly good target, so this cannot
+  // be a truthiness test.
+  const opens = sequence !== undefined && path !== undefined;
+  const current = opens && sequence.current === path;
 
   useEffect(() => {
     if (!boardRef.current || !fen) return;
@@ -55,12 +72,29 @@ export default function ChessDiagramIsland({ attributes, data }: IslandComponent
     );
   }
 
+  function onKeyDown(event: KeyboardEvent) {
+    if (!opens || (event.key !== 'Enter' && event.key !== ' ')) return;
+    // Space scrolls the page by default, which is the opposite of what a reader
+    // pressing it on a focused control expects.
+    event.preventDefault();
+    sequence.go(path);
+  }
+
   return (
-    <figure className="island chess-diagram">
+    <figure className={`island chess-diagram${opens ? ' chess-diagram--opens' : ''}`}>
       <div
         className={`chessboard-island__board cg-wrap cg-theme--${theme} cg-pieces--${pieces}`}
         ref={boardRef}
-        aria-label={caption || 'Chess diagram'}
+        role={opens ? 'button' : undefined}
+        tabIndex={opens ? 0 : undefined}
+        aria-current={current ? 'true' : undefined}
+        aria-label={
+          opens
+            ? `${caption || 'Chess diagram'} — show this position on the board`
+            : caption || 'Chess diagram'
+        }
+        onClick={opens ? () => sequence.go(path) : undefined}
+        onKeyDown={opens ? onKeyDown : undefined}
       />
       {caption && <figcaption className="chess-diagram__caption">{caption}</figcaption>}
     </figure>

@@ -148,6 +148,54 @@
   max-width: 320px;
 }
 
+/*
+ * A diagram that is also an input (SPEC008 G9.3).
+ *
+ * Inside a game, tapping a diagram sends its position to the live board. That
+ * has to be visible: an affordance nobody can see is a feature only the author
+ * knows about. The outline appears on hover and on focus, so it is announced to
+ * a keyboard the same way it is offered to a finger.
+ *
+ * Applied to the *board*, not the figure, because the caption is prose and
+ * should not look like part of a button.
+ */
+.chess-diagram--opens .chessboard-island__board,
+.chess-game__prose .chessboard-island__board[role='button'] {
+  cursor: pointer;
+  border-radius: 3px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color 120ms ease-out;
+}
+
+.chess-diagram--opens .chessboard-island__board:hover,
+.chess-diagram--opens .chessboard-island__board:focus-visible,
+.chess-game__prose .chessboard-island__board[role='button']:hover,
+.chess-game__prose .chessboard-island__board[role='button']:focus-visible {
+  outline-color: var(--accent, #3f51b5);
+}
+
+/* The diagram the reader is currently looking at on the live board. */
+.chess-diagram--opens .chessboard-island__board[aria-current='true'],
+.chess-game__prose .chessboard-island__board[aria-current='true'] {
+  outline-color: var(--border, #ccc);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-diagram--opens .chessboard-island__board,
+  .chess-game__prose .chessboard-island__board[role='button'] {
+    transition: none;
+  }
+}
+
+/* On paper a diagram is a diagram: no hint that it could be touched. */
+@media print {
+  .chess-diagram--opens .chessboard-island__board,
+  .chess-game__prose .chessboard-island__board[role='button'] {
+    outline: none;
+  }
+}
+
 /* The annotator's own evaluation, shown before any engine runs. */
 .chess-analysis__stated {
   margin: 0 0 0.4rem;

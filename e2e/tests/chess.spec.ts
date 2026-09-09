@@ -437,7 +437,10 @@ test('a diagram in a game moves with the prose that holds it', async ({ page }) 
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
   const board = page.locator('.chess-game__board .chessboard-island__board');
-  const diagram = page.locator('.chess-game__prose .chessboard-island__board');
+  // By its own class, not by position in the pane: the game holds two diagrams
+  // now, and "the first board in the prose" would be a locator that quietly
+  // changes meaning the next time the chapter is edited.
+  const diagram = page.locator('.chess-diagram--opens .chessboard-island__board');
   const prose = page.getByTestId('chess-game-prose');
   await diagram.waitFor();
 
@@ -468,6 +471,87 @@ test('a diagram in a game moves with the prose that holds it', async ({ page }) 
  *
  * Asserted on the `on` chapter specifically, because `scroll` was always fine.
  */
+/**
+ * SPEC008 G9.3 — a diagram is an input.
+ *
+ * Half of this row already shipped with G4.1: `:move[…]` has driven the board
+ * since 2026-09-01, and the test above proves it. What did not was the other
+ * half, which is ForwardChess's move — the thing that makes "prose holds
+ * diagrams, one board is live" a coherent pair rather than a compromise.
+ *
+ * The position is matched against the game rather than declared, so the author
+ * writes nothing: a diagram this game reaches becomes a control, one it does
+ * not stays a figure. Both halves are asserted, because the second is what
+ * stops the feature from being a guess.
+ */
+test('tapping a diagram puts its position on the board', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const status = page.getByTestId('chess-move');
+  const diagram = page.locator('.chess-diagram--opens .chessboard-island__board');
+  await expect(status).toHaveText('Start');
+
+  // The refutation, printed in the prose where it belongs.
+  await expect(diagram).toHaveCount(1);
+  await diagram.click();
+
+  // The live board is showing it, named as the move that reaches it.
+  await expect(status).toHaveText('3... g6');
+  // …and the diagram says it is the one being shown.
+  await expect(diagram).toHaveAttribute('aria-current', 'true');
+});
+
+test('a pinned board is a way back to the position it marks', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const status = page.getByTestId('chess-move');
+  const pinned = page.getByRole('button', { name: /Chess diagram: 4\. Qxf7#/ });
+
+  await page.locator('.chess-move', { hasText: '1. e4' }).first().click();
+  await expect(status).toHaveText('1. e4');
+
+  await pinned.click();
+  await expect(status).toHaveText('4. Qxf7#');
+});
+
+/**
+ * C15 said a diagram is not a control and took its focus away. G9.3 reverses
+ * that, and the reversal is only honest if the keyboard comes with it — a
+ * control reachable by mouse alone is the regression C15 existed to prevent.
+ */
+test('a diagram can be reached and used from the keyboard', async ({ page }) => {
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+
+  const status = page.getByTestId('chess-move');
+  const diagram = page.locator('.chess-diagram--opens .chessboard-island__board');
+
+  await diagram.focus();
+  await expect(diagram).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(status).toHaveText('3... g6');
+
+  // Space too, and it must not scroll the page instead.
+  await page.locator('.chess-move', { hasText: '1. e4' }).first().click();
+  await expect(status).toHaveText('1. e4');
+  await diagram.focus();
+  await page.keyboard.press(' ');
+  await expect(status).toHaveText('3... g6');
+});
+
+/**
+ * The half that keeps the feature honest. Chapter 2's diagram is a position
+ * from the same opening, but it is not inside any game — so there is no board
+ * to send it to, and it stays what a diagram has always been.
+ */
+test('a diagram outside a game is still just a figure', async ({ page }) => {
+  await page.goto('/#/chess/02-reading-an-annotated-game');
+
+  const diagram = page.locator('.chess-diagram');
+  await expect(diagram).toHaveCount(1);
+  await expect(diagram).not.toHaveClass(/chess-diagram--opens/);
+  await expect(diagram.locator('[role="button"]')).toHaveCount(0);
+});
+
 test('a score keeps its board on screen instead of pushing it away', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto('/#/chess/02-reading-an-annotated-game');
@@ -490,15 +574,23 @@ test('a score keeps its board on screen instead of pushing it away', async ({ pa
 
 test('a pinned board stays where it was put', async ({ page }) => {
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
-  // Two boards, one live and one pinned with `at`.
-  await expect(page.locator('.chessboard-island .cg-wrap')).toHaveCount(2);
+  // Three boards: the game's live one, an `at=` diagram and a `::chess-diagram`.
+  await expect(page.locator('.chessboard-island .cg-wrap, .chess-diagram .cg-wrap')).toHaveCount(3);
 
-  // The pinned one is a diagram: a caption naming its move, and no controls.
+  // The pinned one is a diagram: a caption naming its move, and no navigation.
   const pinned = page.locator('.chessboard-island', {
     has: page.locator('.chess-diagram__caption'),
   });
   await expect(pinned.locator('.chess-diagram__caption')).toHaveText('4. Qxf7#');
-  await expect(pinned.getByRole('button')).toHaveCount(0);
+  /*
+   * It has no *controls* — no first/previous/next, because it does not step
+   * through anything. Since G9.3 the board itself is a button, which is a
+   * different claim: it marks one moment, and touching that moment sends it to
+   * the live board. C15's "a diagram is not a control" was true while a diagram
+   * only ever displayed.
+   */
+  await expect(pinned.getByRole('button', { name: /move/i })).toHaveCount(0);
+  await expect(pinned.locator('.chessboard-island__buttons')).toHaveCount(0);
 
   // Moving the reader does not move it — that is the whole point of a diagram.
   await page.locator('.chess-move', { hasText: '1. e4' }).first().click();

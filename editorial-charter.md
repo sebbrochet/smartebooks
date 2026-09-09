@@ -334,6 +334,14 @@ no game: every mark becomes plain text and every board and score inside says so.
   - `moves`, `pgn` and `at` are **context-bound** (`attribute-ignored`): the first two mean nothing
     inside a game, because the container owns the score and the game; `at` means nothing outside one,
     because there is no published position to pin to. Inside a game, the score is `::chess-moves`.
+- **A diagram inside a game is also a way in.** Tap either kind — `::chess-board{at="…"}` or
+  `::chess-diagram{fen="…"}` — and the game's board shows that position. You write nothing to get
+  this: a diagram names a position, and if this game reaches it the diagram becomes a control. A
+  diagram of a position from somewhere else stays a picture with nothing to tap, which is correct
+  and not an error — a book may print any position it likes.
+  - The clocks in a FEN (the last two numbers) are ignored when matching, so you can copy a position
+    without counting halfmoves. Everything else — the pieces, whose turn it is, castling rights and
+    the en-passant square — has to agree, because those are the position.
 - `::chess-moves` (leaf): `scroll` (default `true`) — the game score, placed where you want it.
 - `:move[…]` (**inline**) marks a move in a sentence and jumps every board on the page to it.
   - The label is a move, matched the way a reader reads it: `2. Bc4`, `2.Bc4` and `Bc4` all work, and

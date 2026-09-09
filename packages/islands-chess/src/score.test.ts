@@ -1,6 +1,63 @@
 import { describe, it, expect } from 'vitest';
 import { pgnToTree, nodeAt } from './tree';
-import { findByLabel, moveLabel, pgnScoreText, toScore } from './score';
+import { findByFen, findByLabel, moveLabel, pgnScoreText, positionKey, toScore } from './score';
+
+/**
+ * SPEC008 G9.3. A diagram carries a position, not a move, so sending it to the
+ * live board means asking the game where — if anywhere — it occurs.
+ */
+describe('findByFen', () => {
+  const tree = pgnToTree('1. e4 e5 2. Bc4 Nc6 (2... Nf6 3. d3) 3. Qh5?! g6');
+
+  /** The fixture's own node, or a failure naming which path went missing. */
+  function at(path: string) {
+    const node = nodeAt(tree, path);
+    if (!node) throw new Error(`the fixture has no node at ${path}`);
+    return node;
+  }
+
+  it('finds the position a diagram shows', () => {
+    expect(findByFen(tree, at('0.0.0').fen)).toBe('0.0.0');
+  });
+
+  /*
+   * The measurement this function exists for. An author writes a diagram by
+   * copying the pieces; they do not count halfmoves since the last capture, and
+   * a game replayed from the first move does. Whole-FEN equality would reject
+   * exactly the diagrams G9.3 is for.
+   */
+  it('ignores the clocks, which are history rather than position', () => {
+    const fields = at('0.0.0').fen.split(' ');
+    expect(fields, 'a FEN this test assumes has six fields').toHaveLength(6);
+
+    const recounted = [...fields.slice(0, 4), '0', '1'].join(' ');
+    expect(recounted).not.toBe(at('0.0.0').fen);
+    expect(findByFen(tree, recounted)).toBe('0.0.0');
+  });
+
+  it('reaches into a sideline', () => {
+    expect(at('0.0.0.1').san).toBe('Nf6');
+    expect(findByFen(tree, at('0.0.0.1').fen)).toBe('0.0.0.1');
+  });
+
+  it('names the starting position as the empty path, like the board does', () => {
+    expect(findByFen(tree, tree.fen)).toBe('');
+  });
+
+  /*
+   * A book may print a position from another game entirely, and that diagram is
+   * a figure with nothing to click. Silence is the right answer, not a guess.
+   */
+  it('finds nothing when the game never reaches the position', () => {
+    expect(findByFen(tree, '8/8/8/8/8/8/8/K6k w - - 0 1')).toBeUndefined();
+    expect(findByFen(tree, '')).toBeUndefined();
+  });
+
+  it('keeps castling and en passant, which do change the position', () => {
+    expect(positionKey('8/8/8/8/8/8/8/K6k w KQ e3 9 40')).toBe('8/8/8/8/8/8/8/K6k w KQ e3');
+    expect(positionKey('8/8/8/8/8/8/8/K6k w')).toBe('8/8/8/8/8/8/8/K6k w - -');
+  });
+});
 
 describe('findByLabel', () => {
   const tree = pgnToTree('1. e4 e5 2. Bc4 Nc6 (2... Nf6 3. d3) 3. Qh5?! g6');

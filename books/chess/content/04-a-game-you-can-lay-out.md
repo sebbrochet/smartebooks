@@ -26,20 +26,25 @@ Now :move[2. Bc4] eyes the weak **f7** square — defended by nothing but the ki
 premature: Black can simply develop, and the queen becomes a target. The
 sideline in the score shows :move[3... g6], which is the move.
 
-Every mark above is a button. Click one and the board follows it — and so does
-the score below, because they are all reading the same position from the same
-container. However far down this commentary you have read, the board is still
-there.
+::chess-diagram{fen="r1bqkbnr/pppp1p1p/2n3p1/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 4" caption="The refutation. Tap it."}
+
+A **diagram** is a moment, printed where it belongs, exactly as a paper book
+prints one. Here it is also a way in: tap it and the board above shows that
+position. Nothing declares that — the diagram names a position, and this game
+happens to reach it. A diagram of a position from some other game stays a
+picture, with nothing to tap.
+
+Every mark above is a button too. Click one and the board follows it — and so
+does the score below, because they are all reading the same position from the
+same container. However far down this commentary you have read, the board is
+still there.
 
 ::chess-moves{scroll=false}
 
-After :move[4. Qxf7#] it is over. A **diagram** is different: it stays where it
-is put, exactly as a printed one does. It does not follow the reader, it marks a
-moment.
+After :move[4. Qxf7#] it is over, and the last diagram is the position worth
+remembering: Black never developed a piece.
 
 ::chess-board{at="4. Qxf7#"}
-
-The final position is worth remembering: Black never developed a piece.
 
 :::
 
@@ -52,6 +57,7 @@ reads like prose.
 
 The engine is the game's, not a board's: `analysis` on `:::chess-game` puts
 Stockfish under the one live board, and it evaluates whatever position the
-reader is on — including one they reached by clicking a move in a sentence.
+reader is on — including one they reached by clicking a move in a sentence, or
+by tapping a diagram.
 
 ::checkpoint{id="chess-layout-done" label="I read a game laid out as prose"}

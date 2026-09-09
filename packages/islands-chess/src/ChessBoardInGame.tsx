@@ -31,7 +31,8 @@ export interface GameBoardProps {
  *
  * `at` pins a board to a fixed position and takes its controls away — that is
  * the printed diagram, which stays put while the interactive board follows the
- * reader.
+ * reader. Since G9.3 it is also a **tap target**: it shows a moment, and
+ * touching that moment sends it to the live board.
  *
  * **Plain props rather than `IslandComponentProps`** (SPEC008 G9.2): the
  * container renders one of these itself, as the fixed board above its prose,
@@ -119,7 +120,15 @@ export default function ChessBoardInGame({
   // authoring form would be an accessibility regression, not a missing feature.
   const go = sequence.go;
   function onKeyDown(event: React.KeyboardEvent) {
-    if (pinned) return;
+    if (pinned) {
+      // A pinned board is a diagram, and G9.3 makes a diagram an *input*: the
+      // keys that step a live board mean nothing here, but Enter and Space send
+      // this position to the one the reader is using.
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      go(pinned);
+      return;
+    }
     const to: string | undefined = {
       ArrowLeft: previous,
       ArrowRight: next,
@@ -136,13 +145,24 @@ export default function ChessBoardInGame({
       <div
         className={`chessboard-island__board cg-wrap cg-theme--${game.board.theme} cg-pieces--${game.board.pieces}`}
         ref={boardRef}
-        tabIndex={pinned ? undefined : 0}
-        role={pinned ? undefined : 'group'}
+        /*
+         * **C15 said a diagram is not a control, and G9.3 reverses that.** The
+         * argument was sound while a diagram only ever displayed: giving a
+         * picture focus buys a keyboard user a stop on the way to nothing. It
+         * stops being sound the moment tapping it *does* something — it is now
+         * how a reader gets from a moment printed in the prose to the board they
+         * can move pieces on, and a control reachable only by mouse is the
+         * regression C15 was written to prevent.
+         */
+        tabIndex={0}
+        role={pinned ? 'button' : 'group'}
+        aria-current={pinned && sequence.current === pinned ? 'true' : undefined}
         aria-label={
           pinned
-            ? `Chess diagram: ${moveLabel(node)}`
+            ? `Chess diagram: ${moveLabel(node)} — show this position on the board`
             : 'Chess board — arrow keys step through the game'
         }
+        onClick={pinned ? () => go(pinned) : undefined}
         onKeyDown={onKeyDown}
       />
       {!pinned && (

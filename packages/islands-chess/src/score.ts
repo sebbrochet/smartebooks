@@ -92,6 +92,43 @@ function normalise(label: string): string {
 }
 
 /**
+ * The identifying part of a FEN: placement, side to move, castling rights and
+ * the en-passant square.
+ *
+ * A FEN's last two fields are the halfmove clock and the move number, and they
+ * are **history, not position**. An author writing a diagram counts neither —
+ * they copy the pieces and say whose turn it is — while a replayed game tracks
+ * both exactly. Comparing whole FENs would therefore fail on precisely the
+ * diagrams this is for.
+ *
+ * The four fields kept are the ones FIDE uses to decide that a position has
+ * repeated, which is the same question asked here: *is this the same position?*
+ */
+export function positionKey(fen: string): string {
+  const [placement = '', turn = '', castling = '-', enPassant = '-'] = fen.trim().split(/\s+/);
+  return [placement, turn, castling, enPassant].join(' ');
+}
+
+/**
+ * The position a diagram shows, as a path in this game — or `undefined` if the
+ * game never reaches it (SPEC008 G9.3).
+ *
+ * That second case is not a failure. A diagram is a position; a game is one
+ * particular sequence of them. A book may perfectly well print a position from
+ * somewhere else entirely, and such a diagram stays what it always was: a
+ * figure, with nothing to click.
+ *
+ * The whole tree is searched, sidelines included, main line first — so a
+ * position reached both ways resolves to the reading most readers mean.
+ */
+export function findByFen(tree: GameTree, fen: string): string | undefined {
+  const wanted = positionKey(fen);
+  if (!fen.trim()) return undefined;
+  if (tree.fen && positionKey(tree.fen) === wanted) return '';
+  return allNodes(tree).find((node) => positionKey(node.fen) === wanted)?.path;
+}
+
+/**
  * Walks one line and everything that branches off it, in reading order.
  *
  * `nodes` is a sibling list: `nodes[0]` continues the line and `nodes[1..]` are
