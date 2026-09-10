@@ -184,6 +184,102 @@ test('the progress dashboard is one row, at every width', async ({ page }) => {
   process.stdout.write(`SPEC009 T12 — dashboard\n${out.join('\n')}\n`);
 });
 
+/**
+ * SPEC009 T13. The breakpoint is written down twice — a media query in
+ * `reader.css` and `NARROW` in `useMediaQuery.ts` — because some of what it
+ * changes is markup rather than paint, and that half cannot live in CSS without
+ * lying to assistive technology. Nothing held the two copies together but a
+ * comment saying they must match, and a comment is not a mechanism.
+ *
+ * Asserted through their consequences rather than by reading the literals back:
+ * the stylesheet's answer is whether `.reader__body` has collapsed to one
+ * column, the script's answer is whether the rail has grown a fold control.
+ * They must agree about every shape, or there is a band of viewports where the
+ * rail is open above a chapter the grid has already made narrow.
+ */
+test('the breakpoint means the same thing to the stylesheet and to the script', async ({
+  page,
+}) => {
+  await page.goto('/#/guide/01-getting-started');
+  await page.locator('.prose').first().waitFor();
+
+  // Around 720 on the width axis, around 600 on the height axis, plus the
+  // shapes real hardware actually has.
+  const shapes: [number, number][] = [
+    [1400, 900],
+    [1024, 768],
+    [900, 800],
+    [721, 800],
+    [720, 800],
+    [719, 800],
+    [400, 800],
+    [1280, 601],
+    [1280, 600],
+    [1280, 599],
+    [844, 390],
+    [740, 360],
+    [390, 844],
+  ];
+
+  const disagreements: string[] = [];
+  const out: string[] = [];
+
+  for (const [width, height] of shapes) {
+    await page.setViewportSize({ width, height });
+    // The drawer animates; measuring mid-slide reads a state neither side holds.
+    await page.waitForTimeout(300);
+
+    const oneColumn = await page
+      .locator('.reader__body')
+      .evaluate((n) => getComputedStyle(n).gridTemplateColumns.trim().split(/\s+/).length === 1);
+    const foldable = (await page.locator('.toc__toggle').count()) > 0;
+
+    out.push(
+      `  ${String(width).padStart(4)}×${String(height).padEnd(4)} css ${oneColumn ? 'narrow' : 'wide  '}  js ${foldable ? 'narrow' : 'wide'}`,
+    );
+    if (oneColumn !== foldable) {
+      disagreements.push(`${width}×${height}: stylesheet ${oneColumn}, script ${foldable}`);
+    }
+  }
+
+  process.stdout.write(`SPEC009 T13 — breakpoint agreement\n${out.join('\n')}\n`);
+  expect(disagreements).toEqual([]);
+});
+
+/**
+ * SPEC009 V15, the symptom that sent T13 looking. A phone turned on its side is
+ * 844px wide and 390px tall; the width-only breakpoint called that a desk, so
+ * the sidebar left its drawer and the rail unfolded into the row above the
+ * chapter. Between them they took the chapter off the first screen.
+ *
+ * Measured before the fix at 844×390: `main` began at y=231 of 390, and the
+ * reading area was 84,588px² against 153,615px² on a 667×375 screen that has
+ * fewer pixels in total.
+ */
+test('a phone on its side still opens on the chapter', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/#/guide/01-getting-started');
+  await page.locator('.prose').first().waitFor();
+
+  const main = (await page.locator('.reader__main').boundingBox())?.y ?? 0;
+  const sidebar = await page
+    .locator('.sidebar')
+    .evaluate((n) => Math.round(n.getBoundingClientRect().right));
+  const first = await page
+    .locator('article.prose p')
+    .first()
+    .evaluate((n) => Math.round(n.getBoundingClientRect().top));
+
+  process.stdout.write(
+    `SPEC009 V15 — 844×390\n  chrome above the chapter ${Math.round(main)}px\n` +
+      `  sidebar right edge ${sidebar}px\n  first paragraph at y=${first}\n`,
+  );
+
+  expect(sidebar, 'the sidebar should be off-canvas, not holding a column').toBeLessThanOrEqual(0);
+  expect(main, 'the chrome should not take half of a 390px screen').toBeLessThan(195);
+  expect(first, 'the first paragraph should be on the first screen').toBeLessThan(390);
+});
+
 test('the way back to the shelf survives on a phone', async ({ page }) => {
   // The brand link was the only route back to the library, and an icon bar is
   // exactly where it would get lost.

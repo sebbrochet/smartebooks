@@ -107,6 +107,13 @@
     display: none;
   }
 
+  /*
+   * Deliberately width-only, unlike the engine's same-numbered breakpoint. That
+   * one asks "is this a phone" and so also asks about height; this one asks "is
+   * there room for characters between the controls", which is a question about
+   * width and nothing else. A phone on its side is 844px wide and has room for
+   * the title (SPEC009 V15), so it keeps it.
+   */
   @media (max-width: 720px) {
     /*
      * At 320px six 44px controls leave 56px — three characters and an ellipsis,

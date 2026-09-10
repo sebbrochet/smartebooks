@@ -954,7 +954,15 @@
     display: none;
   }
 
-  @media (max-width: 720px) {
+  /*
+   * The phone layout. Both clauses are the same question — "is this a phone" —
+   * asked on the two axes a phone can be short in, because one turned on its
+   * side is 844px wide and 390px tall and the width clause alone called that a
+   * desk (SPEC009 V15). `NARROW` in `useMediaQuery.ts` is this query written
+   * again for the components whose *markup* differs here rather than only their
+   * appearance; the two are held together by a test, not by this comment.
+   */
+  @media (max-width: 720px), (max-height: 600px) {
     .reader__body {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas:
