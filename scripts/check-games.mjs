@@ -8,9 +8,19 @@
  * replays each game the way `tree.ts` does, through the same `chessops` the
  * reader runs, and counts the plies.
  *
- * It also resolves every `:move[…]` mark. A mark whose label names no move in
- * its game renders as plain text rather than a button: no error, no warning,
- * just a sentence that has quietly stopped working.
+ * It also resolves **everything inside a game that names a part of it**, which
+ * is three things rather than the one this started as:
+ *
+ * - `:move[…]` — a label naming no move renders as plain text rather than a
+ *   button: a sentence that has quietly stopped working. **Error.**
+ * - `::chess-board{at="…"}` — the same label vocabulary. A pin that resolves to
+ *   nothing does not fail; it silently becomes a *live* board that follows the
+ *   reader, so the diagram the author placed wanders off. **Error.**
+ * - `::chess-diagram{fen="…"}` — a diagram whose position the game reaches is a
+ *   tap target, and one it does not reach is a plain figure. **Both are legal**
+ *   (a book may print a position from anywhere), so this is a **warning**: a
+ *   one-character slip in 69 characters of FEN downgrades the diagram and
+ *   nothing else would say so.
  *
  * Honours SMART_EBOOKS_BOOKS_DIR, so a book kept in a separate repository is
  * checked without being copied into this one.
@@ -21,6 +31,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parsePgn, startingPosition } from 'chessops/pgn';
 import { parseSan } from 'chessops/san';
+import { makeFen } from 'chessops/fen';
 import { BOOKS_DIR, listBookFolders, listContentFiles, readDescriptor } from './book-sources.mjs';
 
 /**
@@ -120,18 +131,89 @@ function labelsOf(pgn) {
   return found;
 }
 
-/** Every `:::chess-game` container, as `[id, pgn, marks]`. */
+/**
+ * Every position the game reaches, keyed the way `findByFen` compares them.
+ *
+ * Mirrors `positionKey` in `packages/islands-chess/src/score.ts`: placement,
+ * side to move, castling rights and the en-passant square, and **not** the two
+ * clocks. A diagram is a position, not a move count, so a FEN copied from one
+ * source and a game replayed from another must still compare equal.
+ *
+ * The starting position counts. `findByFen` checks `tree.fen` before walking
+ * the nodes, so a diagram of the initial array is a legitimate tap target.
+ */
+function positionsOf(pgn) {
+  const game = parsePgn(pgn)[0];
+  const found = new Set();
+  if (!game) return found;
+
+  const root = startingPosition(game.headers).unwrap();
+  found.add(positionKey(makeFen(root.toSetup())));
+
+  const walk = (node, position) => {
+    for (const child of node.children) {
+      const move = parseSan(position, child.data.san);
+      if (!move) continue; // Reported by `plies`, which replays the same tree.
+      const after = position.clone();
+      after.play(move);
+      found.add(positionKey(makeFen(after.toSetup())));
+      walk(child, after);
+    }
+  };
+
+  walk(game.moves, root);
+  return found;
+}
+
+/** The first four FEN fields, which are what identifies a position. */
+function positionKey(fen) {
+  const [placement = '', turn = '', castling = '-', enPassant = '-'] = fen.trim().split(/\s+/);
+  return [placement, turn, castling, enPassant].join(' ');
+}
+
+/**
+ * Every `:::chess-game` container and the three kinds of reference in its body.
+ *
+ * The `d` flag is what makes the line numbers exact: `match.indices[3]` gives
+ * the body's absolute offset, so each reference is located by its own position
+ * rather than by searching the block for its text — which reports every
+ * repetition of a mark at the line of the first one.
+ *
+ * The lookbehind keeps `::chess-board` from matching the last two colons of a
+ * standalone `:::chess-board`. Alias spellings are accepted because the engine
+ * accepts them: a book using `::chessdiagram` renders, so it must also be
+ * checked.
+ */
 function gamesIn(markdown) {
   const pattern =
-    /:::chess-game\{id="([^"]+)"[^}]*\}\s*```pgn\r?\n([\s\S]*?)\r?\n```([\s\S]*?)\r?\n:::/g;
-  return [...markdown.matchAll(pattern)].map((match) => [
-    match[1],
-    match[2],
-    [...match[3].matchAll(/:move\[([^\]]+)\]/g)].map((mark) => ({
-      label: mark[1],
-      line: lineAt(markdown, match.index + match[0].indexOf(mark[0])),
-    })),
-  ]);
+    /:::chess-game\{id="([^"]+)"[^}]*\}\s*```pgn\r?\n([\s\S]*?)\r?\n```([\s\S]*?)\r?\n:::/dg;
+
+  return [...markdown.matchAll(pattern)].map((match) => {
+    const body = match[3];
+    const bodyStart = match.indices[3][0];
+    const at = (sub) => lineAt(markdown, bodyStart + sub.index);
+
+    const attribute = (text, name) => new RegExp(`\\b${name}="([^"]*)"`).exec(text)?.[1];
+
+    const directives = [...body.matchAll(/(?<!:)::(chess-?board|chess-?diagram)\{([^}]*)\}/g)];
+
+    return {
+      id: match[1],
+      pgn: match[2],
+      moves: [...body.matchAll(/:move\[([^\]]+)\]/g)].map((sub) => ({
+        label: sub[1],
+        line: at(sub),
+      })),
+      pins: directives
+        .filter((sub) => sub[1].includes('board'))
+        .map((sub) => ({ label: attribute(sub[2], 'at'), line: at(sub) }))
+        .filter((pin) => pin.label !== undefined),
+      diagrams: directives
+        .filter((sub) => sub[1].includes('diagram'))
+        .map((sub) => ({ fen: attribute(sub[2], 'fen'), line: at(sub) }))
+        .filter((diagram) => diagram.fen),
+    };
+  });
 }
 
 const wanted = process.argv.slice(2);
@@ -139,6 +221,7 @@ const folders = listBookFolders().filter((name) => wanted.length === 0 || wanted
 
 let games = 0;
 let marks = 0;
+let shown = 0;
 let failed = 0;
 
 for (const folder of folders) {
@@ -181,13 +264,41 @@ for (const folder of folders) {
       }
     }
 
-    for (const [id, pgn, found] of gamesIn(markdown)) {
+    for (const { id, pgn, moves: found, pins, diagrams } of gamesIn(markdown)) {
       const known = labelsOf(pgn);
+
       for (const { label, line } of found) {
         marks++;
         if (known.has(normalise(label))) continue;
         failed++;
         console.error(`${where}:${line}: error ${id}: :move[${label}] names no move in the game.`);
+      }
+
+      // A pin that resolves to nothing does not render an error, it renders a
+      // *different board*: one that follows the reader instead of holding the
+      // position the author placed it for.
+      for (const { label, line } of pins) {
+        marks++;
+        if (known.has(normalise(label))) continue;
+        failed++;
+        console.error(
+          `${where}:${line}: error ${id}: at="${label}" names no move in the game, ` +
+            `so this board will follow the reader instead of staying put.`,
+        );
+      }
+
+      // Legal either way, so a warning: the author may be printing a position
+      // from somewhere else on purpose.
+      if (diagrams.length > 0) {
+        const positions = positionsOf(pgn);
+        for (const { fen, line } of diagrams) {
+          shown++;
+          if (positions.has(positionKey(fen))) continue;
+          console.warn(
+            `${where}:${line}: warning ${id}: this diagram's position does not occur ` +
+              `in the game, so tapping it will do nothing. Intended?`,
+          );
+        }
       }
     }
   }
@@ -198,4 +309,7 @@ if (failed > 0) {
   process.exit(1);
 }
 
-console.log(`${games} game(s) replay cleanly, and ${marks} move mark(s) resolve.`);
+console.log(
+  `${games} game(s) replay cleanly, ${marks} reference(s) resolve, ` +
+    `and ${shown} diagram(s) in a game were checked.`,
+);
