@@ -336,38 +336,61 @@ test('a move named in a sentence drives every board on the page', async ({ page 
 });
 
 /**
- * It is still a board, at both widths.
+ * The game survives the shape of the screen — a board worth looking at, and
+ * prose worth reading, at every one.
  *
- * G7.4 sized one with `height: min(100%, 42vh)` against a parent of
- * `height: auto`; a percentage with nothing to resolve against collapses
- * inside `min()`, the board rendered 0px tall, and every assertion kept
- * passing, because a board of zero height is still in the viewport.
+ * Three faults have now shipped in the rules this covers, each invisible to
+ * the test that existed at the time, and each a *shape* the suite did not try:
  *
- * G9.2 then did it again in the *width* axis, in a `@media (min-width: 900px)`
- * branch — two rules below a comment warning about it. Nothing caught it,
- * because the layout test runs at 390px and the fault only exists above 900.
- * Hence both widths here: a board sized per breakpoint needs checking per
- * breakpoint.
+ * - **G7.4**, `height: min(100%, 42vh)` against a parent of `height: auto`. A
+ *   percentage with nothing to resolve against collapses inside `min()`; the
+ *   board rendered 0px tall and every assertion kept passing, because a board
+ *   of zero height is still in the viewport.
+ * - **G9.2**, the same fault in the width axis inside a `min-width: 900px`
+ *   branch — missed because the layout test ran only at 390px.
+ * - **G9.2 again**, reported from a phone: in **landscape** the board region
+ *   took the height it needed and the pane, the only flexible box, absorbed
+ *   the whole shortfall. `844×390` left **16px of prose**; `740×360` left
+ *   **none at all**. Both widths were covered. Neither height was.
+ *
+ * So the table is shapes, not widths, and it asserts the prose as well as the
+ * board — the pane was the thing that vanished, and nothing was watching it.
  */
-test('the board is a board, at every width', async ({ page }) => {
-  for (const [width, height] of [
-    [390, 700],
-    [1280, 800],
-  ]) {
+test('the game survives the shape of the screen', async ({ page }) => {
+  const shapes = [
+    ['tall phone', 390, 844],
+    ['phone', 390, 700],
+    ['phone, on its side', 844, 390],
+    ['small phone, on its side', 740, 360],
+    ['short and narrow', 520, 360],
+    ['desktop', 1280, 800],
+  ] as const;
+
+  for (const [name, width, height] of shapes) {
     await page.setViewportSize({ width, height });
     await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
     const board = page.locator('.chess-game__board .chessboard-island__board');
+    const prose = page.getByTestId('chess-game-prose');
     await board.waitFor();
-    const box = await board.boundingBox();
+    const boardBox = await board.boundingBox();
+    const proseBox = await prose.boundingBox();
+    const at = `${name} (${width}×${height})`;
 
-    expect(box.height, `${width}px: the board has collapsed`).toBeGreaterThan(150);
+    expect(boardBox.height, `${at}: the board has collapsed`).toBeGreaterThan(100);
     expect(
-      Math.abs(box.width - box.height),
-      `${width}px: the board is ${Math.round(box.width)}×${Math.round(box.height)}`,
+      Math.abs(boardBox.width - boardBox.height),
+      `${at}: the board is ${Math.round(boardBox.width)}×${Math.round(boardBox.height)}`,
     ).toBeLessThan(2);
-    // And it has left room to read in.
-    expect(box.height, `${width}px: the board has eaten the prose`).toBeLessThan(height * 0.6);
+    expect(boardBox.height, `${at}: the board has eaten the prose`).toBeLessThan(height * 0.6);
+
+    // The pane is the point of the container. Roughly eight lines is the least
+    // that can be called reading; below that the reader is better served by
+    // ordinary flow, which is what the stylesheet falls back to.
+    expect(
+      proseBox.height,
+      `${at}: only ${Math.round(proseBox.height)}px of prose`,
+    ).toBeGreaterThan(150);
   }
 });
 

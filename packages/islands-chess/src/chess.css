@@ -271,12 +271,17 @@
  * board cannot overlap the text or be scrolled away from — it was never in the
  * prose flow to begin with.
  *
- * `max-height` rather than `height`, and `flex: 0 1 auto` on the pane, so a
- * two-paragraph game stays two paragraphs tall and only a long one is capped.
- * **The subtraction is flex's, not ours**: "viewport minus bar minus board"
- * would otherwise be arithmetic over a board whose real height includes
- * controls, a move label and an optional engine panel — five literals with no
- * scale behind them, which is the fault SPEC009 V9 exists to name.
+ * **The cap is opt-in per viewport shape, and the default is no cap at all**
+ * (SPEC008 §4.15). It used to be unconditional, with the pane as the only
+ * flexible box — so on a short viewport the board region took what it needed
+ * and the pane absorbed the whole shortfall. Measured on a landscape phone:
+ * `844×390` gave **16px of prose**, and `740×360` gave **0px**. The prose is
+ * the point of the container, and it was the only thing that could vanish.
+ *
+ * So a shape gets a pane only where a pane has been shown to fit. Anything
+ * else falls through to ordinary flow: board above, prose below, the page
+ * scrolling as it always did. A board that scrolls away is a worse read than
+ * one that holds still; it is a far better read than no prose at all.
  */
 .chess-game {
   display: flex;
@@ -286,29 +291,89 @@
   border-radius: 10px;
   background: var(--island-bg, transparent);
   padding: 1rem 1.25rem;
-  /* 3rem: the game must not fill the screen edge to edge, or the reader loses
-     the sense that it sits on a page. `--ui-bar-h` is measured by the bar
-     itself (SPEC008 G7.1), not guessed at. */
-  max-height: calc(100vh - var(--ui-bar-h, 45px) - 3rem);
 }
 
 .chess-game__board {
   flex: none;
+  /* Declared on the *region*, not on the board, so both can read it — a custom
+     property inherits down and the region needs it in the row layout below. */
+  --chess-board-size: min(320px, 90vw, 40vh);
 }
 
 .chess-game__prose {
-  flex: 0 1 auto;
   /* Without this a flex child refuses to shrink below its content, and the
-     cap above would push the board off instead of scrolling the prose. */
+     cap below would push the board off instead of scrolling the prose. */
   min-height: 0;
-  overflow-y: auto;
+}
+
+/*
+ * Tall enough to stack: board above, prose beneath, both worth looking at.
+ *
+ * `max-height` rather than `height`, and `flex: 0 1 auto` on the pane, so a
+ * two-paragraph game stays two paragraphs tall and only a long one is capped.
+ * **The subtraction is flex's, not ours**: "viewport minus bar minus board"
+ * would otherwise be arithmetic over a board whose real height includes
+ * controls, a move label and an optional engine panel — five literals with no
+ * scale behind them, which is the fault SPEC009 V9 exists to name.
+ *
+ * `dvh` second, so a browser that does not know it keeps the `vh` line. They
+ * differ on exactly the device this was reported from: `vh` is the viewport as
+ * if the phone's toolbars were retracted, which on a real phone is taller than
+ * what the reader can see.
+ *
+ * 601px, because below it the arithmetic leaves under six lines of prose:
+ * the pane is `0.6H - 217` tall, so 600px buys 143px and 500px buys 83px.
+ */
+@media (min-height: 601px) {
+  .chess-game {
+    /* 3rem: the game must not fill the screen edge to edge, or the reader
+       loses the sense that it sits on a page. `--ui-bar-h` is measured by the
+       bar itself (SPEC008 G7.1), not guessed at. */
+    max-height: calc(100vh - var(--ui-bar-h, 45px) - 3rem);
+    max-height: calc(100dvh - var(--ui-bar-h, 45px) - 3rem);
+  }
+
+  .chess-game__prose {
+    flex: 0 1 auto;
+    overflow-y: auto;
+  }
+}
+
+/*
+ * Short and wide — a phone on its side. The height is gone; the width is not.
+ *
+ * **This is where two columns are right, and G7.3 was rejected on the wrong
+ * measurement.** That rejection was taken in portrait, where the board is
+ * 360px wide and leaves 221px of prose beside it. A short viewport constrains
+ * the board by *height*, so it is only 156px wide — the stacked layout was
+ * leaving 334px of the content box empty while the reader had no prose at all.
+ * The board is small exactly when the viewport is short, which is exactly when
+ * the width is free.
+ *
+ * Keyed on height, as SPEC008 QC19 proposed, and paired with a width floor:
+ * below 640px neither arrangement fits, and that shape falls through to
+ * ordinary flow rather than to a 140px column of text.
+ */
+@media (max-height: 600px) and (min-width: 640px) {
+  .chess-game {
+    flex-direction: row;
+    gap: 1.25rem;
+    max-height: calc(100vh - var(--ui-bar-h, 45px) - 3rem);
+    max-height: calc(100dvh - var(--ui-bar-h, 45px) - 3rem);
+  }
+
+  .chess-game__prose {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
+  }
 }
 
 /*
  * The board is sized against the *viewport*, not the column, because its job
- * is to leave room for the prose beneath it. A phone at 320×568 gets ~227px of
- * board and the rest of the screen to read in; a 800px-tall desktop gets 320px
- * and four paragraphs.
+ * is to leave room for the prose beside or beneath it. A phone at 320×568 gets
+ * ~227px of board and the rest of the screen to read in; a 800px-tall desktop
+ * gets 320px and four paragraphs.
  *
  * Both axes are lengths, and **no percentage belongs in here**. G7.4 wrote
  * `height: min(100%, 42vh)` as the symmetrical partner of the width: a
@@ -322,22 +387,31 @@
  *
  * One size at every width, having tried two:
  *
- * - **Two columns above 900px** (SPEC008 G7.3) is worse, and the blocker was
- *   misdiagnosed. G7.3 says grid cannot group arbitrary authored content into
- *   a board column and a prose column — true, and no longer relevant once the
- *   container provides the two boxes. The real blocker is `--measure`: a game
- *   lives in the reading column, so a 645px card minus a 360px board, a gap
- *   and padding leaves **221px of prose, about 28 characters a line**. The
- *   reference readers get away with it because their board is chrome owned by
- *   the *shell* and the split is the whole viewport (SPEC008 G9.7).
+ * - **Two columns keyed on width** (SPEC008 G7.3) is worse in portrait, and
+ *   the blocker was misdiagnosed. G7.3 says grid cannot group arbitrary
+ *   authored content into a board column and a prose column — true, and no
+ *   longer relevant once the container provides the two boxes. The real
+ *   blocker is `--measure`: a game lives in the reading column, so a 645px
+ *   card minus a 360px board, a gap and padding leaves **221px of prose, about
+ *   28 characters a line**. Keyed on *height* it is a different measurement
+ *   and a different answer — see the short-and-wide branch above.
  * - **A bigger board on a wide screen**, to close the space beside it, spends
  *   55vh on the board and leaves two paragraphs visible. The gutter is
  *   cosmetic; the room to read is not.
+ *
+ * **`aspect-ratio` rather than a second length**, because the width can be
+ * clamped and the height cannot follow on its own. The base rule carries
+ * `max-width: 100%`, so on a 390×844 phone the 320px board is clamped to the
+ * 308px column while a stated `height` stays at 320 — a board of **308×320**,
+ * with visibly rectangular squares. It shipped with G9.2 and the test written
+ * to catch exactly this missed it, because that test runs at 390×700 where
+ * `40vh` keeps the board under the clamp. A ratio has no such gap: whatever
+ * wins on the width, the height follows.
  */
 .chess-game__board .chessboard-island__board {
-  --chess-board-size: min(320px, 90vw, 40vh);
   width: var(--chess-board-size);
-  height: var(--chess-board-size);
+  height: auto;
+  aspect-ratio: 1;
 }
 
 /* One card, not a card inside a card. */
