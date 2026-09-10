@@ -116,6 +116,24 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
   const board = (node: DirectiveNode): BoardOptions =>
     resolveBoardOptions(directiveAttributes(node), defaults);
 
+  /**
+   * Only the board attributes the author actually wrote.
+   *
+   * The schema's defaults are applied before a component ever sees
+   * `attributes`, so by then "the book chose brown" and "this directive said
+   * brown" are the same value and a container has no way to sit between them.
+   * A diagram inside a `:::chess-game` needs exactly that, so the raw subset is
+   * carried alongside the resolved options rather than recovered later.
+   */
+  const namedBoardAttributes = (node: DirectiveNode): Record<string, string> => {
+    const attrs = directiveAttributes(node);
+    const named: Record<string, string> = {};
+    for (const key of ['theme', 'pieces', 'orientation']) {
+      if (attrs[key] !== undefined) named[key] = attrs[key];
+    }
+    return named;
+  };
+
   // The book's own defaults become the schema defaults, so a per-directive
   // attribute is validated by the engine and an invalid one falls back to what
   // this book chose rather than to the built-in.
@@ -287,6 +305,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         fen: directiveAttributes(node).fen ?? '',
         caption: directiveAttributes(node).caption ?? mdastToText(node).trim(),
         board: board(node),
+        boardAttrs: namedBoardAttributes(node),
       }),
       // A diagram is the one genuinely picture-shaped thing in this pack, so a
       // faithful fallback needs build-time image emission (SPEC001 P1.1). Until

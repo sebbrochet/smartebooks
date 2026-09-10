@@ -10,7 +10,7 @@ sentences*, not in a separate list.
 still: the board sits above, the prose scrolls beneath it, and every mark in
 that prose moves the pieces without ever moving out of sight.
 
-:::chess-game{id="chess-scholars-game" pieces=unicode analysis}
+:::chess-game{id="chess-scholars-game" analysis}
 
 ```pgn
 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6?? {Developing, and losing. [%cal Rh5f7][%csl Rf7]}

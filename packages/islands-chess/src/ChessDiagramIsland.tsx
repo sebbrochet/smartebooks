@@ -1,7 +1,12 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { Chessground } from 'chessground';
 import { attrText, type IslandComponentProps } from '@smart-ebooks/engine';
-import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
+import {
+  DEFAULT_BOARD_OPTIONS,
+  orientationFor,
+  resolveBoardOptions,
+  type BoardOptions,
+} from './boardOptions';
 import { findByFen } from './score';
 import { useGame, useSequence } from './gameContext';
 import { parseShapes } from './shapes';
@@ -34,15 +39,35 @@ export default function ChessDiagramIsland({ attributes, data }: IslandComponent
     fen,
     caption = '',
     board = DEFAULT_BOARD_OPTIONS,
-  } = (data as { fen?: string; caption?: string; board?: BoardOptions }) ?? {};
-  const { theme, pieces, orientation } = board;
+    boardAttrs = {},
+  } = (data as {
+    fen?: string;
+    caption?: string;
+    board?: BoardOptions;
+    boardAttrs?: Record<string, string>;
+  }) ?? {};
+
+  const game = useGame();
+  /*
+   * **Inside a game, the container is the middle layer** (SPEC008 G9.4). A
+   * diagram resolves its look over the *book's* defaults, which is right when
+   * it stands alone and wrong the moment it sits in a `:::chess-game` that
+   * chose a piece set: the boards took the container's, the diagram took the
+   * book's, and one game rendered the same position in two costumes — visible
+   * since G9.3 made tapping a diagram put its position on that very board.
+   *
+   * The diagram still wins where it speaks for itself, so `boardAttrs` is
+   * layered on top. It is re-validated here rather than trusted: it is raw
+   * authored text, and an imported book can put anything in it.
+   */
+  const { theme, pieces, orientation } = game ? resolveBoardOptions(boardAttrs, game.board) : board;
+
   // Kept as the raw string: parsing yields a fresh array every render, which as
   // an effect dependency would rebuild the board continuously.
   const shapes = attrText(attributes.shapes);
   const side = orientationFor(orientation, fen);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  const game = useGame();
   const sequence = useSequence();
   const path = game && fen ? findByFen(game.tree, fen) : undefined;
   // `''` is the starting position and a perfectly good target, so this cannot
