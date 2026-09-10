@@ -176,6 +176,45 @@ describe('checkDirectives', () => {
     assert.deepEqual(checkDirectives(chess, file(outside)), []);
   });
 
+  /*
+   * The look of a board inside a game is the container's (SPEC008 C25/G9.8),
+   * and so is whether the annotator's arrows are drawn. None of these four
+   * reach the in-game component at all: the dispatcher forwards `at` and
+   * `analysis` and nothing else, so they were valid-looking attributes read by
+   * nobody.
+   *
+   * C16 closed the same fault by naming the attributes it had found, and this
+   * is the next set. They are derived from `GameBoardProps` now rather than
+   * listed, which is what makes this test a check on the derivation rather than
+   * on somebody's memory.
+   */
+  for (const written of ['theme=green', 'pieces=unicode', 'orientation=black', 'shapes=false']) {
+    test(`rejects ${written} on a board inside a game, which owns it`, () => {
+      const markdown = [
+        ':::chess-game{id="g"}',
+        '',
+        '```pgn',
+        '1. e4 e5',
+        '```',
+        '',
+        `::chess-board{${written}}`,
+        '',
+        ':::',
+      ].join('\n');
+      const problems = checkDirectives(chess, file(markdown));
+      assert.deepEqual(rules(problems), ['attribute-ignored']);
+      assert.match(problems[0].message, /inside a ":::chess-game", which owns it/);
+    });
+  }
+
+  // The same attributes on a standalone board are the whole point of them.
+  test('accepts the board options where the board owns itself', () => {
+    const markdown =
+      ':::chess-board{id="b" theme=green pieces=unicode orientation=black shapes=false}' +
+      '\n\n```pgn\n1. e4 e5\n```\n\n:::';
+    assert.deepEqual(checkDirectives(chess, file(markdown)), []);
+  });
+
   // Saying nothing when the attribute was not written is the difference between
   // a rule and a nag.
   test('says nothing about a context-bound attribute nobody used', () => {

@@ -40,11 +40,23 @@
     "video": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "audio": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "chess-board": {
-      "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
-      "pieces": { "type": "enum", "values": ["cburnett", "unicode"] },
-      "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
+      "theme": {
+        "type": "enum",
+        "values": ["brown", "blue", "green", "grey"],
+        "ignoredInside": "chess-game"
+      },
+      "pieces": {
+        "type": "enum",
+        "values": ["cburnett", "unicode"],
+        "ignoredInside": "chess-game"
+      },
+      "orientation": {
+        "type": "enum",
+        "values": ["white", "black", "auto"],
+        "ignoredInside": "chess-game"
+      },
       "analysis": { "type": "boolean" },
-      "shapes": { "type": "boolean" },
+      "shapes": { "type": "boolean", "ignoredInside": "chess-game" },
       "moves": {
         "type": "enum",
         "values": ["off", "on", "scroll"],

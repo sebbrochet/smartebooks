@@ -3,10 +3,12 @@ import type { RootContent } from 'mdast';
 import {
   extractDirectiveCode,
   mdastToText,
+  type AttributeSpec,
   type IslandComponentProps,
   type IslandDefinition,
   type DirectiveNode,
 } from '@smart-ebooks/engine';
+import type { GameBoardProps } from './ChessBoardInGame';
 import {
   BOARD_THEMES,
   DEFAULT_BOARD_OPTIONS,
@@ -134,6 +136,43 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
     return named;
   };
 
+  /**
+   * **What a `::chess-board` inside a `:::chess-game` still gets a say in.**
+   *
+   * Keyed by `GameBoardProps` rather than written as a list: the dispatcher in
+   * `ChessBoardIsland` hands the in-game branch a hand-written set of props,
+   * and everything outside it is *not overridden but never delivered*. A
+   * `Record<keyof GameBoardProps, true>` makes both directions a type error —
+   * a prop added to the component and not named here, and a name here that is
+   * not a prop.
+   *
+   * C16 closed this by naming the three attributes it had found; C25 was the
+   * next three, and writing *that* row down got the count wrong, because
+   * `shapes` is a fourth. A list maintained by hand was already stale on the
+   * day it was specified, which is why this is derived (decision 18).
+   */
+  const IN_GAME_BOARD_ATTRIBUTES: Record<keyof GameBoardProps, true> = {
+    at: true,
+    analysis: true,
+  };
+
+  /**
+   * Marks every attribute the in-game branch does not deliver as ignored there.
+   *
+   * Ignored-inside becomes the **default** for anything added to this island,
+   * which is the safe direction: a new attribute that the container really does
+   * honour fails loudly the first time a book uses it, where one silently doing
+   * nothing is the bug this exists to end.
+   */
+  function containerOwns<T extends Record<string, AttributeSpec>>(attributes: T): T {
+    return Object.fromEntries(
+      Object.entries(attributes).map(([name, spec]) => [
+        name,
+        name in IN_GAME_BOARD_ATTRIBUTES ? spec : { ...spec, ignoredInside: 'chess-game' },
+      ]),
+    ) as T;
+  }
+
   // The book's own defaults become the schema defaults, so a per-directive
   // attribute is validated by the engine and an invalid one falls back to what
   // this book chose rather than to the built-in.
@@ -149,7 +188,10 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       aliases: ['chessboard'],
       // Owns its position when it stands alone; owns nothing inside a game.
       stateful: { unlessInside: 'chess-game' },
-      attributes: {
+      // Everything not named in IN_GAME_BOARD_ATTRIBUTES is reported as
+      // `attribute-ignored` inside a game, because that is exactly what the
+      // dispatcher does with it.
+      attributes: containerOwns({
         ...boardAttributes,
         analysis: { type: 'boolean', default: false },
         // On by default: the arrows are already in the PGN, and silently
@@ -163,18 +205,17 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
           type: 'enum',
           values: MOVE_LIST_MODES,
           default: 'off',
-          ignoredInside: 'chess-game',
         },
         // A packaged `.pgn` file, which is how real annotated material arrives.
         // Wins over the body when both are present. Inside a game the container
         // holds the game, so a child board has none of its own to name.
-        pgn: { type: 'asset', ignoredInside: 'chess-game' },
+        pgn: { type: 'asset' },
         // Pins this board to one position, so a diagram stays put while the
         // reader moves on. There is no position to pin to without a container
         // publishing one, which is why SPEC008 §4.1.3 rejected `at` on a
         // standalone board rather than inventing a second meaning for it.
         at: { type: 'string', default: '', requiresInside: 'chess-game' },
-      },
+      }),
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./ChessBoardIsland'),
