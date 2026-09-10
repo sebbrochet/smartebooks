@@ -395,6 +395,81 @@ test('the game survives the shape of the screen', async ({ page }) => {
 });
 
 /**
+ * Every board is square, not just the one the last fix looked at.
+ *
+ * Reported from a phone in portrait: the diagram in the prose showed **seven
+ * files of eight**, with the pieces off their squares. One wrong shape, three
+ * symptoms, and the two that a reader notices are the furthest from the cause:
+ *
+ * - `max-width: 100%` clamps the width; a stated `height` does not follow, so
+ *   in a column narrower than 320px the wrap is a rectangle.
+ * - Chessground then does the right thing with the wrong box — it preserves
+ *   the wrap's ratio, so a `269×320` wrap becomes a `264×314` board.
+ * - `background-size: cover` scales the square board image to the taller side
+ *   and crops the other: **6.73 of 8 files painted**, while the pieces sit on
+ *   the geometric grid of the rectangle.
+ *
+ * C23 fixed exactly this for the container's board and stated the ratio only
+ * there, so it stayed broken one selector away, for every diagram and every
+ * standalone board. **So this asserts every board on the page rather than a
+ * named one** — the previous test knew about `.chess-game__board`, which is
+ * why it passed while a diagram beside it was a rectangle.
+ *
+ * `cg-board` is asserted as well as the wrap: it is the box the painting is
+ * cropped against, so a square wrap with a rectangular `cg-board` would still
+ * be the reported bug.
+ */
+test('every board on the page is square, at every phone shape', async ({ page }) => {
+  const shapes = [
+    ['Xiaomi 11T portrait', 393, 873],
+    ['small phone portrait', 360, 800],
+    ['iPhone SE portrait', 375, 667],
+    ['narrow phone portrait', 320, 800],
+    ['desktop', 1280, 900],
+  ] as const;
+
+  for (const [name, width, height] of shapes) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/#/chess/04-a-game-you-can-lay-out');
+    await page.locator('.chess-diagram .chessboard-island__board cg-board').waitFor();
+
+    const boards = await page.locator('.chessboard-island__board').evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const wrap = node.getBoundingClientRect();
+        const inner = node.querySelector('cg-board')?.getBoundingClientRect();
+        return {
+          where: node.closest('.chess-diagram')
+            ? 'diagram'
+            : node.closest('.chess-game__board')
+              ? 'live board'
+              : 'board in prose',
+          w: +wrap.width.toFixed(1),
+          h: +wrap.height.toFixed(1),
+          cw: +(inner?.width ?? 0).toFixed(1),
+          ch: +(inner?.height ?? 0).toFixed(1),
+        };
+      }),
+    );
+
+    const at = `${name} (${width}×${height})`;
+    // Chapter 4 has the container's board, a diagram and a pinned board. If
+    // this ever reads zero the loop above asserts nothing at all.
+    expect(boards.length, `${at}: boards found`).toBeGreaterThanOrEqual(3);
+
+    for (const b of boards) {
+      expect(b.w, `${at}: the ${b.where} has collapsed`).toBeGreaterThan(50);
+      expect(Math.abs(b.w - b.h), `${at}: the ${b.where} wrap is ${b.w}×${b.h}`).toBeLessThan(2);
+      // Chessground snaps to a whole number of pixels per square, so this is
+      // never exact — but a *ratio* fault is worth far more than a pixel.
+      expect(
+        Math.abs(b.cw - b.ch),
+        `${at}: the ${b.where} cg-board is ${b.cw}×${b.ch}, so the painted board is cropped`,
+      ).toBeLessThan(2);
+    }
+  }
+});
+
+/**
  * SPEC008 G9.2 — the board is chrome, not content.
  *
  * **The test §7.10 asked for and never got.** Every other chess test clicks a

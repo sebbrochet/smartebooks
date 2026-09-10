@@ -5,9 +5,28 @@
   align-items: flex-start;
 }
 
+/*
+ * **A ratio, not a second length** — for *every* board, which is why it lives
+ * here and not in one of the rules below.
+ *
+ * `max-width: 100%` can clamp the width and a stated `height` does not follow
+ * it, so in any column narrower than 320px the board became a rectangle. What
+ * follows is not a rounding artefact, it is the whole failure: Chessground
+ * faithfully preserves the wrap's ratio, so a 269×320 wrap becomes a 264×314
+ * board with 33×39.3 squares — and `background-size: cover` then paints the
+ * square board image 314px wide and crops it to 264, showing **6.7 of the 8
+ * files**. The pieces are laid out on the geometric grid of the rectangle
+ * rather than on the painted squares, so they sit off their squares. One wrong
+ * shape, three symptoms, and only the last two are visible.
+ *
+ * Measured at 393×873, the reported device: `wrap 269×320`,
+ * `container 264×314.05`, `6.73 of 8 files`. At 1280×900 it is 320×320 and
+ * 8.00 of 8, which is why every test and every desktop look missed it.
+ */
 .chessboard-island__board {
   width: 320px;
-  height: 320px;
+  height: auto;
+  aspect-ratio: 1;
   max-width: 100%;
 }
 
@@ -399,19 +418,15 @@
  *   55vh on the board and leaves two paragraphs visible. The gutter is
  *   cosmetic; the room to read is not.
  *
- * **`aspect-ratio` rather than a second length**, because the width can be
- * clamped and the height cannot follow on its own. The base rule carries
- * `max-width: 100%`, so on a 390×844 phone the 320px board is clamped to the
- * 308px column while a stated `height` stays at 320 — a board of **308×320**,
- * with visibly rectangular squares. It shipped with G9.2 and the test written
- * to catch exactly this missed it, because that test runs at 390×700 where
- * `40vh` keeps the board under the clamp. A ratio has no such gap: whatever
- * wins on the width, the height follows.
+ * **The square is the base rule's job**, not this one's. This sets a width and
+ * nothing else: `aspect-ratio: 1` on `.chessboard-island__board` already makes
+ * the height follow whatever the width turns out to be. It was written here
+ * first, for the 308×320 board G9.2 shipped, and stating it only here left
+ * every diagram and standalone board rectangular in a narrow column — the same
+ * fault one selector away (C23, C26).
  */
 .chess-game__board .chessboard-island__board {
   width: var(--chess-board-size);
-  height: auto;
-  aspect-ratio: 1;
 }
 
 /* One card, not a card inside a card. */
