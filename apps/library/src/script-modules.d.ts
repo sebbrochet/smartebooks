@@ -35,3 +35,16 @@ declare module '*/book-sources.mjs' {
 declare module '*/lint-islands.mjs' {
   export function usedIslands(descriptor: unknown, files: ChapterSource[]): string[];
 }
+
+/**
+ * The chess checker's half of a rule `packages/islands-chess/src/score.ts` also
+ * implements. `labelParity.test.ts` is what holds the two together; before it
+ * there was nothing, and a change to how the reader matches a label would have
+ * left the build validating books against the old rules.
+ */
+declare module '*/chess-labels.mjs' {
+  export function normalise(label: string): string;
+  export function labelsOf(pgn: string): Set<string>;
+  export function positionKey(fen: string): string;
+  export function positionsOf(pgn: string): Set<string>;
+}

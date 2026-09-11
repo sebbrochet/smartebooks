@@ -31,8 +31,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parsePgn, startingPosition } from 'chessops/pgn';
 import { parseSan } from 'chessops/san';
-import { makeFen } from 'chessops/fen';
 import { BOOKS_DIR, listBookFolders, listContentFiles, readDescriptor } from './book-sources.mjs';
+import { labelsOf, normalise, positionKey, positionsOf } from './chess-labels.mjs';
 
 /**
  * A chess island holding its game inline, as `[id, pgn, index]`.
@@ -83,92 +83,6 @@ function plies(pgn) {
   };
 
   return walk(game.moves, startingPosition(game.headers).unwrap(), 0);
-}
-
-/**
- * Compare labels the way `score.ts` does: no spaces, no glyphs, no case.
- *
- * Dots are kept: `1.` and `1...` are White's and Black's move one, and
- * collapsing them would make two different moves compare equal.
- */
-function normalise(label) {
-  return label.replace(/[+#!?\s]+/g, '').toLowerCase();
-}
-
-/**
- * Every form of every move a `:move[…]` could name.
- *
- * Mirrors `findByLabel` in `packages/islands-chess/src/score.ts`, which matches
- * either `"<number> <san>"` or the bare SAN — so `2. Bc4`, `2.Bc4` and `Bc4`
- * all name the same move. Duplicated rather than imported for the reason the
- * island contract is duplicated: these scripts cannot load the engine's
- * TypeScript. If the two ever disagree, this reports a mark as broken that the
- * reader can click, which is the safe direction to be wrong in.
- */
-function labelsOf(pgn) {
-  const game = parsePgn(pgn)[0];
-  const found = new Set();
-  if (!game) return found;
-
-  const walk = (node, position) => {
-    for (const child of node.children) {
-      const move = parseSan(position, child.data.san);
-      if (!move) continue; // Reported by `plies`, which replays the same tree.
-      const after = position.clone();
-
-      // Read the number *before* playing, as `tree.ts` does: that is whose move it is.
-      const number = after.turn === 'white' ? `${after.fullmoves}.` : `${after.fullmoves}...`;
-      after.play(move);
-
-      found.add(normalise(`${number} ${child.data.san}`));
-      found.add(normalise(child.data.san));
-
-      walk(child, after);
-    }
-  };
-
-  walk(game.moves, startingPosition(game.headers).unwrap());
-  return found;
-}
-
-/**
- * Every position the game reaches, keyed the way `findByFen` compares them.
- *
- * Mirrors `positionKey` in `packages/islands-chess/src/score.ts`: placement,
- * side to move, castling rights and the en-passant square, and **not** the two
- * clocks. A diagram is a position, not a move count, so a FEN copied from one
- * source and a game replayed from another must still compare equal.
- *
- * The starting position counts. `findByFen` checks `tree.fen` before walking
- * the nodes, so a diagram of the initial array is a legitimate tap target.
- */
-function positionsOf(pgn) {
-  const game = parsePgn(pgn)[0];
-  const found = new Set();
-  if (!game) return found;
-
-  const root = startingPosition(game.headers).unwrap();
-  found.add(positionKey(makeFen(root.toSetup())));
-
-  const walk = (node, position) => {
-    for (const child of node.children) {
-      const move = parseSan(position, child.data.san);
-      if (!move) continue; // Reported by `plies`, which replays the same tree.
-      const after = position.clone();
-      after.play(move);
-      found.add(positionKey(makeFen(after.toSetup())));
-      walk(child, after);
-    }
-  };
-
-  walk(game.moves, root);
-  return found;
-}
-
-/** The first four FEN fields, which are what identifies a position. */
-function positionKey(fen) {
-  const [placement = '', turn = '', castling = '-', enPassant = '-'] = fen.trim().split(/\s+/);
-  return [placement, turn, castling, enPassant].join(' ');
 }
 
 /**
