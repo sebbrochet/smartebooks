@@ -419,6 +419,140 @@ test('the game survives the shape of the screen', async ({ page }) => {
  * cropped against, so a square wrap with a rectangular `cg-board` would still
  * be the reported bug.
  */
+
+/** The reported device, and the shape every chapter is swept at. */
+const PHONE = { width: 393, height: 873 };
+
+/** Every board on the page, named well enough to read in a failure message. */
+async function boardsOn(page: Page) {
+  return page.locator('.chessboard-island__board').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const wrap = node.getBoundingClientRect();
+      const inner = node.querySelector('cg-board')?.getBoundingClientRect();
+      return {
+        where: node.closest('.chess-diagram')
+          ? 'diagram'
+          : node.closest('.chess-game__board')
+            ? 'live board'
+            : node.closest('.chess-puzzle, .chessboard-island--puzzle')
+              ? 'puzzle board'
+              : 'board in prose',
+        w: +wrap.width.toFixed(1),
+        h: +wrap.height.toFixed(1),
+        cw: +(inner?.width ?? 0).toFixed(1),
+        ch: +(inner?.height ?? 0).toFixed(1),
+      };
+    }),
+  );
+}
+
+function expectSquare(boards: Awaited<ReturnType<typeof boardsOn>>, at: string) {
+  for (const b of boards) {
+    expect(b.w, `${at}: the ${b.where} has collapsed`).toBeGreaterThan(50);
+    expect(Math.abs(b.w - b.h), `${at}: the ${b.where} wrap is ${b.w}×${b.h}`).toBeLessThan(2);
+    /*
+     * The inner box is asserted to *exist* before it is asserted to be square,
+     * because an island that has not mounted yet reports `0×0` — which is
+     * perfectly square and would sail through the check below. Measuring a
+     * board before Chessground reached it is the likeliest way for this whole
+     * test to quietly stop testing anything.
+     */
+    expect(
+      b.cw,
+      `${at}: the ${b.where} has no cg-board — measured before it mounted?`,
+    ).toBeGreaterThan(50);
+    // Chessground snaps to a whole number of device pixels per square, so this
+    // is never exact — but a *ratio* fault is worth far more than a pixel.
+    expect(
+      Math.abs(b.cw - b.ch),
+      `${at}: the ${b.where} cg-board is ${b.cw}×${b.ch}, so the painted board is cropped`,
+    ).toBeLessThan(2);
+  }
+}
+
+/**
+ * Wait until every island on the page has finished arriving.
+ *
+ * The islands are lazy and they do not land together: waiting for the *first*
+ * `cg-board` and measuring immediately found one board on a chapter that has
+ * two, and reported a clean sweep. So this waits for the count to stop moving
+ * rather than for anything in particular to appear.
+ */
+async function boardsHaveSettled(page: Page) {
+  let previous = -1;
+  await expect
+    .poll(
+      async () => {
+        const now = await page.locator('.chessboard-island__board cg-board').count();
+        const settled = now > 0 && now === previous;
+        previous = now;
+        return settled;
+      },
+      { timeout: 20_000, intervals: [300, 300, 500] },
+    )
+    .toBe(true);
+}
+
+/**
+ * The sweep is factored, not a full cross product, and the split is deliberate.
+ *
+ * The fault is per-element CSS, so *shape* is what varies it and *chapter* only
+ * varies which islands are on the page. Neither axis alone is enough: chapter 4
+ * has a game, a diagram and a pinned board but **no puzzle**, and the puzzle's
+ * board went through the same broken base rule. So every chapter is swept at
+ * the shape this was reported from, and the chapter with the most islands is
+ * swept across shapes.
+ *
+ * The chapters are **discovered from the book** rather than listed, so one
+ * added later is covered without anyone remembering this file exists.
+ */
+test('every board in the book is square on the phone it was reported from', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+  await page.locator('article.prose').waitFor();
+  await page.locator('.sidebar__list').first().waitFor({ state: 'attached' });
+
+  /*
+   * Attached, not visible, and read as attributes rather than clicked: this
+   * book has parts, and only the part being read is unfolded — so half the
+   * chapters are behind `hidden` at any moment. They are still in the DOM,
+   * which is all a list of hrefs needs.
+   *
+   * A part heading carries a link to the part's own overview page, which sits
+   * in this list too and is a different kind of page — no `article.prose`, and
+   * no islands. Chapters only.
+   */
+  const chapters = await page
+    .locator('.sidebar__list a')
+    .evaluateAll((links) =>
+      links.map((link) => (link as HTMLAnchorElement).getAttribute('href') ?? '').filter(Boolean),
+    );
+  const readable = chapters.filter((href) => !href.includes('/part/'));
+  expect(readable.length, 'chapters discovered from the sidebar').toBeGreaterThanOrEqual(4);
+  process.stdout.write(`chapters discovered\n  ${readable.join('\n  ')}\n`);
+
+  await page.setViewportSize(PHONE);
+  const seen: string[] = [];
+
+  for (const href of readable) {
+    // The app is hash-routed, so a sidebar link is `#/chess/…` — relative to
+    // the document, not to the server. `goto` wants the path.
+    await page.goto(href.startsWith('#') ? `/${href}` : href);
+    await page.locator('article.prose').waitFor({ timeout: 20_000 });
+    await boardsHaveSettled(page);
+
+    const boards = await boardsOn(page);
+    seen.push(`${href} ${boards.length}`);
+    expectSquare(boards, `${href} at ${PHONE.width}×${PHONE.height}`);
+  }
+
+  process.stdout.write(`boards per chapter\n  ${seen.join('\n  ')}\n`);
+  // Four chapters carry chess islands. If the waits above ever stop working
+  // this loop would assert nothing at all and still pass.
+  const total = seen.reduce((sum, line) => sum + Number(line.split(' ').pop()), 0);
+  expect(total, 'boards measured across the book').toBeGreaterThanOrEqual(5);
+});
+
 test('every board on the page is square, at every phone shape', async ({ page }) => {
   const shapes = [
     ['Xiaomi 11T portrait', 393, 873],
@@ -433,40 +567,41 @@ test('every board on the page is square, at every phone shape', async ({ page })
     await page.goto('/#/chess/04-a-game-you-can-lay-out');
     await page.locator('.chess-diagram .chessboard-island__board cg-board').waitFor();
 
-    const boards = await page.locator('.chessboard-island__board').evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const wrap = node.getBoundingClientRect();
-        const inner = node.querySelector('cg-board')?.getBoundingClientRect();
-        return {
-          where: node.closest('.chess-diagram')
-            ? 'diagram'
-            : node.closest('.chess-game__board')
-              ? 'live board'
-              : 'board in prose',
-          w: +wrap.width.toFixed(1),
-          h: +wrap.height.toFixed(1),
-          cw: +(inner?.width ?? 0).toFixed(1),
-          ch: +(inner?.height ?? 0).toFixed(1),
-        };
-      }),
-    );
-
+    const boards = await boardsOn(page);
     const at = `${name} (${width}×${height})`;
     // Chapter 4 has the container's board, a diagram and a pinned board. If
     // this ever reads zero the loop above asserts nothing at all.
     expect(boards.length, `${at}: boards found`).toBeGreaterThanOrEqual(3);
-
-    for (const b of boards) {
-      expect(b.w, `${at}: the ${b.where} has collapsed`).toBeGreaterThan(50);
-      expect(Math.abs(b.w - b.h), `${at}: the ${b.where} wrap is ${b.w}×${b.h}`).toBeLessThan(2);
-      // Chessground snaps to a whole number of pixels per square, so this is
-      // never exact — but a *ratio* fault is worth far more than a pixel.
-      expect(
-        Math.abs(b.cw - b.ch),
-        `${at}: the ${b.where} cg-board is ${b.cw}×${b.ch}, so the painted board is cropped`,
-      ).toBeLessThan(2);
-    }
+    expectSquare(boards, at);
   }
+});
+
+/**
+ * The same board, at the pixel ratio a phone actually has.
+ *
+ * Chessground snaps its box to a whole number of **device** pixels per square
+ * — `floor(width × dpr / 8) × 8 / dpr` — so the arithmetic that produced the
+ * `264×314.05` in C26 has a different remainder at 2.75 than at 1, and every
+ * measurement taken while fixing it was at 1. A ratio bug cannot hide here,
+ * but an off-by-a-fraction in the snapping can.
+ */
+test.describe('at the pixel ratio of a real phone', () => {
+  test.use({ viewport: PHONE, deviceScaleFactor: 2.75 });
+
+  test('the boards are still square', async ({ page }) => {
+    await page.goto('/#/chess/04-a-game-you-can-lay-out');
+    await page.locator('.chess-diagram .chessboard-island__board cg-board').waitFor();
+
+    const dpr = await page.evaluate(() => window.devicePixelRatio);
+    expect(dpr, 'the context really is at 2.75').toBeCloseTo(2.75, 2);
+
+    const boards = await boardsOn(page);
+    expect(boards.length).toBeGreaterThanOrEqual(3);
+    process.stdout.write(
+      `at dpr ${dpr}\n${boards.map((b) => `  ${b.where} ${b.w}×${b.h} cg ${b.cw}×${b.ch}`).join('\n')}\n`,
+    );
+    expectSquare(boards, `dpr ${dpr}`);
+  });
 });
 
 /**
