@@ -12,7 +12,13 @@ test('chess board island renders and navigates moves', async ({ page }) => {
   await expect(status).toHaveText(/1\.\s*e4/);
 
   // A chessground board is present.
-  await expect(page.locator('.chessboard-island .cg-wrap').first()).toBeVisible();
+  // The first assertion on a chess page waits for a lazily-imported chunk and
+  // for Chessground to draw, which on a loaded machine is not a 5s job. Every
+  // other lazy thing in this file already says so (30s for mermaid, 90s for the
+  // engine); these two were the last left on the default, and flaked.
+  await expect(page.locator('.chessboard-island .cg-wrap').first()).toBeVisible({
+    timeout: 20_000,
+  });
 });
 
 test('the board shows the annotation for the move you are on', async ({ page }) => {
@@ -139,7 +145,7 @@ test('a diagram is a position with a caption and nothing to click', async ({ pag
   await page.goto('/#/chess/02-reading-an-annotated-game');
 
   const diagram = page.locator('.chess-diagram');
-  await expect(diagram.locator('.cg-wrap')).toBeVisible();
+  await expect(diagram.locator('.cg-wrap')).toBeVisible({ timeout: 20_000 });
   await expect(diagram.getByText(/the bishop guards the queen/i)).toBeVisible();
 
   // The point of a separate island: no controls, no reveal, no checkbox.

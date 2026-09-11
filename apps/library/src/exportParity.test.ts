@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
+import specSource from '../../../packages/engine/src/package/spec.ts?raw';
 import {
   exportBookToZip,
   makeBook,
@@ -51,6 +52,23 @@ function exportedDescriptor(descriptor: SmartbookDescriptor) {
   return JSON.parse(strFromU8(entries['smartbook.json']));
 }
 
+/**
+ * Field names on `SmartbookChapterEntry`, read from the source of truth.
+ *
+ * The same trick `scripts/schema.test.mjs` uses on the descriptor, and for the
+ * same reason: a list of fields written out by hand only ever describes what
+ * somebody remembered. Reading the interface means the *type* decides what this
+ * file has to cover.
+ *
+ * `?raw` rather than `node:fs`: this file is compiled by the app's tsconfig,
+ * which types `vite/client` and not Node.
+ */
+function chapterEntryFields(): string[] {
+  const body = /export interface SmartbookChapterEntry \{([\s\S]*?)\n\}/.exec(specSource);
+  expect(body, 'could not find SmartbookChapterEntry in spec.ts').not.toBeNull();
+  return [...body![1].matchAll(/^ {2}(\w+)\??:/gm)].map((match) => match[1]);
+}
+
 describe('CLI and browser exporters agree', () => {
   const base: SmartbookDescriptor = {
     schemaVersion: 2,
@@ -99,6 +117,43 @@ describe('CLI and browser exporters agree', () => {
     expect(fromCli).toEqual(exportedDescriptor(descriptor).chapters);
     expect(fromCli[0].part).toBe('basics');
     expect(fromCli[1]).not.toHaveProperty('part');
+  });
+
+  /**
+   * And the generalisation, because naming `part` fixed the instance and left
+   * the mechanism (SPEC008 decision 18).
+   *
+   * `toEqual` between two derivations is worth nothing for a field neither
+   * fixture sets: both omit it, both agree, the test is green and the packaged
+   * book is missing something. That is not hypothetical — it is exactly how
+   * `part` was lost for eleven days, and the test above was written afterwards
+   * by someone who knew which field to name. Nobody will know the next one.
+   *
+   * So the fixture sets **every** field the interface declares and the
+   * assertion reads that list from the interface: add one to
+   * `SmartbookChapterEntry` and this fails until both exporters carry it.
+   */
+  it('carries every field the chapter type declares, through both exporters', () => {
+    const declared = chapterEntryFields();
+    // A regex over source is a blunt instrument; if it ever matches nothing,
+    // the loop below would pass by asserting nothing at all.
+    expect(declared, 'fields read from spec.ts').toContain('file');
+    expect(declared.length).toBeGreaterThanOrEqual(4);
+
+    const descriptor: SmartbookDescriptor = {
+      ...base,
+      parts: [{ id: 'basics', title: 'Part I — Basics' }],
+      chapters: [{ file: '01-openings.md', order: 1, title: 'Openings', part: 'basics' }],
+    };
+
+    const keysOf = (entries: object[]) => [...new Set(entries.flatMap((e) => Object.keys(e)))];
+    const fromCli = keysOf(deriveChapters(descriptor, files));
+    const fromBrowser = keysOf(exportedDescriptor(descriptor).chapters);
+
+    for (const field of declared) {
+      expect(fromCli, `the CLI packager drops "${field}"`).toContain(field);
+      expect(fromBrowser, `the browser exporter drops "${field}"`).toContain(field);
+    }
   });
 
   it('derives the same required islands, resolving aliases the same way', () => {
