@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { renderMarkdown } from '../markdown/render';
-import { chapterUnits, headingHref } from '../markdown/headings';
+import { headingHref, type Unit } from '../markdown/headings';
 import { UnitProvider } from './BookContext';
 import type { Book, Chapter } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
@@ -20,6 +20,15 @@ interface ChapterViewProps {
    * means "scroll to this heading", which the shell handles.
    */
   section?: string;
+  /**
+   * The units of this chapter the reader may open, already filtered by the
+   * book's own rules (SPEC002 R1.1a). Empty means the file is the page.
+   *
+   * Resolved by the shell rather than here, so the rail and the page cannot
+   * disagree about what a reader is allowed — a page that delivered a unit the
+   * rail refused would defeat the gate entirely.
+   */
+  units?: Unit[];
 }
 
 export function ChapterView({
@@ -31,6 +40,7 @@ export function ChapterView({
   registry,
   highlight,
   section,
+  units = [],
 }: ChapterViewProps) {
   const linkTo = useMemo(
     () => (id: string) => headingHref(basePath, chapter.slug, id),
@@ -49,15 +59,11 @@ export function ChapterView({
    * the chapter. Which unit a reader may *have* is a separate question, and the
    * book's to answer (SPEC002 R1.1a).
    */
-  const delivered = useMemo(() => {
-    const depth = book.descriptor.unitDepth;
-    if (!depth) return undefined;
-
-    const { units } = chapterUnits(chapter.markdown, depth);
-    if (units.length === 0) return undefined;
-
-    return units.find((unit) => unit.id === section) ?? units[0];
-  }, [book.descriptor.unitDepth, chapter.markdown, section]);
+  const delivered = useMemo(
+    () =>
+      units.length === 0 ? undefined : (units.find((unit) => unit.id === section) ?? units[0]),
+    [units, section],
+  );
 
   const content = useMemo(
     () =>

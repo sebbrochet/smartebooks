@@ -4,6 +4,7 @@ import { createIslandRegistry } from '../islandRegistry';
 import { defaultIslands } from '../islands/defaults';
 import { BookProvider, useBook } from './BookContext';
 import { ChapterView } from './ChapterView';
+import { chapterUnits } from '../markdown/headings';
 import type { Book, Chapter } from '../types';
 import type { SmartbookDescriptor } from '../package/spec';
 
@@ -52,6 +53,9 @@ function bookWith(unitDepth?: number): Book {
 }
 
 function html(book: Book, section?: string) {
+  const depth = book.descriptor.unitDepth;
+  const units = depth ? chapterUnits(markdown, depth).units : [];
+
   return renderToStaticMarkup(
     <BookProvider slug="caves" trusted registry={registry}>
       <ChapterView
@@ -60,6 +64,7 @@ function html(book: Book, section?: string) {
         chapter={chapter}
         registry={registry}
         section={section}
+        units={units}
       />
     </BookProvider>,
   );
@@ -111,12 +116,7 @@ describe('a book whose files carry units', () => {
   });
 
   it('keeps rendering the file when it carries no units at that depth', () => {
-    const flat: Book = { ...bookWith(4) };
-    const output = renderToStaticMarkup(
-      <BookProvider slug="caves" trusted registry={registry}>
-        <ChapterView book={flat} basePath="/caves" chapter={chapter} registry={registry} />
-      </BookProvider>,
-    );
+    const output = html(bookWith(4));
 
     expect(output).toContain('A door stands ajar');
     expect(output).toContain('You are eaten');
@@ -149,5 +149,40 @@ describe('what an island can see of where it is', () => {
 
     expect(output).toContain('where:nowhere');
     expect(output).not.toContain('where:1');
+  });
+});
+
+/**
+ * The page's half of the gate (SPEC002 R1.1a). The shell resolves what a reader
+ * may open; this view must not deliver anything outside it, however the route
+ * asks — otherwise a gamebook's ending is one hand-typed address away.
+ */
+describe('a unit the book withheld', () => {
+  const allowed = chapterUnits(markdown, 2).units.slice(0, 1);
+
+  function gated(section?: string) {
+    return renderToStaticMarkup(
+      <BookProvider slug="caves" trusted registry={registry}>
+        <ChapterView
+          book={bookWith(2)}
+          basePath="/caves"
+          chapter={chapter}
+          registry={registry}
+          section={section}
+          units={allowed}
+        />
+      </BookProvider>,
+    );
+  }
+
+  it('is not delivered even when the route names it', () => {
+    const output = gated('2');
+
+    expect(output).not.toContain('You are eaten');
+    expect(output).toContain('A door stands ajar');
+  });
+
+  it('does not tell an island it is somewhere it was refused', () => {
+    expect(gated('2')).toContain('where:1');
   });
 });

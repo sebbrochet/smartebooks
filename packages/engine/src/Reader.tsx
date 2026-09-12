@@ -17,7 +17,8 @@ import { SearchOverlay } from './reader/SearchOverlay';
 import { useActiveSection, scrollToSpot } from './reader/useActiveSection';
 import { furthestOf } from './reader/furthest';
 import './reader/reader.css';
-import { chapterHeadings, headingHref } from './markdown/headings';
+import { chapterHeadings, headingHref, type Unit } from './markdown/headings';
+import { allowedUnits, railEntries } from './reader/units';
 import { bookTotals } from './markdown/scorables';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
@@ -50,6 +51,17 @@ export interface ReaderProps {
   leading?: ReactNode;
   /** The host's own actions at the end of the bar: export, reset, backup. */
   actions?: ReactNode;
+  /**
+   * Which units of the current chapter this reader may open, and in what order
+   * they are listed (SPEC002 R1.1a). Defaults to all of them.
+   *
+   * A **parameter, not a platform concept.** Only one domain has asked for it
+   * — a gamebook, where the contents list is the reader's own history and a
+   * section they have not reached must not be listed, linked or delivered. The
+   * shell asks; the book's own pack answers. If a second domain ever needs it,
+   * that is the point to give it a name.
+   */
+  gate?: (units: Unit[]) => Unit[];
 }
 
 /**
@@ -69,6 +81,7 @@ export function Reader({
   trusted,
   leading,
   actions,
+  gate,
 }: ReaderProps) {
   const mainRef = useRef<HTMLElement>(null);
   const navToggleRef = useRef<HTMLButtonElement>(null);
@@ -109,6 +122,26 @@ export function Reader({
   const headings = useMemo(
     () => (activeChapter ? chapterHeadings(activeChapter.markdown) : []),
     [activeChapter],
+  );
+
+  /*
+   * The chapter's units, filtered by whatever the book allows (R1.1a).
+   *
+   * Resolved **here rather than in `ChapterView`** so that one answer serves
+   * both the rail and the page. Two resolutions would let the rail refuse a
+   * unit the page then delivered, which is the failure the gate exists to
+   * prevent.
+   */
+  const units = useMemo(
+    () => allowedUnits(activeChapter?.markdown ?? '', book.descriptor.unitDepth, gate),
+    [activeChapter, book.descriptor.unitDepth, gate],
+  );
+
+  const delivered = units.find((unit) => unit.id === heading) ?? units[0];
+
+  const rail = useMemo(
+    () => railEntries(units, headings, book.descriptor.unitDepth ?? 2),
+    [units, headings, book.descriptor.unitDepth],
   );
 
   const spot = useActiveSection(headings);
@@ -305,6 +338,7 @@ export function Reader({
                   registry={registry}
                   highlight={highlight}
                   section={heading}
+                  units={units}
                 />
               )
             )
@@ -319,15 +353,16 @@ export function Reader({
                 registry={registry}
                 highlight={highlight}
                 section={heading}
+                units={units}
               />
             )
           )}
         </main>
         {view === 'chapter' && activeChapter && (
           <TableOfContents
-            headings={headings}
+            headings={rail}
             linkTo={(id) => headingHref(basePath, activeChapter.slug, id)}
-            activeId={spot.sectionId ?? heading}
+            activeId={delivered ? delivered.id : (spot.sectionId ?? heading)}
           />
         )}
         <BackToTop target={mainRef} />
