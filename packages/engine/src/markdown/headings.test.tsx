@@ -4,7 +4,7 @@ import { createIslandRegistry } from '../islandRegistry';
 import { defaultIslands } from '../islands/defaults';
 import { BookProvider } from '../reader/BookContext';
 import { renderMarkdown } from './render';
-import { chapterHeadings, headingHref, slugify } from './headings';
+import { chapterHeadings, chapterUnits, headingHref, slugify } from './headings';
 
 const registry = createIslandRegistry(defaultIslands);
 
@@ -122,6 +122,23 @@ describe('heading ids in the rendered chapter', () => {
     }
   });
 
+  /**
+   * The same pair, asked the harder way. The test above only checks that each
+   * contents id exists *somewhere* in the chapter, which a drifting slugger can
+   * satisfy by having given that id to a different heading entirely.
+   *
+   * A heading deeper than the contents list's own `maxDepth` is where the two
+   * walks disagree: the renderer slugs every `h2`–`h6`, so a deep duplicate
+   * consumes the plain name and pushes the real section to `-1`.
+   */
+  it('agrees about which heading owns the id, not just that it exists', () => {
+    const markdown = ['# Title', '', '#### Overview', '', '## Overview'].join('\n');
+
+    const [section] = chapterHeadings(markdown);
+    expect(section.depth).toBe(2);
+    expect(html(markdown)).toContain(`<h2 id="${section.id}"`);
+  });
+
   // The app is hash-routed, so `href="#section"` would replace the route and
   // navigate the reader out of the chapter instead of down it.
   it('links a heading to itself through the route, not a bare fragment', () => {
@@ -134,5 +151,91 @@ describe('heading ids in the rendered chapter', () => {
     const output = html('## Why islands');
     expect(output).toContain('id="why-islands"');
     expect(output).not.toContain('heading-anchor');
+  });
+});
+
+describe('chapterUnits', () => {
+  const book = [
+    '# The Caves',
+    '',
+    'You stand at the mouth of the cave.',
+    '',
+    '## 1',
+    '',
+    'A door. ::choice{to="2"}',
+    '',
+    '### A note for the curious',
+    '',
+    'Deeper headings belong to their unit.',
+    '',
+    '## 2',
+    '',
+    'You are eaten.',
+  ].join('\n');
+
+  it('carries the title and opening prose as a preamble, not as a unit', () => {
+    const { preamble, units } = chapterUnits(book);
+
+    expect(preamble).toContain('# The Caves');
+    expect(preamble).toContain('You stand at the mouth');
+    expect(units.map((unit) => unit.id)).toEqual(['1', '2']);
+  });
+
+  // A unit is delivered alone, so it has to bring its own title with it.
+  it('gives each unit its own heading and body', () => {
+    const [first] = chapterUnits(book).units;
+
+    expect(first.title).toBe('1');
+    expect(first.markdown).toContain('## 1');
+    expect(first.markdown).toContain('::choice{to="2"}');
+    expect(first.markdown).not.toContain('You are eaten');
+  });
+
+  // Units sit at one level; a deeper heading is a heading *within* a unit.
+  it('keeps a deeper heading inside its unit rather than splitting on it', () => {
+    const [first] = chapterUnits(book).units;
+
+    expect(first.markdown).toContain('### A note for the curious');
+    expect(chapterUnits(book).units).toHaveLength(2);
+  });
+
+  // The property that makes this safe to deliver piecemeal: splitting a file
+  // into units must not lose or duplicate a word of it.
+  it('accounts for every word of the file', () => {
+    const { preamble, units } = chapterUnits(book);
+    const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+    expect(squash([preamble, ...units.map((unit) => unit.markdown)].join(' '))).toBe(squash(book));
+  });
+
+  it('splits at the depth it is asked for', () => {
+    expect(chapterUnits(book, 3).units.map((unit) => unit.title)).toEqual([
+      'A note for the curious',
+    ]);
+  });
+
+  // The same rule the contents list follows: a `:::quiz` writes its questions
+  // as headings, and they are the island's, not the chapter's.
+  it('does not split on a heading that belongs to an island', () => {
+    const withIsland = ['# Title', '', '## 1', '', ':::quiz', '', '## Not a section', '', ':::'];
+
+    expect(chapterUnits(withIsland.join('\n')).units.map((unit) => unit.id)).toEqual(['1']);
+  });
+
+  it('has no units when nothing sits at the depth', () => {
+    const { preamble, units } = chapterUnits('# Title\n\nJust prose.');
+
+    expect(units).toEqual([]);
+    expect(preamble).toContain('Just prose.');
+  });
+
+  // §3.1's case: four hundred sections in one file, each addressable.
+  it('addresses four hundred sections in one file', () => {
+    const many = ['# Sections', ...Array.from({ length: 400 }, (_, n) => `## ${n + 1}\n\nProse.`)];
+    const { units } = chapterUnits(many.join('\n\n'));
+
+    expect(units).toHaveLength(400);
+    expect(new Set(units.map((unit) => unit.id)).size).toBe(400);
+    expect(units[399].markdown.startsWith('## 400')).toBe(true);
   });
 });

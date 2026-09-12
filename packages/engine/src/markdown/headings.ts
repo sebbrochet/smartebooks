@@ -112,9 +112,7 @@ const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);
  * `h1` is excluded: it is the chapter's title, which the page already shows.
  */
 export function chapterHeadings(markdown: string, maxDepth = 3): Heading[] {
-  return chapterPassages(markdown, maxDepth)
-    .map((passage) => passage.heading)
-    .filter((heading): heading is Heading => heading !== undefined);
+  return headingMarks(markdown, (depth) => depth <= maxDepth).marks.map((mark) => mark.heading);
 }
 
 /**
@@ -139,32 +137,7 @@ export interface Passage {
 }
 
 export function chapterPassages(markdown: string, maxDepth = 3): Passage[] {
-  const slug = uniqueSlugger();
-  const marks: { heading: Heading; from: number; to: number }[] = [];
-  let titleEnd = 0;
-
-  visit(parser.parse(markdown) as Root, 'heading', (node: MdastHeading, _index, parent) => {
-    if (isDirective(parent)) return;
-
-    // The chapter's own title, which every caller already displays. Recording
-    // where it ends keeps it out of the opening passage's text, so a search
-    // result does not print the chapter's name as its own excerpt.
-    if (node.depth === 1) {
-      titleEnd = Math.max(titleEnd, node.position?.end.offset ?? 0);
-      return;
-    }
-
-    if (node.depth < 2 || node.depth > maxDepth) return;
-
-    const text = mdastToText(node).trim();
-    if (!text) return;
-
-    const from = node.position?.start.offset;
-    const to = node.position?.end.offset;
-    if (from === undefined || to === undefined) return;
-
-    marks.push({ heading: { depth: node.depth, text, id: slug(text) }, from, to });
-  });
+  const { marks, titleEnd } = headingMarks(markdown, (depth) => depth <= maxDepth);
 
   // Sliced from the source by node offset rather than rebuilt from the tree.
   // `toPlainText` is already the forgiving stripper the rest of search uses, so
@@ -184,6 +157,108 @@ export function chapterPassages(markdown: string, maxDepth = 3): Passage[] {
   });
 
   return passages;
+}
+
+/** A heading, and where it sits in the source. */
+interface Mark {
+  heading: Heading;
+  /** Offset of the heading itself. */
+  from: number;
+  /** Offset just past the heading, where its body begins. */
+  to: number;
+}
+
+/**
+ * One walk over the headings, for every consumer that needs them.
+ *
+ * **Ids are assigned to every `h2`–`h6` and the result is filtered afterwards**,
+ * which is the whole reason this is one function. `uniqueSlugger` numbers
+ * repeats in the order it meets them, so a walk that skips deep headings
+ * *before* slugging hands out different ids from one that does not — and
+ * `rehypeHeadingIds` slugs the rendered `h2`–`h6` unconditionally. A chapter
+ * with `#### Overview` above `## Overview` gave the `h4` the plain id and
+ * pushed the section to `overview-1`, so the contents entry linked to the wrong
+ * heading. Filtering last is what keeps every consumer agreeing with the page.
+ *
+ * `h1` is not a candidate: it is the chapter's title. Recording where it ends
+ * keeps it out of the opening passage, so a search result does not print the
+ * chapter's name as its own excerpt.
+ *
+ * **Headings inside a directive are skipped**, which is why this reads the
+ * parsed tree rather than scanning lines: in the bundled books *every* `###` is
+ * a `:::quiz` question, and the island replaces its own body.
+ */
+function headingMarks(
+  markdown: string,
+  wanted: (depth: number) => boolean,
+): { marks: Mark[]; titleEnd: number } {
+  const slug = uniqueSlugger();
+  const marks: Mark[] = [];
+  let titleEnd = 0;
+
+  visit(parser.parse(markdown) as Root, 'heading', (node: MdastHeading, _index, parent) => {
+    if (isDirective(parent)) return;
+
+    if (node.depth === 1) {
+      titleEnd = Math.max(titleEnd, node.position?.end.offset ?? 0);
+      return;
+    }
+
+    const text = mdastToText(node).trim();
+    if (!text) return;
+
+    const from = node.position?.start.offset;
+    const to = node.position?.end.offset;
+    if (from === undefined || to === undefined) return;
+
+    marks.push({ heading: { depth: node.depth, text, id: slug(text) }, from, to });
+  });
+
+  return { marks: marks.filter((mark) => wanted(mark.heading.depth)), titleEnd };
+}
+
+/** One addressable unit of content: a heading and everything under it. */
+export interface Unit {
+  id: string;
+  title: string;
+  /** The heading **and** its body, as Markdown. */
+  markdown: string;
+}
+
+export interface ChapterUnits {
+  /** The chapter's title and any prose before the first unit. */
+  preamble: string;
+  units: Unit[];
+}
+
+/**
+ * Splits one file into the units it carries (SPEC005 M2).
+ *
+ * A file is a container of units and neither number constrains the other: an
+ * author writes twenty sections in one file because that is pleasant to edit,
+ * and the reader is delivered one because that is what they asked for. Which
+ * is also what makes withholding a section possible at all — a reader cannot
+ * scroll from section 12 into section 13 if section 13 was never rendered
+ * (SPEC011 B2).
+ *
+ * **Exactly one depth**, not a range: units sit at one level and a deeper
+ * heading is a heading *within* a unit, not a sibling of it.
+ *
+ * **A unit carries its own heading**, unlike a {@link Passage}, which drops it
+ * because its caller already has it. A unit is delivered alone, so it has to
+ * bring its title with it.
+ */
+export function chapterUnits(markdown: string, depth = 2): ChapterUnits {
+  const { marks } = headingMarks(markdown, (each) => each === depth);
+
+  return {
+    preamble: markdown.slice(0, marks[0]?.from ?? markdown.length).trim(),
+    units: marks.map((mark, index) => ({
+      id: mark.heading.id,
+      title: mark.heading.text,
+      markdown: markdown.slice(mark.from, marks[index + 1]?.from ?? markdown.length).trim(),
+    })),
+  };
 }
 
 function isDirective(parent: Parent | undefined): boolean {
