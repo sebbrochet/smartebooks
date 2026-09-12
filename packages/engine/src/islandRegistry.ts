@@ -43,12 +43,16 @@ export interface IslandDefinition {
    */
   extract?: (node: DirectiveNode) => unknown;
   /**
-   * Static, export-safe content for this island: what it becomes when the
-   * interactivity is stripped (print, EPUB, no-JS, search indexing).
+   * Static, plain content for this island: what it says it is when the
+   * interactivity is stripped away.
+   *
+   * **Nothing reads this yet** (checked 2026-09-12; EPUB and PDF are a declared
+   * non-goal, SPEC003 QD5). It is a coherence test rather than an export
+   * format, and `IslandHost` ignores these children on purpose. Returning
+   * nothing is a legitimate answer for an island with no sensible static form.
    *
    * Runs at compile time; the result is placed in the `<island>` element's
-   * children, which `IslandHost` ignores and an exporter renders. Returning
-   * nothing means the island simply does not appear in exports.
+   * children.
    */
   fallback?: (
     node: DirectiveNode,

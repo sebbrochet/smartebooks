@@ -4,21 +4,30 @@ import { attrText } from './attributes';
 import type { AttributeValue } from './attributes';
 
 /**
- * Static, export-safe representations of islands (SPEC001 P1.1).
+ * Static, plain-content representations of islands (SPEC001 P1.1).
  *
- * An island is interactive by definition, but the platform promises that a book
- * still reads as a coherent document when the interactivity is stripped — in
- * print, in EPUB, with no JavaScript, and to a search indexer. That is only
- * true if each island can say what it *is* in plain content.
+ * An island is interactive by definition; this is what it *says it is* when the
+ * interactivity is stripped away.
+ *
+ * **Nothing consumes these yet, and the docblock here used to claim otherwise**
+ * — "print, EPUB, no-JS, search indexing". Checked 2026-09-12: print renders
+ * the live DOM through CSS, no exporter exists, the reader is a client-rendered
+ * SPA so there is no no-JS page at all, and search indexes raw Markdown via
+ * `toPlainText` without ever asking for a fallback. `IslandHost` ignores these
+ * children on purpose. EPUB and PDF are now a declared non-goal (SPEC003 QD5).
+ *
+ * They are kept for the reason that survived: an island that cannot say what it
+ * is in plain words is usually one that has not been thought through, and that
+ * test shaped `:choice` and `:::if` more than any exporter would have. The
+ * consumer that would make it real is **search**, which today cannot see inside
+ * a fenced block at all.
  *
  * These run at compile time, and their output is placed in the `<island>`
- * element's children. `IslandHost` ignores those children and mounts the live
- * component; an exporter does the opposite.
+ * element's children.
  *
- * Scope note: only text-shaped islands are covered so far. Islands whose
- * printed form is a picture (a chess diagram, an engraved score) need the
- * build-time asset emission described in SPEC001 P1.1, which waits on a real
- * exporter to render against.
+ * Scope note: only text-shaped islands are covered. Islands whose static form
+ * is a picture (a chess diagram, an engraved score) would need build-time asset
+ * emission, and nothing is waiting for it.
  */
 
 const text = (value: string): PhrasingContent => ({ type: 'text', value });
