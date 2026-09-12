@@ -1,7 +1,18 @@
 {
   "$comment": "The island vocabulary an author may use. Hand-maintained for now; apps/library/src/islandContract.test.ts fails if it drifts from the real registries. Consumed by scripts/lint-content.mjs, which cannot import the engine's TypeScript directly. See SPEC006 F1.2.",
-  "builtIn": ["quiz", "checkpoint", "video", "flashcard", "audio", "matching-pairs", "term"],
-  "inline": ["term", "move"],
+  "builtIn": [
+    "quiz",
+    "checkpoint",
+    "video",
+    "flashcard",
+    "audio",
+    "matching-pairs",
+    "term",
+    "media-lesson",
+    "at",
+    "media-marks"
+  ],
+  "inline": ["term", "at", "move"],
   "$comment-stateful": "Islands that save something for the reader under a key derived from their id. The linter requires an id on these: without one they all write to the same key. An entry with `unlessInside` is stateful only outside that container, which owns the state instead.",
   "stateful": [
     "quiz",
@@ -28,6 +39,8 @@
   },
   "aliases": {
     "matchingpairs": "matching-pairs",
+    "medialesson": "media-lesson",
+    "mediamarks": "media-marks",
     "chessboard": "chess-board",
     "chesspuzzle": "chess-puzzle",
     "chessdiagram": "chess-diagram",
@@ -38,6 +51,10 @@
   "attributes": {
     "checkpoint": { "label": { "type": "string" } },
     "video": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
+    "media-lesson": {
+      "src": { "type": "asset", "required": true },
+      "poster": { "type": "asset" }
+    },
     "audio": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "chess-board": {
       "theme": {

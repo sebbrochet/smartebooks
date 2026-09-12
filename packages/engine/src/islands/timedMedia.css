@@ -1,0 +1,160 @@
+/*
+ * A recording above the prose that drives it (SPEC012 §4.1).
+ *
+ * The arrangement is SPEC008 G9.2's, and so are the scars. Three faults shipped
+ * in the chess version of these rules and every one was a *shape* the suite had
+ * not tried, so the rules below are written the way that work ended rather than
+ * the way it started:
+ *
+ * - **No cap by default.** A height budget is opt-in per shape. Capping
+ *   unconditionally is what left a landscape phone with sixteen pixels of prose
+ *   (SPEC008 C22): the player took the height it needed and the pane, the only
+ *   flexible box, absorbed the whole shortfall.
+ * - **A ratio, not a second length.** `max-width: 100%` clamps a width and a
+ *   stated height does not follow it, which is how a board shipped at 308×320
+ *   (C23) and then again as a cropped diagram (C26).
+ * - **`dvh` beside `vh`**, because they differ on exactly the device these
+ *   faults were reported from.
+ */
+
+.media-lesson {
+  display: flex;
+  flex-direction: column;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 10px;
+  background: var(--island-bg, transparent);
+}
+
+.media-lesson__player {
+  flex: none;
+}
+
+.media-lesson__prose {
+  /* Without this a flex child refuses to shrink below its content, and the cap
+     below would push the player off instead of scrolling the prose. */
+  min-height: 0;
+}
+
+/* Tall enough that a bounded pane leaves something worth reading in it. */
+@media (min-height: 601px) {
+  .media-lesson {
+    max-height: calc(100vh - var(--ui-bar-h, 45px) - 3rem);
+    max-height: calc(100dvh - var(--ui-bar-h, 45px) - 3rem);
+  }
+
+  .media-lesson__prose {
+    flex: 0 1 auto;
+    overflow-y: auto;
+  }
+}
+
+/*
+ * Short and wide — a phone on its side. The vertical budget is gone and the
+ * width is free, so the recording sits beside the prose rather than above it.
+ * Below 640px there is no room for two columns and the whole thing falls back
+ * to ordinary flow, which is what readers had before the pane existed.
+ */
+@media (max-height: 600px) and (min-width: 640px) {
+  .media-lesson {
+    flex-direction: row;
+    gap: 1.25rem;
+    max-height: calc(100vh - var(--ui-bar-h, 45px) - 3rem);
+    max-height: calc(100dvh - var(--ui-bar-h, 45px) - 3rem);
+  }
+
+  .media-lesson__player {
+    flex: 0 0 auto;
+    width: min(45%, 420px);
+  }
+
+  .media-lesson__prose {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
+  }
+}
+
+.media-lesson__player video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  /* The ratio, not a height: see the note at the top of this file. */
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 6px;
+}
+
+.media-lesson__player audio {
+  display: block;
+  width: 100%;
+}
+
+/* A moment named in a sentence: a control that reads as prose. */
+.media-mark {
+  font: inherit;
+  color: var(--accent, #3f51b5);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px dotted currentcolor;
+}
+
+.media-mark:hover,
+.media-mark:focus-visible {
+  border-bottom-style: solid;
+}
+
+.media-mark[aria-current='true'] {
+  font-weight: 600;
+  border-bottom-style: solid;
+}
+
+.media-marks {
+  margin: 1rem 0;
+}
+
+.media-marks__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.media-marks__mark {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.media-marks__mark:hover,
+.media-marks__mark:focus-visible {
+  background: var(--island-bg, rgb(0 0 0 / 5%));
+}
+
+.media-marks__mark.is-current {
+  background: var(--island-bg, rgb(0 0 0 / 8%));
+  font-weight: 600;
+}
+
+.media-marks__time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted, #666);
+}
+
+.media-marks__mark.is-current .media-marks__time {
+  color: inherit;
+}
