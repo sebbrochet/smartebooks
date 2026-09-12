@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { createIslandRegistry, type IslandRegistry } from '../islandRegistry';
 
 type AssetResolver = (src: string) => string | undefined;
@@ -12,6 +12,18 @@ interface BookContextValue {
   resolveAsset?: AssetResolver;
   /** Island lookup scoped to this book. */
   registry: IslandRegistry;
+  /**
+   * The unit this island is rendered in, when the book's files carry units
+   * (SPEC005 M2). Undefined when the file is the page, which is every book
+   * that does not declare a `unitDepth`.
+   *
+   * SPEC001 L17 / SPEC011 B9: an island could see nothing of where it was, so
+   * a pack could not tell a section the reader is *on* from one they are
+   * re-reading. The engine answers only "which unit", because "is it the live
+   * one" is a question about the reader's history and belongs to whoever keeps
+   * it — for a gamebook, the journey.
+   */
+  unit?: string;
 }
 
 const emptyRegistry = createIslandRegistry([]);
@@ -44,4 +56,19 @@ export function BookProvider({
       {children}
     </BookContext.Provider>
   );
+}
+
+/**
+ * Names the unit its children are rendered in, keeping everything else the
+ * surrounding {@link BookProvider} already said.
+ *
+ * A second provider rather than a prop on the first, because only the view that
+ * resolves the unit knows which one it settled on — `?s=` may name a unit the
+ * book does not have — and it sits well below the book.
+ */
+export function UnitProvider({ unit, children }: { unit?: string; children: ReactNode }) {
+  const book = useBook();
+  const value = useMemo(() => ({ ...book, unit }), [book, unit]);
+
+  return <BookContext.Provider value={value}>{children}</BookContext.Provider>;
 }

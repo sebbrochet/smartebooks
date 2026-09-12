@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { renderMarkdown } from '../markdown/render';
 import { chapterUnits, headingHref } from '../markdown/headings';
+import { UnitProvider } from './BookContext';
 import type { Book, Chapter } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
 
@@ -48,26 +49,26 @@ export function ChapterView({
    * the chapter. Which unit a reader may *have* is a separate question, and the
    * book's to answer (SPEC002 R1.1a).
    */
-  const source = useMemo(() => {
+  const delivered = useMemo(() => {
     const depth = book.descriptor.unitDepth;
-    if (!depth) return chapter.markdown;
+    if (!depth) return undefined;
 
     const { units } = chapterUnits(chapter.markdown, depth);
-    if (units.length === 0) return chapter.markdown;
+    if (units.length === 0) return undefined;
 
-    return (units.find((unit) => unit.id === section) ?? units[0]).markdown;
+    return units.find((unit) => unit.id === section) ?? units[0];
   }, [book.descriptor.unitDepth, chapter.markdown, section]);
 
   const content = useMemo(
     () =>
-      renderMarkdown(source, {
+      renderMarkdown(delivered?.markdown ?? chapter.markdown, {
         trusted,
         resolveAsset,
         registry,
         headingLink: linkTo,
         highlightTerms: highlight,
       }),
-    [source, trusted, resolveAsset, registry, linkTo, highlight],
+    [delivered, chapter.markdown, trusted, resolveAsset, registry, linkTo, highlight],
   );
 
   const index = book.chapters.findIndex((c) => c.slug === chapter.slug);
@@ -91,7 +92,7 @@ export function ChapterView({
        * is the element that needs it.
        */}
       <article className="prose" lang={book.meta.language}>
-        {content}
+        <UnitProvider unit={delivered?.id}>{content}</UnitProvider>
       </article>
       <nav className="chapter-nav" aria-label="Chapter navigation">
         {prev ? (

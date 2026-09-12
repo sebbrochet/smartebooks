@@ -2,12 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createIslandRegistry } from '../islandRegistry';
 import { defaultIslands } from '../islands/defaults';
-import { BookProvider } from './BookContext';
+import { BookProvider, useBook } from './BookContext';
 import { ChapterView } from './ChapterView';
 import type { Book, Chapter } from '../types';
 import type { SmartbookDescriptor } from '../package/spec';
 
-const registry = createIslandRegistry(defaultIslands);
+/** Reports what an island can see of where it is (SPEC001 L17 / SPEC011 B9). */
+function Where() {
+  const { unit } = useBook();
+  return <p>where:{unit ?? 'nowhere'}</p>;
+}
+
+const registry = createIslandRegistry([...defaultIslands, { name: 'where', component: Where }]);
 
 const markdown = [
   '# The Caves',
@@ -18,9 +24,13 @@ const markdown = [
   '',
   'A door stands ajar.',
   '',
+  '::where',
+  '',
   '## 2',
   '',
   'You are eaten by a grue.',
+  '',
+  '::where',
 ].join('\n');
 
 const chapter: Chapter = { slug: '01-caves', order: 1, title: 'The Caves', markdown };
@@ -110,5 +120,34 @@ describe('a book whose files carry units', () => {
 
     expect(output).toContain('A door stands ajar');
     expect(output).toContain('You are eaten');
+  });
+});
+
+/**
+ * SPEC001 L17 / SPEC011 B9. An island could see `{ slug, trusted, resolveAsset,
+ * registry }` and nothing else, so a pack had no way to tell a section the
+ * reader is *on* from one they are re-reading — the domain's first hard
+ * dependency on the engine rather than on the shell.
+ */
+describe('what an island can see of where it is', () => {
+  it('names the unit it is rendered in', () => {
+    expect(html(bookWith(2), '1')).toContain('where:1');
+    expect(html(bookWith(2), '2')).toContain('where:2');
+  });
+
+  // The unit the view settled on, not the one the route asked for: `?s=` may
+  // name a unit the book does not have, and an island must not be told it is
+  // somewhere it is not.
+  it('names the unit actually delivered, not the one requested', () => {
+    expect(html(bookWith(2), 'no-such-section')).toContain('where:1');
+  });
+
+  // A book whose files are pages has no unit to be in, and saying so is better
+  // than inventing one from the chapter.
+  it('says nowhere when the book has no units', () => {
+    const output = html(bookWith());
+
+    expect(output).toContain('where:nowhere');
+    expect(output).not.toContain('where:1');
   });
 });
