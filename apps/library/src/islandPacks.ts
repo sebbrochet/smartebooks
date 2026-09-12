@@ -13,6 +13,7 @@ import {
   preloadMermaidIslands,
   type MermaidIslandsOptions,
 } from '@smart-ebooks/islands-mermaid';
+import { gamebookIslands } from '@smart-ebooks/islands-gamebook';
 
 /**
  * Maps an island **pack name** declared in a book's `smartbook.json` to the
@@ -26,6 +27,7 @@ import {
 const packs: Record<string, (options: unknown) => IslandDefinition[]> = {
   chess: (options) => chessIslands((options ?? {}) as ChessIslandsOptions),
   mermaid: (options) => mermaidIslands((options ?? {}) as MermaidIslandsOptions),
+  gamebook: () => gamebookIslands(),
 };
 
 /** Pack names this build can provide. */

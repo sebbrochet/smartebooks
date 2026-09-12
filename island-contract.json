@@ -12,7 +12,7 @@
     "at",
     "media-marks"
   ],
-  "inline": ["term", "at", "move"],
+  "inline": ["term", "at", "move", "choice"],
   "$comment-stateful": "Islands that save something for the reader under a key derived from their id. The linter requires an id on these: without one they all write to the same key. An entry with `unlessInside` is stateful only outside that container, which owns the state instead.",
   "stateful": [
     "quiz",
@@ -35,7 +35,8 @@
       "chess-moves",
       "move"
     ],
-    "mermaid": ["mermaid"]
+    "mermaid": ["mermaid"],
+    "gamebook": ["choice"]
   },
   "aliases": {
     "matchingpairs": "matching-pairs",
@@ -49,6 +50,7 @@
     "chessmoves": "chess-moves"
   },
   "attributes": {
+    "choice": { "to": { "type": "string" } },
     "checkpoint": { "label": { "type": "string" } },
     "video": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "media-lesson": {

@@ -98,7 +98,9 @@ export function ChapterView({
        * is the element that needs it.
        */}
       <article className="prose" lang={book.meta.language}>
-        <UnitProvider unit={delivered?.id}>{content}</UnitProvider>
+        <UnitProvider unit={delivered?.id} linkTo={linkTo}>
+          {content}
+        </UnitProvider>
       </article>
       <nav className="chapter-nav" aria-label="Chapter navigation">
         {prev ? (

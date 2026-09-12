@@ -144,6 +144,12 @@
               "properties": {
                 "theme": { "enum": ["auto", "default", "neutral", "dark", "forest", "base"] }
               }
+            },
+            "gamebook": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "No options yet. A gamebook's rules live in its prose and its choices, not in its descriptor.",
+              "properties": {}
             }
           }
         },

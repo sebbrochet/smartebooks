@@ -1,0 +1,19 @@
+/* A choice is prose, so it is styled as emphasis rather than as a button. */
+.gamebook-choice {
+  font-style: italic;
+}
+
+.gamebook-choice--offered {
+  font-weight: 600;
+}
+
+/* A road already walked, or refused: readable, and visibly not a control. */
+.gamebook-choice--taken,
+.gamebook-choice--refused {
+  color: var(--muted, #666);
+}
+
+.gamebook-choice__note {
+  font-size: 0.9em;
+  font-style: normal;
+}

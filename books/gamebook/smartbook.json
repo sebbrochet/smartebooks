@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "gamebook",
+  "title": "The Cellar Door",
+  "description": "A very small gamebook: twenty sections, one way through, several ways not to.",
+  "authors": ["Smart Ebooks"],
+  "language": "en",
+  "visibility": "public",
+  "authorId": "smartebooks.sebbrochet.com",
+  "edition": "2026-09-12",
+  "unitDepth": 2,
+  "islands": {
+    "packs": {
+      "gamebook": {}
+    }
+  }
+}

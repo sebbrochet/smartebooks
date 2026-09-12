@@ -99,6 +99,6 @@ describe('books outside this repository', () => {
   test('leaves the default location alone when nothing is set', () => {
     const { code, output } = run('lint-content.mjs', [], {});
     assert.equal(code, 0, output);
-    assert.match(output, /published: chess, guide, sampler/);
+    assert.match(output, /published: chess, gamebook, guide, sampler/);
   });
 });

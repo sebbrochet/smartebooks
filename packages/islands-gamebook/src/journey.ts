@@ -156,18 +156,27 @@ export function apply(play: Playthrough, effectId: string, effect: Effect): Play
 }
 
 /**
- * The delivery gate (SPEC002 R1.1a) as this domain answers it: a section may be
- * read if the reader has been there.
+ * The sections this reader may open, in the order they first reached them.
  *
  * Closed attempts count. The reader may re-read their own death (QG9); they
  * simply cannot continue from it. Sections that were offered and refused never
  * become readable (§4 rule 5), which is the whole model in one line.
  */
+export function readableSections(play: Playthrough): string[] {
+  const seen = new Set<string>();
+
+  for (const visit of play.visits) seen.add(visit.section);
+  for (const attempt of play.closed) for (const visit of attempt.visits) seen.add(visit.section);
+
+  return [...seen];
+}
+
+/**
+ * The delivery gate (SPEC002 R1.1a) as this domain answers it: a section may be
+ * read if the reader has been there.
+ */
 export function canRead(play: Playthrough, section: string): boolean {
-  return (
-    play.visits.some((visit) => visit.section === section) ||
-    play.closed.some((attempt) => attempt.visits.some((visit) => visit.section === section))
-  );
+  return readableSections(play).includes(section);
 }
 
 /** Whether this visit is the one the reader is on — the only one that may act (§4.2b). */

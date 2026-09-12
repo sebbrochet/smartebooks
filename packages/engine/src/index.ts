@@ -37,6 +37,7 @@ export { searchChapters, type SearchResult } from './reader/search';
 
 // Content + rendering
 export { renderMarkdown } from './markdown/render';
+export { chapterUnits, type Unit } from './markdown/headings';
 export { mdastToText, extractDirectiveCode, extractJsonConfig } from './markdown/extract';
 export { STALE_BUILD_EVENT } from './markdown/IslandBoundary';
 
@@ -88,6 +89,11 @@ export {
   clearAllBooks,
   orphanedState,
   subscribeToStore,
+  // A pack needs these when its state is book-level rather than island-level:
+  // a gamebook's playthrough is read by the shell's gate, which sits outside
+  // any island and so cannot use `usePersistentState`.
+  loadState,
+  saveState,
   exportProgress,
   importProgress,
   reading,

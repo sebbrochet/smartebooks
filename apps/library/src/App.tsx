@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Reader,
   ReaderBar,
@@ -13,6 +13,7 @@ import {
 import { useShelfBooks } from './useShelfBooks';
 import { useServiceWorker } from './useServiceWorker';
 import { warmIslandPacks } from './islandPacks';
+import { journeyGate, usePlaythroughOf } from '@smart-ebooks/islands-gamebook';
 import { useAppRoute } from './router';
 import { allowResume, hashFor, resumeChapter, suppressResume, useLaunchDecision } from './launch';
 import { Bookshelf } from './Bookshelf';
@@ -27,6 +28,20 @@ export default function App() {
   const { books, getBook, reload } = useShelfBooks();
   const active = route.view === 'shelf' ? undefined : getBook(route.bookSlug);
   const activeBook = active?.book;
+
+  /*
+   * A gamebook answers the shell's gate from its own journey (SPEC002 R1.1a).
+   *
+   * Wired here because the gate is a *book-level* rule and the engine must not
+   * learn that gamebooks exist — the same boundary that keeps the library out
+   * of the reader. A book that declares no pack passes no gate, and the shell's
+   * default is open, so nothing else changes.
+   */
+  const [play] = usePlaythroughOf(activeBook?.meta.slug ?? '');
+  const gate = useMemo(
+    () => (activeBook?.descriptor.islands?.packs?.gamebook ? journeyGate(play) : undefined),
+    [activeBook, play],
+  );
 
   /*
    * The header used to wrap to **154px of a 780px screen** on a phone — brand,
@@ -245,6 +260,7 @@ export default function App() {
           highlight={route.view === 'book' ? route.highlight : undefined}
           query={route.view === 'search' ? route.query : undefined}
           trusted={active?.trusted ?? true}
+          gate={gate}
           /*
            * The way back to the shelf. It lives here rather than in the engine
            * because the engine renders *a book* and must not learn that a

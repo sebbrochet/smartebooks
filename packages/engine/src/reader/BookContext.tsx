@@ -24,6 +24,15 @@ interface BookContextValue {
    * it — for a gamebook, the journey.
    */
   unit?: string;
+  /**
+   * A link to another unit of the chapter being read.
+   *
+   * Supplied so that an island can point at a sibling unit without knowing the
+   * router: the app is hash-routed and a bare fragment would replace the whole
+   * route (SPEC002 R1.3). A gamebook's `::choice` is the reason this exists,
+   * and it must render a real link rather than a click handler.
+   */
+  linkTo?: (unit: string) => string;
 }
 
 const emptyRegistry = createIslandRegistry([]);
@@ -66,9 +75,17 @@ export function BookProvider({
  * resolves the unit knows which one it settled on — `?s=` may name a unit the
  * book does not have — and it sits well below the book.
  */
-export function UnitProvider({ unit, children }: { unit?: string; children: ReactNode }) {
+export function UnitProvider({
+  unit,
+  linkTo,
+  children,
+}: {
+  unit?: string;
+  linkTo?: (unit: string) => string;
+  children: ReactNode;
+}) {
   const book = useBook();
-  const value = useMemo(() => ({ ...book, unit }), [book, unit]);
+  const value = useMemo(() => ({ ...book, unit, linkTo }), [book, unit, linkTo]);
 
   return <BookContext.Provider value={value}>{children}</BookContext.Provider>;
 }
