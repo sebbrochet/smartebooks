@@ -1,0 +1,16 @@
+{
+  "name": "@smart-ebooks/islands-gamebook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gamebook islands for Smart Ebooks — choices, a character sheet, and the journey that records a playthrough.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "peerDependencies": {
+    "@smart-ebooks/engine": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
