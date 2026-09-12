@@ -304,6 +304,7 @@ export function Reader({
                   resolveAsset={resolveAsset}
                   registry={registry}
                   highlight={highlight}
+                  section={heading}
                 />
               )
             )
@@ -317,6 +318,7 @@ export function Reader({
                 resolveAsset={resolveAsset}
                 registry={registry}
                 highlight={highlight}
+                section={heading}
               />
             )
           )}

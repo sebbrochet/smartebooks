@@ -85,6 +85,12 @@
         }
       }
     },
+    "unitDepth": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 6,
+      "description": "The heading depth at which this book's files carry units (2 for ##). A file is then a container of units and the reader is delivered one at a time. Omit for a book whose files are pages."
+    },
     "parts": {
       "type": "array",
       "description": "Named groups of chapters, e.g. 'Part I \u2014 Foundations'. Referenced by chapters[].part. A part appears where its first chapter appears, and one no chapter claims is not drawn.",

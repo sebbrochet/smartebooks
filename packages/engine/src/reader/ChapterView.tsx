@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { renderMarkdown } from '../markdown/render';
-import { headingHref } from '../markdown/headings';
+import { chapterUnits, headingHref } from '../markdown/headings';
 import type { Book, Chapter } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
 
@@ -13,6 +13,12 @@ interface ChapterViewProps {
   registry: IslandRegistry;
   /** Terms to mark in the prose, when the reader arrived from a search. */
   highlight?: string[];
+  /**
+   * The unit to deliver, from the route's `?s=`. Only consulted when the book
+   * declares a `unitDepth`; otherwise the whole file is the page and `?s=`
+   * means "scroll to this heading", which the shell handles.
+   */
+  section?: string;
 }
 
 export function ChapterView({
@@ -23,22 +29,45 @@ export function ChapterView({
   resolveAsset,
   registry,
   highlight,
+  section,
 }: ChapterViewProps) {
   const linkTo = useMemo(
     () => (id: string) => headingHref(basePath, chapter.slug, id),
     [basePath, chapter.slug],
   );
 
+  /*
+   * One unit, or the whole file (SPEC005 M2).
+   *
+   * Delivering one unit is the only thing that actually withholds the others:
+   * hiding the links leaves every section in the DOM, where a reader can scroll
+   * into the ending and Ctrl+F finds it (SPEC011 B2).
+   *
+   * A unit the book does not have falls back to the first rather than to a
+   * blank page — an unreadable `?s=` should cost the reader their place, not
+   * the chapter. Which unit a reader may *have* is a separate question, and the
+   * book's to answer (SPEC002 R1.1a).
+   */
+  const source = useMemo(() => {
+    const depth = book.descriptor.unitDepth;
+    if (!depth) return chapter.markdown;
+
+    const { units } = chapterUnits(chapter.markdown, depth);
+    if (units.length === 0) return chapter.markdown;
+
+    return (units.find((unit) => unit.id === section) ?? units[0]).markdown;
+  }, [book.descriptor.unitDepth, chapter.markdown, section]);
+
   const content = useMemo(
     () =>
-      renderMarkdown(chapter.markdown, {
+      renderMarkdown(source, {
         trusted,
         resolveAsset,
         registry,
         headingLink: linkTo,
         highlightTerms: highlight,
       }),
-    [chapter.markdown, trusted, resolveAsset, registry, linkTo, highlight],
+    [source, trusted, resolveAsset, registry, linkTo, highlight],
   );
 
   const index = book.chapters.findIndex((c) => c.slug === chapter.slug);

@@ -127,6 +127,18 @@ export interface SmartbookDescriptor {
   engine?: SmartbookEngineRange;
   /** Chapters in order; if omitted, derived from the content folder. */
   chapters?: SmartbookChapterEntry[];
+  /**
+   * The heading depth at which this book's files carry **units** — 2 for `##`
+   * (SPEC005 M2).
+   *
+   * A file is then a container of units rather than a page, and the reader is
+   * delivered one unit at a time. Absent means what every book has meant so
+   * far: the file is the page.
+   *
+   * Declared on the book rather than per file, because a book whose files
+   * disagree about what a unit is has no answer for what `?s=` addresses.
+   */
+  unitDepth?: number;
   /** Named groups of chapters, in display order (SPEC005). */
   parts?: SmartbookPart[];
   /** Declared asset paths (packaged/resolved in Phase 2). */
