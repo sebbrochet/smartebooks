@@ -18,7 +18,7 @@ import { useActiveSection, scrollToSpot } from './reader/useActiveSection';
 import { furthestOf } from './reader/furthest';
 import './reader/reader.css';
 import { chapterHeadings, headingHref, type Unit } from './markdown/headings';
-import { allowedUnits, railEntries } from './reader/units';
+import { allowedUnits, railEntries, unitsOf } from './reader/units';
 import { bookTotals } from './markdown/scorables';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
@@ -131,11 +131,16 @@ export function Reader({
    * both the rail and the page. Two resolutions would let the rail refuse a
    * unit the page then delivered, which is the failure the gate exists to
    * prevent.
+   *
+   * Two memos and not one: the split is the expensive half and depends only on
+   * the file, while `gate` is a fresh closure on every choice a reader makes.
    */
-  const units = useMemo(
-    () => allowedUnits(activeChapter?.markdown ?? '', book.descriptor.unitDepth, gate),
-    [activeChapter, book.descriptor.unitDepth, gate],
+  const carried = useMemo(
+    () => unitsOf(activeChapter?.markdown ?? '', book.descriptor.unitDepth),
+    [activeChapter, book.descriptor.unitDepth],
   );
+
+  const units = useMemo(() => allowedUnits(carried, gate), [carried, gate]);
 
   const delivered = units.find((unit) => unit.id === heading) ?? units[0];
 
