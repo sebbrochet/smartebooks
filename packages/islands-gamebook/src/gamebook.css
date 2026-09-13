@@ -17,3 +17,36 @@
   font-size: 0.9em;
   font-style: normal;
 }
+
+/* A record of play, not part of the story: set apart from the prose. */
+.gamebook-journeys {
+  margin: 2rem 0 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--muted, #999);
+  font-size: 0.95em;
+}
+
+.gamebook-journeys__title {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.gamebook-journeys__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gamebook-journeys__label {
+  color: var(--muted, #666);
+}
+
+/* An earlier route is a record: the gate does not offer those sections. */
+.gamebook-journeys__route {
+  color: var(--muted, #666);
+}
+
+.gamebook-journeys__seen {
+  margin: 0.5rem 0 0;
+  color: var(--muted, #666);
+}

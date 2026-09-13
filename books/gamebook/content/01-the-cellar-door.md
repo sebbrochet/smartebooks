@@ -56,6 +56,8 @@ steps, and after a longer while you stop minding.
 
 *Your story ends here.* :restart{to="1"}
 
+::journeys
+
 ## 7
 
 The chair scrapes. Facing the room, it is an ordinary chair, and the room is an ordinary room with a
@@ -81,12 +83,16 @@ side, your own hand still on it.
 
 *Your story ends here.* :restart{to="1"}
 
+::journeys
+
 ## 10
 
 You put the chair by the kitchen table, and it fits as though it has always been the fourth one. In
 the morning there are four cups on the draining board.
 
 *Your story ends here.* :restart{to="1"}
+
+::journeys
 
 ## 11
 
@@ -112,11 +118,15 @@ company, of a kind.
 
 *Your story ends here.* :restart{to="1"}
 
+::journeys
+
 ## 14
 
 The green stairs go down a long way further than they went up. You are still descending.
 
 *Your story ends here.* :restart{to="1"}
+
+::journeys
 
 ## 15
 
@@ -150,6 +160,8 @@ it. Every door in this house does, now.
 
 *Your story ends here.* :restart{to="1"}
 
+::journeys
+
 ## 19
 
 You shut the cellar door, and you bolt it from the kitchen side, and you leave the lamp burning in
@@ -160,9 +172,13 @@ In the morning there is a green key on the mat, and the shed door is open, and i
 
 *Your story ends here, for now.* :restart{to="1"}
 
+::journeys
+
 ## 20
 
 You walk until the houses stop. Behind you the lamp comes on in the kitchen window, and you do not
 turn round to see who lit it.
 
 *Your story ends here.* :restart{to="1"}
+
+::journeys

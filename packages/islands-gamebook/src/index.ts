@@ -17,6 +17,7 @@ export { PLAY_KEY, take, usePlaythrough, usePlaythroughOf } from './playthrough'
 
 const ChoiceIsland = lazy(() => import('./ChoiceIsland'));
 const RestartIsland = lazy(() => import('./RestartIsland'));
+const JourneysIsland = lazy(() => import('./JourneysIsland'));
 
 /**
  * A gamebook's islands.
@@ -59,6 +60,14 @@ export function gamebookIslands(): IslandDefinition[] {
         const to = typeof ctx.attributes.to === 'string' ? ctx.attributes.to : '';
         return to ? [{ type: 'text', value: `begin again at ${to}` }] : undefined;
       },
+    },
+    {
+      name: 'journeys',
+      component: JourneysIsland,
+      attributes: {},
+      // No static form, and that is a legitimate answer (SPEC003 QD5): this is
+      // a record of one reader's play, and a printed page has no reader.
+      fallback: () => undefined,
     },
   ];
 }

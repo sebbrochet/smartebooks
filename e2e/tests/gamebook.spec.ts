@@ -183,3 +183,29 @@ test('an ending offers a new attempt, and keeps the old one', async ({ page }) =
   await page.reload();
   await expect(page.locator('article.prose')).toContainText('The cellar door stands open');
 });
+
+/**
+ * QG16 — what a reader wants from a past journey is to know what worked without
+ * memorising it, and to notice the sections they have never seen.
+ */
+test('an ending lists the routes taken, and the gaps between them', async ({ page }) => {
+  await page.goto(BOOK);
+
+  // 1 → 3 → 5 → 9, skipping 2, 4, 6, 7 and 8 on the way.
+  await page.getByRole('link', { name: 'turn to 3' }).click();
+  await page.getByRole('link', { name: 'turn to 5' }).click();
+  await page.getByRole('link', { name: 'turn to 9' }).click();
+
+  const record = page.locator('.gamebook-journeys');
+  await expect(record).toContainText('This one');
+
+  // The gap is a hint, not a spoiler: section 4 exists, and what is in it does
+  // not (QG17). Nothing is said about 10 and beyond, which is just more book.
+  await expect(record).toContainText('never seen 2, 4, 6, 7, 8');
+  await expect(record).not.toContainText('10');
+
+  // The live route is navigable; an earlier one would not be, because a new
+  // journey does not inherit the old one's access (QG14).
+  await record.getByRole('link', { name: '3', exact: true }).click();
+  await expect(page.locator('article.prose')).toContainText('The shed smells of creosote');
+});

@@ -12,6 +12,7 @@ import {
   restart,
   sheetNow,
   tookFrom,
+  unseenBetween,
 } from './journey';
 
 const T = 1_000; // every test passes its own time, so nothing here reads a clock
@@ -232,6 +233,43 @@ describe('the gate', () => {
 
     expect(journeyGate(play)(units).map((unit) => unit.id)).toEqual(['1']);
     expect(canRead(play, '99')).toBe(true);
+  });
+});
+
+describe('the sections a reader has skipped', () => {
+  // QG17: a printed gamebook cannot hide that section 3 exists, so neither
+  // should this one. The content of 3 stays hidden; the gap does not.
+  it('names the numbers between the ones you have seen', () => {
+    const play = go(go(go(start(), '2', T), '4', T), '6', T);
+
+    expect(unseenBetween(play)).toEqual(['3', '5']);
+  });
+
+  // Interior only: beyond your furthest section is simply the rest of the
+  // book, and how much of it there is nobody asked to be told.
+  it('says nothing about what lies beyond the furthest section', () => {
+    const play = go(start(), '3', T);
+
+    expect(unseenBetween(play)).toEqual(['2']);
+  });
+
+  it('counts the sections of a closed journey as seen', () => {
+    const play = restart(go(go(start(), '2', T), '4', T), '1', T);
+
+    expect(unseenBetween(play)).toEqual(['3']);
+  });
+
+  // A unit's id comes from its heading, so a named section would leak its
+  // title. A book that numbers its sections gets the hint; one that names them
+  // gets nothing, decided from the content rather than declared.
+  it('stays silent when the ids are words', () => {
+    const play = go(begin('the-shed', undefined, T), 'the-cellar', T);
+
+    expect(unseenBetween(play)).toEqual([]);
+  });
+
+  it('has nothing to say about a journey of one', () => {
+    expect(unseenBetween(start())).toEqual([]);
   });
 });
 

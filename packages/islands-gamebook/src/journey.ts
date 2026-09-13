@@ -237,8 +237,37 @@ export function tookFrom(visits: Visit[], index: number): string | undefined {
   return visits[index + 1]?.section;
 }
 
-/**
- * Begin again: the journey so far becomes a closed attempt and a new one opens.
+/** * The sections the reader has skipped over: numbers between ones they have
+ * seen, never visited (QG17).
+ *
+ * A hint rather than a spoiler, and the distinction is the genre's own — a
+ * printed gamebook cannot hide that section 3 exists, because the number is on
+ * the page and noticing the gap is part of reading one. §4.2e forbids revealing
+ * what is *in* an unvisited section, which this does not.
+ *
+ * **Interior only.** Having read 1, 2, 4 and 6, the hint is 3 and 5; the
+ * sections beyond 6 are simply the rest of the book, and announcing how many
+ * there are is a different disclosure that nobody asked for.
+ *
+ * **Numeric ids only.** A unit's id comes from its heading, so `## 1` yields
+ * `1` but `## The Dragon's Lair` yields `the-dragons-lair` — a spoiler in a
+ * filename. A book that numbers its sections gets the hint; one that names them
+ * gets nothing, decided from the content rather than declared, so no author can
+ * get it wrong.
+ */
+export function unseenBetween(play: Playthrough): string[] {
+  const seen = readableSections(play);
+  if (seen.length === 0 || !seen.every((section) => /^\d+$/.test(section))) return [];
+
+  const numbers = seen.map(Number);
+  const missing: string[] = [];
+  for (let n = Math.min(...numbers) + 1; n < Math.max(...numbers); n += 1) {
+    if (!numbers.includes(n)) missing.push(String(n));
+  }
+  return missing;
+}
+
+/** * Begin again: the journey so far becomes a closed attempt and a new one opens.
  *
  * **Closed, not deleted** (K2.3). A gamebook is reread, and QG9 already decided
  * that a branch the reader did not survive is kept because *"the reader cannot
