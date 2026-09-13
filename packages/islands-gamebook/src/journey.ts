@@ -44,8 +44,8 @@ export interface Visit {
   sheet: Sheet;
 }
 
-/** A branch the reader did not survive: readable, and impossible to continue (QG9). */
-export interface ClosedAttempt {
+/** A journey the reader has finished with: readable, and impossible to continue (QG9). */
+export interface ClosedJourney {
   visits: Visit[];
   at: number;
 }
@@ -53,7 +53,13 @@ export interface ClosedAttempt {
 export interface Playthrough {
   /** The live journey, oldest first. Only the last entry is live. */
   visits: Visit[];
-  closed: ClosedAttempt[];
+  /**
+   * Journeys the reader has finished with — a death truncated, or a run they
+   * chose to begin again from. **"Journey" rather than "attempt"** because that
+   * is the word a reader would use, and it is the one that will appear on the
+   * page (the owner's choice, 2026-09-13).
+   */
+  closed: ClosedJourney[];
   /**
    * Next visit number, monotonic across the whole playthrough.
    *
