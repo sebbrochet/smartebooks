@@ -83,8 +83,13 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
         </h2>
       )}
       <ul className="toc__list" id="toc-list" hidden={!listVisible}>
-        {headings.map((heading) => (
-          <li key={heading.id} className={`toc__item toc__item--h${heading.depth}`}>
+        {headings.map((heading, position) => (
+          // Keyed by position as well as id: a gated list may legitimately name
+          // the same unit twice, because it is a route rather than an outline.
+          <li
+            key={`${heading.id}-${position}`}
+            className={`toc__item toc__item--h${heading.depth}`}
+          >
             <a
               href={linkTo(heading.id)}
               data-heading={heading.id}

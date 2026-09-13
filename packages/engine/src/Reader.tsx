@@ -144,6 +144,23 @@ export function Reader({
     [units, headings, book.descriptor.unitDepth],
   );
 
+  /*
+   * What search may see. Undefined for an ordinary book, which is the whole of
+   * it; for a gated book, the current chapter reduced to the units the reader
+   * may open, so a result can never name a section they have not reached.
+   *
+   * Scoped to the active chapter because that is where the gate is asked. A
+   * gated book spanning several files would need the gate asked of each, and
+   * nothing has wanted that yet.
+   */
+  const searchScope = useMemo(
+    () =>
+      units.length > 0 && activeChapter
+        ? [{ ...activeChapter, markdown: units.map((unit) => unit.markdown).join('\n\n') }]
+        : undefined,
+    [units, activeChapter],
+  );
+
   const spot = useActiveSection(headings);
   const activeSlug = activeChapter?.slug;
 
@@ -372,6 +389,7 @@ export function Reader({
         basePath={basePath}
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
+        scope={searchScope}
       />
     </BookProvider>
   );

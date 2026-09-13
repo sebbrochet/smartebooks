@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadState, saveState, subscribeToStore, useBook, type Unit } from '@smart-ebooks/engine';
-import { begin, go, readableSections, type Playthrough } from './journey';
+import { begin, go, type Playthrough } from './journey';
 
 /**
  * **One record per playthrough** (SPEC011 K2.1), not one key per stat.
@@ -79,19 +79,32 @@ export function take(play: Playthrough | null, from: string, to: string): Playth
  *
  * Before the first choice there is no journey, so only the book's opening unit
  * is allowed — which is SPEC011 §4 rule 1, and the reason a gamebook's contents
- * list starts one entry long and is *earned* rather than hidden (§4.1).
+ * list is *earned* rather than hidden (§4.1).
  *
- * **De-duplicated, unlike the journey itself.** Visiting 42 twice is genuinely
- * two visits (§4.2a) and the record keeps both, but a contents list naming the
- * same room twice is furniture rather than history — and two entries with one
- * id is also two React keys with one value.
+ * **One entry per visit, repeats included.** This de-duplicated at first, on
+ * the grounds that a list naming the same room twice was furniture rather than
+ * history. Reading the book disproved it (2026-09-13): a journey of 1, 2, 1, 3
+ * displayed as 1, 2, 3, and the reader could no longer retrace the route they
+ * had actually taken. §4.2a said so about the record — *"de-duplicating would
+ * make the journey lie about the story it exists to record"* — and the same
+ * argument applies to the view of it, which is the half that was missed.
+ *
+ * A closed attempt's sections are reachable but not part of the live route, so
+ * they are appended rather than woven in.
  */
 export function journeyGate(play: Playthrough | null) {
   return (units: Unit[]): Unit[] => {
     if (!play) return units.slice(0, 1);
 
-    return readableSections(play)
-      .map((section) => units.find((unit) => unit.id === section))
-      .filter((unit): unit is Unit => unit !== undefined);
+    const unitOf = (section: string) => units.find((unit) => unit.id === section);
+    const live = play.visits.map((visit) => unitOf(visit.section));
+    const seen = new Set(play.visits.map((visit) => visit.section));
+
+    const closed = play.closed
+      .flatMap((attempt) => attempt.visits)
+      .filter((visit) => !seen.has(visit.section))
+      .map((visit) => unitOf(visit.section));
+
+    return [...live, ...closed].filter((unit): unit is Unit => unit !== undefined);
   };
 }

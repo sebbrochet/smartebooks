@@ -42,12 +42,27 @@ export default function ChoiceIsland({ attributes, children }: IslandComponentPr
     const index = play.visits.map((visit) => visit.section).lastIndexOf(unit);
     const taken = index >= 0 ? tookFrom(play.visits, index) === to : false;
 
+    /*
+     * The road taken stays a link; the road refused does not.
+     *
+     * §4 rule 3 allows reading backwards and rule 4 forbids replaying, and
+     * those are different things: following your own route forward again is
+     * browsing history, so it navigates and **commits nothing**. The refused
+     * branch never became history and must not start now.
+     */
+    if (taken) {
+      return (
+        <a className="gamebook-choice gamebook-choice--taken" href={linkTo?.(to) ?? `#${to}`}>
+          {printed}
+          <span className="gamebook-choice__note"> (you went this way)</span>
+        </a>
+      );
+    }
+
     return (
-      <span className={`gamebook-choice gamebook-choice--${taken ? 'taken' : 'refused'}`}>
+      <span className="gamebook-choice gamebook-choice--refused">
         {printed}
-        <span className="gamebook-choice__note">
-          {taken ? ' (you went this way)' : ' (not taken)'}
-        </span>
+        <span className="gamebook-choice__note"> (not taken)</span>
       </span>
     );
   }

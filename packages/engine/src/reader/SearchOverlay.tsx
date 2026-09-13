@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Book } from '../types';
+import type { Book, Chapter } from '../types';
 import { highlight } from './search';
 import { buildIndex, queryIndex, completeTerm, tokenize, type PassageHit } from './searchIndex';
 import { readerHref, type Heading } from '../markdown/headings';
@@ -10,6 +10,12 @@ interface SearchOverlayProps {
   basePath: string;
   open: boolean;
   onClose: () => void;
+  /**
+   * What search is allowed to see, when the book gates its units
+   * (SPEC002 R1.1a): the chapter the reader is in, reduced to the units they
+   * may open. Absent means the whole book, which is every ordinary book.
+   */
+  scope?: Chapter[];
 }
 
 /**
@@ -36,19 +42,26 @@ interface Row {
  * each links to the section it was found in rather than to the top of nine
  * pages (N15).
  */
-export function SearchOverlay({ book, basePath, open, onClose }: SearchOverlayProps) {
+export function SearchOverlay({ book, basePath, open, onClose, scope }: SearchOverlayProps) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const restoreFocusTo = useRef<Element | null>(null);
 
-  // Built once per book, and only once the overlay has been opened — a reader
-  // who never searches never pays to parse the book twice.
-  const index = useMemo(
-    () => (open ? buildIndex(book.chapters) : undefined),
-    [book.chapters, open],
-  );
+  /*
+   * Built once per book, and only once the overlay has been opened — a reader
+   * who never searches never pays to parse the book twice.
+   *
+   * **Indexed over the gated scope, not the book.** A gamebook's file holds
+   * every section including its endings, so indexing the chapter offered the
+   * reader passages from sections they had never reached — and the link went
+   * nowhere, because the gate then refused the very unit the result named.
+   * Searching what you have read is a memory aid; searching what you have not
+   * is a spoiler (SPEC011 QG7).
+   */
+  const corpus = scope ?? book.chapters;
+  const index = useMemo(() => (open ? buildIndex(corpus) : undefined), [corpus, open]);
   const outcome = useMemo(() => (index ? queryIndex(index, query) : undefined), [index, query]);
 
   const rows = useMemo<Row[]>(() => {
