@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { loadState, saveState, subscribeToStore, useBook, type Unit } from '@smart-ebooks/engine';
+import { loadState, saveState, subscribeToStore, useBook } from '@smart-ebooks/engine';
 import { begin, go, type Playthrough } from './journey';
 
 /**
@@ -71,40 +71,4 @@ export function usePlaythrough() {
  */
 export function take(play: Playthrough | null, from: string, to: string): Playthrough {
   return go(play ?? begin(from), to);
-}
-
-/**
- * The reading gate (SPEC002 R1.1a) as this domain answers it: a reader may open
- * what they have been to, in the order they went.
- *
- * Before the first choice there is no journey, so only the book's opening unit
- * is allowed — which is SPEC011 §4 rule 1, and the reason a gamebook's contents
- * list is *earned* rather than hidden (§4.1).
- *
- * **One entry per visit, repeats included.** This de-duplicated at first, on
- * the grounds that a list naming the same room twice was furniture rather than
- * history. Reading the book disproved it (2026-09-13): a journey of 1, 2, 1, 3
- * displayed as 1, 2, 3, and the reader could no longer retrace the route they
- * had actually taken. §4.2a said so about the record — *"de-duplicating would
- * make the journey lie about the story it exists to record"* — and the same
- * argument applies to the view of it, which is the half that was missed.
- *
- * A closed attempt's sections are reachable but not part of the live route, so
- * they are appended rather than woven in.
- */
-export function journeyGate(play: Playthrough | null) {
-  return (units: Unit[]): Unit[] => {
-    if (!play) return units.slice(0, 1);
-
-    const unitOf = (section: string) => units.find((unit) => unit.id === section);
-    const live = play.visits.map((visit) => unitOf(visit.section));
-    const seen = new Set(play.visits.map((visit) => visit.section));
-
-    const closed = play.closed
-      .flatMap((attempt) => attempt.visits)
-      .filter((visit) => !seen.has(visit.section))
-      .map((visit) => unitOf(visit.section));
-
-    return [...live, ...closed].filter((unit): unit is Unit => unit !== undefined);
-  };
 }

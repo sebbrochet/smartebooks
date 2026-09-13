@@ -156,3 +156,30 @@ test('a road already walked is a link back into your own history', async ({ page
   await page.locator('.toc a').first().click();
   await expect(page.locator('span.gamebook-choice--refused')).toBeVisible();
 });
+
+/**
+ * K2.3, raised by the owner reaching an ending with no way back short of the
+ * library's per-book reset — which forgets the book rather than replaying it.
+ */
+test('an ending offers a new attempt, and keeps the old one', async ({ page }) => {
+  await page.goto(BOOK);
+
+  // 1 → 2 → 4 → 6, which is an ending.
+  await page.getByRole('link', { name: 'turn to 2' }).click();
+  await page.getByRole('link', { name: 'turn to 4' }).click();
+  await page.getByRole('link', { name: 'turn to 6' }).click();
+  await expect(page.locator('article.prose')).toContainText('Your story ends here');
+  await expect(page.locator('.toc a')).toHaveCount(4);
+
+  await page.getByRole('link', { name: 'Begin again' }).click();
+
+  // A second run reads like a second run: the rail is one entry again, and
+  // section 4 is no longer offered even though the reader has seen it.
+  await expect(page.locator('article.prose')).toContainText('The cellar door stands open');
+  await expect(page.locator('.toc a')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'turn to 4' })).toHaveCount(0);
+
+  // ...and the attempt survives a reload, so nothing was merely forgotten.
+  await page.reload();
+  await expect(page.locator('article.prose')).toContainText('The cellar door stands open');
+});

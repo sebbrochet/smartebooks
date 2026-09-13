@@ -7,7 +7,9 @@ import {
   emptySheet,
   go,
   isLive,
+  journeyGate,
   respawn,
+  restart,
   sheetNow,
   tookFrom,
 } from './journey';
@@ -177,6 +179,59 @@ describe('respawn', () => {
   it('does not open a closed attempt when nothing was truncated', () => {
     const play = respawn(go(start(), '42', T), '42', T);
     expect(play.closed).toEqual([]);
+  });
+});
+
+describe('restart', () => {
+  // K2.3. Death is a normal outcome here and an ending is the point of the
+  // book, so starting over must not mean clearing site data.
+  it('closes the attempt and opens a new one at the start', () => {
+    const play = restart(go(go(start(), '42', T), '99', T), '1', T);
+
+    expect(play.visits.map((visit) => visit.section)).toEqual(['1']);
+    expect(play.closed[0].visits.map((visit) => visit.section)).toEqual(['1', '42', '99']);
+  });
+
+  // The reader keeps what they earned: QG9 kept a failed branch because you
+  // cannot read your own death otherwise, and a finished run is the same thing
+  // with a happier trigger.
+  it('destroys nothing the reader has read', () => {
+    const play = restart(go(start(), '42', T), '1', T);
+
+    expect(canRead(play, '42')).toBe(true);
+    expect(canRead(play, '99')).toBe(false);
+  });
+
+  it('gives the new attempt a fresh sheet and a fresh visit id', () => {
+    let play = apply(go(start(), '42', T), 'door', { kind: 'stat', stat: 'stamina', by: -2 });
+    const spent = play.visits.map((visit) => visit.id);
+    play = restart(play, '1', T);
+
+    expect(sheetNow(play).stats).toEqual({});
+    expect(spent).not.toContain(current(play).id);
+  });
+});
+
+describe('the gate', () => {
+  const units = ['1', '2', '42', '99'].map((id) => ({ id }));
+
+  it('offers only the opening section before anything is chosen', () => {
+    expect(journeyGate(null)(units).map((unit) => unit.id)).toEqual(['1']);
+  });
+
+  // The route, not the set: the reader must be able to retrace 1, 2, 1.
+  it('offers the route the reader took, repeats included', () => {
+    const play = go(go(start(), '2', T), '1', T);
+
+    expect(journeyGate(play)(units).map((unit) => unit.id)).toEqual(['1', '2', '1']);
+  });
+
+  // A second run reads like a second run, even though the first is still kept.
+  it('does not offer a closed attempt', () => {
+    const play = restart(go(go(start(), '42', T), '99', T), '1', T);
+
+    expect(journeyGate(play)(units).map((unit) => unit.id)).toEqual(['1']);
+    expect(canRead(play, '99')).toBe(true);
   });
 });
 

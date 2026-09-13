@@ -54,7 +54,7 @@ If you put the key back and go to bed, :choice{to="9"}.
 You sit. The corner is very close. After a while you hear the cellar door shut at the top of the
 steps, and after a longer while you stop minding.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}
 
 ## 7
 
@@ -79,14 +79,14 @@ If you go quietly to the window, :choice{to="12"}.
 You sleep badly and wake to find the cellar door shut and bolted from the inside, the bolt on your
 side, your own hand still on it.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}
 
 ## 10
 
 You put the chair by the kitchen table, and it fits as though it has always been the fourth one. In
 the morning there are four cups on the draining board.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}
 
 ## 11
 
@@ -110,13 +110,13 @@ If you blow out the lamp, :choice{to="16"}.
 The two of you sit at the table until it gets light, and neither of you asks the question. It is
 company, of a kind.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}
 
 ## 14
 
 The green stairs go down a long way further than they went up. You are still descending.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}
 
 ## 15
 
@@ -148,7 +148,7 @@ If you do as you are told, :choice{to="19"}.
 The front door opens onto the garden, the shed, and the cellar door standing open at the bottom of
 it. Every door in this house does, now.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}
 
 ## 19
 
@@ -158,11 +158,11 @@ the window all night. Nothing comes up.
 In the morning there is a green key on the mat, and the shed door is open, and it is beginning again
 — but it is morning, and you know one thing you did not know before.
 
-*Your story ends here, for now.*
+*Your story ends here, for now.* :restart{to="1"}
 
 ## 20
 
 You walk until the houses stop. Behind you the lamp comes on in the kitchen window, and you do not
 turn round to see who lit it.
 
-*Your story ends here.*
+*Your story ends here.* :restart{to="1"}

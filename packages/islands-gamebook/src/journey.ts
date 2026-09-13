@@ -100,6 +100,38 @@ function visitAt(id: number, section: string, at: number, sheet: Sheet): Visit {
   return { id: `v${id}`, section, at, applied: [], sheet };
 }
 
+/**
+ * The reading gate (SPEC002 R1.1a) as this domain answers it: a reader may open
+ * what they have been to **in this attempt**, in the order they went.
+ *
+ * Before the first choice there is no journey, so only the book's opening unit
+ * is allowed — §4 rule 1, and the reason a gamebook's contents list is *earned*
+ * rather than hidden (§4.1).
+ *
+ * **One entry per visit, repeats included.** This de-duplicated at first, on
+ * the grounds that a list naming the same room twice was furniture rather than
+ * history. Reading the book disproved it (2026-09-13): a journey of 1, 2, 1, 3
+ * displayed as 1, 2, 3, and the reader could no longer retrace their own route.
+ * §4.2a says it of the record — *"de-duplicating would make the journey lie
+ * about the story it exists to record"* — and it is just as true of the view.
+ *
+ * **Closed attempts are kept but not offered.** {@link canRead} still answers
+ * for the whole record, so nothing a reader has seen is destroyed by restarting
+ * — but a new attempt reads like a new attempt. Offering them without listing
+ * them would leave them reachable only by typing an address, which is the
+ * bypass §4.2e exists to close; surfacing them deliberately is a "previous
+ * attempts" view, and nobody has asked for one.
+ */
+export function journeyGate(play: Playthrough | null) {
+  return <T extends { id: string }>(units: T[]): T[] => {
+    if (!play) return units.slice(0, 1);
+
+    return play.visits
+      .map((visit) => units.find((unit) => unit.id === visit.section))
+      .filter((unit): unit is T => unit !== undefined);
+  };
+}
+
 /** A new playthrough, standing in its first section with a fresh sheet. */
 export function begin(section: string, sheet: Sheet = emptySheet(), at = Date.now()): Playthrough {
   return { visits: [visitAt(1, section, at, sheet)], closed: [], nextVisit: 2 };
@@ -197,6 +229,30 @@ export function isLive(play: Playthrough, visitId: string): boolean {
  */
 export function tookFrom(visits: Visit[], index: number): string | undefined {
   return visits[index + 1]?.section;
+}
+
+/**
+ * Begin again: the journey so far becomes a closed attempt and a new one opens.
+ *
+ * **Closed, not deleted** (K2.3). A gamebook is reread, and QG9 already decided
+ * that a branch the reader did not survive is kept because *"the reader cannot
+ * read their own death, which is half of why anyone rereads these books"*. A
+ * finished playthrough is the same thing with a happier trigger, so restarting
+ * costs the reader nothing they have earned.
+ *
+ * The gate does not offer a closed attempt (see `journeyGate`), so a second run
+ * reads like a second run. Forgetting a book entirely is a different promise
+ * and already exists, as the library's per-book reset.
+ *
+ * The new attempt starts with a fresh sheet. A book that begins its reader with
+ * something in hand will need to say so; nothing does yet.
+ */
+export function restart(play: Playthrough, section: string, at = Date.now()): Playthrough {
+  return {
+    visits: [visitAt(play.nextVisit, section, at, emptySheet())],
+    closed: [...play.closed, { visits: play.visits, at }],
+    nextVisit: play.nextVisit + 1,
+  };
 }
 
 /**

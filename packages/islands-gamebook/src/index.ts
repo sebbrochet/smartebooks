@@ -13,9 +13,10 @@ import type { IslandDefinition } from '@smart-ebooks/engine';
 export * from './journey';
 export * from './condition';
 export * from './check';
-export { PLAY_KEY, journeyGate, take, usePlaythrough, usePlaythroughOf } from './playthrough';
+export { PLAY_KEY, take, usePlaythrough, usePlaythroughOf } from './playthrough';
 
 const ChoiceIsland = lazy(() => import('./ChoiceIsland'));
+const RestartIsland = lazy(() => import('./RestartIsland'));
 
 /**
  * A gamebook's islands.
@@ -42,6 +43,21 @@ export function gamebookIslands(): IslandDefinition[] {
       fallback: (_node, _data, ctx) => {
         const to = typeof ctx.attributes.to === 'string' ? ctx.attributes.to : '';
         return to ? [{ type: 'text', value: `turn to ${to}` }] : undefined;
+      },
+    },
+    {
+      name: 'restart',
+      // Written inside a sentence, at an ending: "Or :restart{to="1"}."
+      inline: true,
+      component: RestartIsland,
+      attributes: {
+        /** Where a new attempt begins — usually, but not necessarily, section one. */
+        to: { type: 'string' },
+      },
+      // A printed book says it in the same breath as the ending.
+      fallback: (_node, _data, ctx) => {
+        const to = typeof ctx.attributes.to === 'string' ? ctx.attributes.to : '';
+        return to ? [{ type: 'text', value: `begin again at ${to}` }] : undefined;
       },
     },
   ];
