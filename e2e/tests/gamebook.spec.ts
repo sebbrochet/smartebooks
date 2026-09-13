@@ -164,24 +164,48 @@ test('a road already walked is a link back into your own history', async ({ page
 test('an ending offers a new attempt, and keeps the old one', async ({ page }) => {
   await page.goto(BOOK);
 
-  // 1 → 2 → 4 → 6, which is an ending.
+  // 1 → 2 → 4 → 7 → 10, which is an ending rather than a death.
   await page.getByRole('link', { name: 'turn to 2' }).click();
   await page.getByRole('link', { name: 'turn to 4' }).click();
-  await page.getByRole('link', { name: 'turn to 6' }).click();
-  await expect(page.locator('article.prose')).toContainText('Your story ends here');
-  await expect(page.locator('.toc a')).toHaveCount(4);
+  await page.getByRole('link', { name: 'turn to 7' }).click();
+  await page.getByRole('link', { name: 'turn to 10' }).click();
+  await expect(page.locator('article.prose')).toContainText('four cups on the draining board');
+  await expect(page.locator('.toc a')).toHaveCount(5);
 
   await page.getByRole('link', { name: 'Begin again' }).click();
 
-  // A second run reads like a second run: the rail is one entry again, and
-  // section 4 is no longer offered even though the reader has seen it.
+  // A second run reads like a second run: the rail is empty again, and section
+  // 7 is no longer offered even though the reader has seen it.
   await expect(page.locator('article.prose')).toContainText('The cellar door stands open');
   await expect(page.locator('.toc a')).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'turn to 4' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'turn to 7' })).toHaveCount(0);
 
   // ...and the attempt survives a reload, so nothing was merely forgotten.
   await page.reload();
   await expect(page.locator('article.prose')).toContainText('The cellar door stands open');
+});
+
+/**
+ * §4 rule 6 and QG9 — a death truncates the live journey back to the respawn
+ * point and keeps what came after, so the reader can still read how they died.
+ */
+test('a death sends the reader back, and keeps the branch they lost', async ({ page }) => {
+  await page.goto(BOOK);
+
+  // 1 → 2 → 4 → 6, where the chair is waiting.
+  await page.getByRole('link', { name: 'turn to 2' }).click();
+  await page.getByRole('link', { name: 'turn to 4' }).click();
+  await page.getByRole('link', { name: 'turn to 6' }).click();
+  await expect(page.locator('article.prose')).toContainText('you stop minding');
+  await expect(page.locator('.toc a')).toHaveCount(4);
+
+  await page.getByRole('link', { name: 'return to 4' }).click();
+
+  // The journey is sliced back to 4: the route is 1, 2, 4 again, and section 6
+  // is no longer offered even though the reader has read it.
+  await expect(page.locator('article.prose')).toContainText('a doorframe');
+  await expect(page.locator('.toc a')).toHaveText(['1', '2', '4']);
+  await expect(page.getByRole('link', { name: 'turn to 6' })).toBeVisible();
 });
 
 /**

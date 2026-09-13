@@ -13,11 +13,14 @@ import type { IslandDefinition } from '@smart-ebooks/engine';
 export * from './journey';
 export * from './condition';
 export * from './check';
+export * from './bookGraph';
 export { PLAY_KEY, take, usePlaythrough, usePlaythroughOf } from './playthrough';
 
 const ChoiceIsland = lazy(() => import('./ChoiceIsland'));
 const RestartIsland = lazy(() => import('./RestartIsland'));
 const JourneysIsland = lazy(() => import('./JourneysIsland'));
+const EndingIsland = lazy(() => import('./EndingIsland'));
+const DeathIsland = lazy(() => import('./DeathIsland'));
 
 /**
  * A gamebook's islands.
@@ -68,6 +71,26 @@ export function gamebookIslands(): IslandDefinition[] {
       // No static form, and that is a legitimate answer (SPEC003 QD5): this is
       // a record of one reader's play, and a printed page has no reader.
       fallback: () => undefined,
+    },
+    {
+      name: 'ending',
+      inline: true,
+      component: EndingIsland,
+      attributes: {},
+    },
+    {
+      name: 'death',
+      inline: true,
+      component: DeathIsland,
+      attributes: {
+        /** Where the reader picks the story up again (QG11). */
+        to: { type: 'string' },
+      },
+      // How a printed gamebook types it.
+      fallback: (_node, _data, ctx) => {
+        const to = typeof ctx.attributes.to === 'string' ? ctx.attributes.to : '';
+        return to ? [{ type: 'text', value: `return to ${to}` }] : undefined;
+      },
     },
   ];
 }
