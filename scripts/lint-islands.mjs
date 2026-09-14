@@ -22,6 +22,16 @@ const CONTRACT = JSON.parse(
   readFileSync(new URL('../island-contract.json', import.meta.url), 'utf8'),
 );
 
+/**
+ * A directive named the way its author has to type it.
+ *
+ * Every message used to say `:::name`, including for the seven directives that
+ * take **one** colon — in a linter whose own `directive-form` rule exists to
+ * catch exactly that confusion. Being told `":::choice" "to" is required` is
+ * being told to write the one spelling that is also an error.
+ */
+const spell = (name) => ((CONTRACT.inline ?? []).includes(name) ? `:${name}` : `:::${name}`);
+
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);
 
 /** Island names a book may use: the built-ins plus the packs it declares. */
@@ -197,7 +207,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
           report(
             'warning',
             'directive-alias',
-            `":::${name}" is an old name for ":::${canonical}" — still works, but rename it.`,
+            `"${spell(name)}" is an old name for "${spell(canonical)}" — still works, but rename it.`,
             path,
             line,
           );
@@ -205,7 +215,9 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
         }
 
         const target = canonical ?? name;
-        const spelling = canonical ? `":::${name}" (now ":::${canonical}")` : `":::${name}"`;
+        const spelling = canonical
+          ? `"${spell(name)}" (now "${spell(canonical)}")`
+          : `"${spell(name)}"`;
         const inAnotherPack = Object.entries(CONTRACT.packs).find(([, list]) =>
           list.includes(target),
         );
@@ -262,14 +274,14 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
         report(
           'error',
           'id-missing',
-          `":::${name}" saves the reader's progress and needs an id.`,
+          `"${spell(name)}" saves the reader's progress and needs an id.`,
           path,
           line,
         );
       }
 
       for (const detail of checkAttributes(name, attributes)) {
-        report('error', 'attribute-invalid', `":::${name}" ${detail}.`, path, line);
+        report('error', 'attribute-invalid', `"${spell(name)}" ${detail}.`, path, line);
       }
 
       // An attribute nothing reads. Every other attribute rule is about a bad
@@ -283,7 +295,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
           report(
             'error',
             'attribute-ignored',
-            `"${attribute}" does nothing on a ":::${name}" inside a ":::${spec.ignoredInside}", which owns it.`,
+            `"${attribute}" does nothing on a "${spell(name)}" inside a "${spell(spec.ignoredInside)}", which owns it.`,
             path,
             line,
           );
@@ -293,7 +305,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
           report(
             'error',
             'attribute-ignored',
-            `"${attribute}" does nothing on a ":::${name}" outside a ":::${spec.requiresInside}".`,
+            `"${attribute}" does nothing on a "${spell(name)}" outside a "${spell(spec.requiresInside)}".`,
             path,
             line,
           );
@@ -310,7 +322,7 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
           report(
             'error',
             'asset-missing',
-            `":::${name}" ${attribute}="${raw}" does not exist in this book.`,
+            `"${spell(name)}" ${attribute}="${raw}" does not exist in this book.`,
             path,
             line,
           );

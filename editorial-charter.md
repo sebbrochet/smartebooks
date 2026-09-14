@@ -372,6 +372,83 @@ A :term[palimpsest]{definition="A manuscript page scraped clean and written on a
   the word the author wrote, which is how a printed glossary term reads.
 - **State:** none.
 
+### Gamebook directives — **pack: `gamebook`**
+
+A book the reader walks through by choosing. The reader is delivered **one section at a time**, which
+is what makes withholding the rest possible at all — a section that was never rendered cannot be
+scrolled into or found with Ctrl+F.
+
+That is a property of the *book*, not of these directives. The descriptor must declare `unitDepth`,
+and every heading at that depth is a section:
+
+```json
+{ "unitDepth": 2, "islands": { "packs": { "gamebook": {} } } }
+```
+
+````markdown
+## 1
+
+The cellar door stands open at the bottom of the garden.
+
+If you go down at once, :choice{to="2"}.
+
+If you fetch the lantern from the shed first, :choice[take the lantern]{to="3"}.
+
+## 6
+
+You sit. After a while you stop minding.
+
+:death[*Your story ends here.*]{to="4"}
+
+## 9
+
+You wake to find the cellar door bolted from the inside.
+
+:ending[*Your story ends here.*] :restart{to="1"}
+
+::journeys
+````
+
+- `choice` (inline): `to` (**required**) — a section id in this book, never a URL. The bracketed label
+  is optional; without one the link is the printed book's own line, `turn to 45`.
+- `ending` (inline): no attributes. The body is your own closing line.
+- `death` (inline): `to` (**required**) — where the reader picks the story up again.
+- `restart` (inline): `to` (**required**) — where a new attempt begins, usually but not necessarily
+  section one. The previous attempt is kept as a closed journey, not destroyed.
+- `journeys` (**leaf**, `::journeys`): the routes this reader has taken, and the interior gaps
+  between them. No attributes, and no static form — a printed page has no reader.
+- **State:** one playthrough per book — the route taken, the attempts closed before it.
+
+Four rules that the syntax does not show, each of which the linter enforces:
+
+**Sections are numbered across the whole book, not per file.** Write `## 1` through `## 300` over as
+many files as you like, in one continuous sequence. Which file holds section 217 is your filing
+decision and must never appear in the prose, in a directive, or in a link — `:choice{to="217"}`
+resolves wherever 217 lives, and moving it to another file later breaks nothing. Two files opening
+the same number is a `duplicate-id` error, because the reader would silently get whichever came
+first.
+
+**An ending is a claim you make, not something inferred.** A section with no choices is not assumed
+to be an ending, and neither is one carrying a `:restart` — a restart is an affordance you may offer
+anywhere, and a book that puts its restarts elsewhere would otherwise read as full of dead ends.
+Mark a terminal section `:ending` or `:death`, or it is a `dead-end` error.
+
+**A death's respawn must dominate the death.** Every route that reaches the death has to have passed
+through the section it returns to, or you are sending the reader somewhere they have never been. This
+shapes how an act is laid out, so it is worth thinking about while writing rather than at lint time
+(`respawn-unreachable`).
+
+**These are inline directives: one colon.** `:choice{to="2"}` sits inside your sentence.
+Writing `::choice` mid-sentence is literal text, not a directive. Only `::journeys` is a leaf and
+must begin its own line.
+
+The pack speaks the book's declared `language`: a book in French says « rendez-vous au 45 », not
+"turn to 45", and so do the notes on the roads already taken.
+
+What `npm run lint:content` checks, beyond the usual: `choice-target` (a choice to a section that
+does not exist), `dead-end`, `duplicate-id`, `respawn-missing`, `respawn-unreachable`, `start-missing`,
+and `unreachable` as a **warning** — half-written acts are legitimately unreachable for days.
+
 ### Roadmap directives (not yet available)
 `:::playground` (sandboxed runnable snippet) and `:::contribution` (reader-submitted content) are
 **planned but not implemented**. Using one today is a **lint error** that fails the build — it does

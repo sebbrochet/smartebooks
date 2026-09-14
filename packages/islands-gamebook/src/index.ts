@@ -39,7 +39,7 @@ export function gamebookIslands(): IslandDefinition[] {
       component: ChoiceIsland,
       attributes: {
         /** A section id in this book, never a URL — which the guided model exists to prevent. */
-        to: { type: 'string' },
+        to: { type: 'string', required: true },
       },
       // `turn to 45` is the printed gamebook's own line, so this static form is
       // the source rather than a degradation of it (§5.1). Inline text, not a
@@ -56,7 +56,7 @@ export function gamebookIslands(): IslandDefinition[] {
       component: RestartIsland,
       attributes: {
         /** Where a new attempt begins — usually, but not necessarily, section one. */
-        to: { type: 'string' },
+        to: { type: 'string', required: true },
       },
       // A printed book says it in the same breath as the ending.
       fallback: (_node, _data, ctx) => {
@@ -84,7 +84,7 @@ export function gamebookIslands(): IslandDefinition[] {
       component: DeathIsland,
       attributes: {
         /** Where the reader picks the story up again (QG11). */
-        to: { type: 'string' },
+        to: { type: 'string', required: true },
       },
       // How a printed gamebook types it.
       fallback: (_node, _data, ctx) => {

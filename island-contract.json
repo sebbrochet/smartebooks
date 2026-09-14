@@ -50,8 +50,8 @@
     "chessmoves": "chess-moves"
   },
   "attributes": {
-    "choice": { "to": { "type": "string" } },
-    "restart": { "to": { "type": "string" } },
+    "choice": { "to": { "type": "string", "required": true } },
+    "restart": { "to": { "type": "string", "required": true } },
     "checkpoint": { "label": { "type": "string" } },
     "video": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "media-lesson": {
@@ -119,7 +119,7 @@
     "move": {},
     "journeys": {},
     "ending": {},
-    "death": { "to": { "type": "string" } },
+    "death": { "to": { "type": "string", "required": true } },
     "term": { "definition": { "type": "string" } },
     "mermaid": {
       "theme": {

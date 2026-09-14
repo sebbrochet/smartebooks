@@ -300,6 +300,31 @@ describe('checkDirectives', () => {
     assert.match(problems[0].message, /"src" is required/);
   });
 
+  // A choice with nowhere to go used to render as the words `turn to ` in the
+  // middle of the author's sentence, and nothing said so: `choice-target` only
+  // catches a destination that exists nowhere, not a missing one.
+  test('rejects a choice that names no destination', () => {
+    const descriptor = book({ packs: { gamebook: {} } });
+    const problems = checkDirectives(descriptor, file('If you go down, :choice.'));
+
+    assert.deepEqual(rules(problems), ['attribute-invalid']);
+    assert.match(problems[0].message, /"to" is required/);
+  });
+
+  /**
+   * Every message used to name a directive as `:::thing`, including the seven
+   * that take one colon — in a linter whose own `directive-form` rule exists to
+   * catch that confusion. Being told to fix `":::choice"` is being told to
+   * write the one spelling that is also an error.
+   */
+  test('names an inline directive the way it has to be written', () => {
+    const descriptor = book({ packs: { gamebook: {} } });
+    const problems = checkDirectives(descriptor, file('If you go down, :choice.'));
+
+    assert.match(problems[0].message, /":choice"/);
+    assert.doesNotMatch(problems[0].message, /":::choice"/);
+  });
+
   test('accepts a bare boolean flag', () => {
     const descriptor = book({ packs: { chess: {} } });
     assert.deepEqual(checkDirectives(descriptor, file('::chess-board{id="b" analysis}')), []);
