@@ -15,7 +15,14 @@ import { useServiceWorker } from './useServiceWorker';
 import { warmIslandPacks } from './islandPacks';
 import { journeyGate, usePlaythroughOf } from '@smart-ebooks/islands-gamebook';
 import { useAppRoute } from './router';
-import { allowResume, hashFor, resumeChapter, suppressResume, useLaunchDecision } from './launch';
+import {
+  allowResume,
+  hashFor,
+  resumeChapter,
+  resumeUnit,
+  suppressResume,
+  useLaunchDecision,
+} from './launch';
 import { Bookshelf } from './Bookshelf';
 import { ConfirmDialog } from './ConfirmDialog';
 import { CoverSplash } from './CoverSplash';
@@ -88,12 +95,21 @@ export default function App() {
      */
     const slug = activeBook.meta.slug;
     const named = route.view === 'book' ? route.chapterSlug : undefined;
-    if (named) {
-      setLastRead(slug, named);
+    // Only where `?s=` names a unit. In every other book it is a heading inside
+    // the chapter, which is a place to scroll to rather than a place to reopen.
+    const unit =
+      route.view === 'book' && activeBook.descriptor.unitDepth ? route.heading : undefined;
+
+    if (named || unit) {
+      setLastRead(slug, named ?? getLastRead()?.chapterSlug, unit);
       return;
     }
     const previous = getLastRead();
-    setLastRead(slug, previous?.bookSlug === slug ? previous.chapterSlug : undefined);
+    setLastRead(
+      slug,
+      previous?.bookSlug === slug ? previous.chapterSlug : undefined,
+      previous?.bookSlug === slug ? previous.unit : undefined,
+    );
   }, [route, activeBook]);
 
   /*
@@ -121,14 +137,19 @@ export default function App() {
   }, [openedSlug]);
 
   /*
-   * Opening a book without naming a chapter means "take me back to it", not
+   * Opening a book without naming a place means "take me back to it", not
    * "start it again" — see `resumeChapter`.
+   *
+   * **A named section counts as naming a place.** It did not have to, while a
+   * book's links always carried a chapter; a gamebook's links carry none, so
+   * every choice a reader took looked like a bare `#/<book>` and resume was
+   * entitled to redirect over it.
    *
    * The URL is *replaced* rather than pushed: the reader came here from the
    * library, and Back should return them there rather than to a redirect they
    * never saw.
    */
-  const wantsResume = route.view === 'book' && !route.chapterSlug;
+  const wantsResume = route.view === 'book' && !route.chapterSlug && !route.heading;
   const resumeSlug = wantsResume ? activeBook?.meta.slug : undefined;
   const chapters = activeBook?.chapters;
 
@@ -137,7 +158,14 @@ export default function App() {
 
     // The synchronous answer first, so the common case — the book just closed —
     // never paints chapter one on the way.
-    const now = resumeChapter({ chapters, slug: resumeSlug, lastRead: getLastRead() });
+    const lastRead = getLastRead();
+    const nowUnit = resumeUnit({ slug: resumeSlug, lastRead });
+    if (nowUnit) {
+      window.location.replace(hashFor(resumeSlug, undefined, nowUnit));
+      return;
+    }
+
+    const now = resumeChapter({ chapters, slug: resumeSlug, lastRead });
     if (now) {
       window.location.replace(hashFor(resumeSlug, now));
       return;
@@ -146,6 +174,13 @@ export default function App() {
     let cancelled = false;
     void reading.get(resumeSlug).then((saved) => {
       if (cancelled) return;
+
+      const unit = resumeUnit({ slug: resumeSlug, saved });
+      if (unit) {
+        window.location.replace(hashFor(resumeSlug, undefined, unit));
+        return;
+      }
+
       const target = resumeChapter({ chapters, slug: resumeSlug, saved });
       if (target) window.location.replace(hashFor(resumeSlug, target));
     });

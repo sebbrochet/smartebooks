@@ -258,6 +258,56 @@ test('a choice crosses into another file without saying so', async ({ page }) =>
 });
 
 /**
+ * Resume asks "does the route name a chapter?" and used to mean by it "did the
+ * reader ask for somewhere in particular?". Those were the same question until
+ * a gamebook's own links stopped naming a chapter at all.
+ *
+ * It only bites past the first file, because resume declines to redirect to
+ * chapter one — so a reader who stays in act one never sees it, and neither did
+ * any test here.
+ */
+test('a choice still lands once the reader is past the first file', async ({ page }) => {
+  await page.goto(BOOK);
+
+  await page.getByRole('link', { name: 'turn to 3' }).click();
+  await page.getByRole('link', { name: 'turn to 5' }).click();
+  await page.getByRole('link', { name: 'turn to 8' }).click();
+  await page.getByRole('link', { name: 'turn to 11' }).click();
+  await expect(page.locator('article.prose')).toContainText('You took your time');
+
+  // The reader's remembered place is now the second file, which is what arms
+  // the redirect that used to eat the section.
+  await page.getByRole('link', { name: 'turn to 13' }).click();
+  await expect(page.locator('article.prose')).toContainText('The two of you sit at the table');
+});
+
+/**
+ * Opening a book without naming a section means "take me back to it", and for
+ * a gamebook the place is a *section*, not a file. Remembering only the file
+ * put the reader back at the start of their own journey: the record kept
+ * growing while the prose kept saying section one, which reads exactly like a
+ * book that will not advance.
+ */
+test('re-entering the book returns the reader to where they were', async ({ page }) => {
+  await page.goto(BOOK);
+
+  await page.getByRole('link', { name: 'turn to 3' }).click();
+  await page.getByRole('link', { name: 'turn to 5' }).click();
+  await page.getByRole('link', { name: 'turn to 8' }).click();
+  await page.getByRole('link', { name: 'turn to 11' }).click();
+  await expect(page.locator('article.prose')).toContainText('You took your time');
+
+  // The place is written on a delay, so a reader who leaves at once is not
+  // being tested here — one who reads for a moment is.
+  await page.waitForTimeout(1500);
+
+  // How the app itself reopens a book: the book, and no section.
+  await page.goto('/#/gamebook');
+
+  await expect(page.locator('article.prose')).toContainText('You took your time');
+});
+
+/**
  * The gate closed at the section and left open one level up: a list naming
  * every act is a spoiler on its own, and a link to one is a way past every
  * choice the reader has not made yet.

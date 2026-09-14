@@ -239,6 +239,15 @@ export const scores = {
 export interface ReadingPosition {
   chapterSlug: string;
   /**
+   * The unit that was on screen, for a book whose files carry units.
+   *
+   * The file is not the place in such a book — a gamebook's reader occupies a
+   * *section*, and its file is the author's filing. Remembering only the
+   * chapter put them back at the start of their own journey on re-entry, which
+   * reads exactly like a book that refuses to advance.
+   */
+  unit?: string;
+  /**
    * The section being read, and how far below its heading.
    *
    * **Anchored to a heading rather than to a pixel**, because a pixel offset

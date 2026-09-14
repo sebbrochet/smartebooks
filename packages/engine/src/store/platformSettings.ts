@@ -39,6 +39,8 @@ export const RESUME_MODES: ResumeMode[] = ['shelf', 'instant', 'cover'];
 export interface LastRead {
   bookSlug: string;
   chapterSlug?: string;
+  /** The unit on screen, for a book addressed by unit rather than by file. */
+  unit?: string;
   at: number;
 }
 
@@ -168,10 +170,10 @@ export function getLastRead(): LastRead | undefined {
   }
 }
 
-export function setLastRead(bookSlug: string, chapterSlug?: string): void {
+export function setLastRead(bookSlug: string, chapterSlug?: string, unit?: string): void {
   write(
     LAST_READ_KEY,
-    JSON.stringify({ bookSlug, chapterSlug, at: Date.now() } satisfies LastRead),
+    JSON.stringify({ bookSlug, chapterSlug, unit, at: Date.now() } satisfies LastRead),
   );
 }
 

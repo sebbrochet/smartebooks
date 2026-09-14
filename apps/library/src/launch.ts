@@ -45,8 +45,37 @@ export function resolveLaunchRoute({
     : { kind: 'resume', ...target };
 }
 
-export function hashFor(bookSlug: string, chapterSlug?: string): string {
+/**
+ * A unit wins over a chapter, because in a book that has units the unit *is*
+ * the place. Written chapter-less for the same reason the book's own links are:
+ * which file holds the section is the author's filing, not the reader's route.
+ */
+export function hashFor(bookSlug: string, chapterSlug?: string, unit?: string): string {
+  if (unit) return `#/${bookSlug}?s=${encodeURIComponent(unit)}`;
   return chapterSlug ? `#/${bookSlug}/${chapterSlug}` : `#/${bookSlug}`;
+}
+
+/**
+ * The section a book addressed by units should reopen at.
+ *
+ * Separate from {@link resumeChapter} because the two decline in different
+ * places: returning to the first *chapter* is a no-op worth skipping, while
+ * returning to a section is the whole point even when it is the first one the
+ * reader saw.
+ *
+ * The book's own record wins over the device pointer, for the reason given
+ * below: it is per book, and it survives reading something else in between.
+ */
+export function resumeUnit({
+  slug,
+  lastRead,
+  saved,
+}: {
+  slug: string;
+  lastRead?: LastRead;
+  saved?: { unit?: string };
+}): string | undefined {
+  return saved?.unit ?? (lastRead?.bookSlug === slug ? lastRead.unit : undefined);
 }
 
 /**

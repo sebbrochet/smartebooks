@@ -129,6 +129,10 @@ export function Reader({
 
   const delivered = units.find((unit) => unit.id === heading) ?? units[0];
 
+  // The id rather than the unit: the object is rebuilt on every render, and a
+  // save effect that depends on it would re-arm its timer forever and never fire.
+  const deliveredId = delivered?.id;
+
   /*
    * Which file is on screen.
    *
@@ -258,6 +262,8 @@ export function Reader({
       void reading.get(book.meta.slug).then((saved) =>
         reading.set(book.meta.slug, {
           chapterSlug: activeSlug,
+          // Naturally absent for a book with no units, where the file is the page.
+          ...(deliveredId ? { unit: deliveredId } : {}),
           sectionId: spot.sectionId,
           offset: spot.offset,
           furthest: furthestOf(book.chapters, saved?.furthest, activeSlug),
@@ -266,7 +272,7 @@ export function Reader({
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [book.meta.slug, book.chapters, view, activeSlug, spot.sectionId, spot.offset]);
+  }, [book.meta.slug, book.chapters, view, activeSlug, spot.sectionId, spot.offset, deliveredId]);
 
   // `/` opens search from anywhere, the convention every documentation site and
   // code host shares. Guarded against firing while the reader is typing — a
