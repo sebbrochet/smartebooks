@@ -96,4 +96,42 @@ describe('toPlainText', () => {
     expect(toPlainText('1. First\n2. Second')).toBe('First Second');
     expect(toPlainText('- plain bullet')).toBe('plain bullet');
   });
+
+  /**
+   * A block directive begins its line and was already dropped. An **inline**
+   * one sits inside a sentence, and was not — so a reader searching the
+   * ordinary English word "choice" was shown `:choice{to="2"}` in the snippet,
+   * and a gamebook's snippets were mostly syntax.
+   */
+  it('drops an inline directive that renders as nothing of its own', () => {
+    expect(toPlainText('If you go down at once, :choice{to="2"}.')).toBe(
+      'If you go down at once, .',
+    );
+  });
+
+  // The label is what the reader sees, so it is what search should match.
+  it('keeps the words an inline directive puts on the page', () => {
+    expect(toPlainText('A :term[palimpsest]{definition="Scraped clean."} page.')).toBe(
+      'A palimpsest page.',
+    );
+    expect(toPlainText('Then :choice[open the door]{to="3"}.')).toBe('Then open the door.');
+  });
+
+  // Prose is not a directive just because it has a colon in it.
+  it('leaves ordinary punctuation alone', () => {
+    expect(toPlainText('He said: run.')).toBe('He said: run.');
+    expect(toPlainText('Meet me at 10:30 sharp.')).toBe('Meet me at 10:30 sharp.');
+  });
+
+  /**
+   * Comments never reach the page — `remarkRehype` runs without
+   * `allowDangerousHtml` — so anything an author keeps in one is invisible to a
+   * reader and was visible in search. Authoring notes and continuity
+   * bookkeeping are exactly what ends up there.
+   */
+  it('drops an HTML comment, which the page never shows either', () => {
+    expect(toPlainText('<!-- SET: haza-en-selle -->\n\nLa princesse sourit.')).toBe(
+      'La princesse sourit.',
+    );
+  });
 });

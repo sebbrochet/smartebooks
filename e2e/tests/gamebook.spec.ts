@@ -122,6 +122,32 @@ test('search finds a section once it has been read', async ({ page }) => {
   await expect(page.locator('.search-overlay__list li')).not.toHaveCount(0);
 });
 
+/**
+ * Search read the file rather than the page, so the ordinary English word
+ * "choice" matched a directive and the snippet printed `:choice{to="2"}`. A
+ * gamebook is the worst case for it: most passages carry a choice, so most
+ * snippets were mostly syntax.
+ */
+test('search matches the words on the page, not the syntax behind them', async ({ page }) => {
+  await page.goto(BOOK);
+  await page.getByRole('link', { name: 'turn to 3' }).click();
+  await expect(page.locator('article.prose')).toContainText('The shed smells of creosote');
+
+  await page.locator('.sidebar__search').click();
+  const box = page.getByPlaceholder('Search this book…');
+
+  await box.fill('choice');
+  await expect(page.locator('.search-overlay__list li')).toHaveCount(0);
+
+  // And the fix is not a blunt one: real prose still matches, and what comes
+  // back is prose rather than markup.
+  await box.fill(ONLY_IN_SECTION_3);
+  const results = page.locator('.search-overlay__list li');
+  await expect(results).not.toHaveCount(0);
+  await expect(results.first()).not.toContainText(':choice');
+  await expect(results.first()).not.toContainText('<!--');
+});
+
 test('the contents list keeps the route, not the set of sections', async ({ page }) => {
   await page.goto(BOOK);
 
