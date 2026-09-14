@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { renderMarkdown } from '../markdown/render';
-import { headingHref, type Unit } from '../markdown/headings';
+import { sectionLinker, type Unit } from '../markdown/headings';
 import { UnitProvider } from './BookContext';
 import type { Book, Chapter } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
@@ -43,8 +43,8 @@ export function ChapterView({
   units = [],
 }: ChapterViewProps) {
   const linkTo = useMemo(
-    () => (id: string) => headingHref(basePath, chapter.slug, id),
-    [basePath, chapter.slug],
+    () => sectionLinker(basePath, chapter.slug, Boolean(book.descriptor.unitDepth)),
+    [basePath, chapter.slug, book.descriptor.unitDepth],
   );
 
   /*
@@ -102,22 +102,32 @@ export function ChapterView({
           {content}
         </UnitProvider>
       </article>
-      <nav className="chapter-nav" aria-label="Chapter navigation">
-        {prev ? (
-          <a className="chapter-nav__prev" href={`#${basePath}/${prev.slug}`}>
-            <span aria-hidden="true">←</span> {prev.title}
-          </a>
-        ) : (
-          <span />
-        )}
-        {next ? (
-          <a className="chapter-nav__next" href={`#${basePath}/${next.slug}`}>
-            {next.title} <span aria-hidden="true">→</span>
-          </a>
-        ) : (
-          <span />
-        )}
-      </nav>
+      {/*
+       * No "next chapter" in a book addressed by unit.
+       *
+       * The reader of one of these moves by choosing, and the file boundary is
+       * the author's filing rather than anything they should see — so a link to
+       * the next file is both meaningless and a way around the gate, handing
+       * over a whole act nobody earned.
+       */}
+      {!book.descriptor.unitDepth && (
+        <nav className="chapter-nav" aria-label="Chapter navigation">
+          {prev ? (
+            <a className="chapter-nav__prev" href={`#${basePath}/${prev.slug}`}>
+              <span aria-hidden="true">←</span> {prev.title}
+            </a>
+          ) : (
+            <span />
+          )}
+          {next ? (
+            <a className="chapter-nav__next" href={`#${basePath}/${next.slug}`}>
+              {next.title} <span aria-hidden="true">→</span>
+            </a>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
     </>
   );
 }

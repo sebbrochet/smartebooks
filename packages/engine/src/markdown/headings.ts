@@ -78,7 +78,7 @@ export interface Heading {
  */
 export function readerHref(
   basePath: string,
-  chapterSlug: string,
+  chapterSlug: string | undefined,
   options: { section?: string; terms?: string[] } = {},
 ): string {
   const query = new URLSearchParams();
@@ -86,7 +86,7 @@ export function readerHref(
   if (options.terms?.length) query.set('h', options.terms.join(' '));
 
   const search = query.toString();
-  return `#${basePath}/${chapterSlug}${search ? `?${search}` : ''}`;
+  return `#${basePath}${chapterSlug ? `/${chapterSlug}` : ''}${search ? `?${search}` : ''}`;
 }
 
 /**
@@ -95,6 +95,31 @@ export function readerHref(
  */
 export function headingHref(basePath: string, chapterSlug: string, id: string): string {
   return readerHref(basePath, chapterSlug, { section: id });
+}
+
+/**
+ * How a book addresses its sections, as the link builder its callers share.
+ *
+ * Two shapes, because `?s=` already means two different things. In a book with
+ * a `unitDepth` it names a **unit** — the book's own numbering, unique across
+ * every file — and the chapter is left out, so which file holds section 217
+ * stays the author's business and re-filing it breaks no link anyone saved.
+ * Everywhere else it names a **heading within the chapter in the route**, where
+ * repetition is normal and wanted: a study guide opens `## In 30 seconds` in
+ * eighteen of its chapters, and only the chapter tells them apart.
+ *
+ * The chapter-bearing form still parses for either kind, so a book that gains
+ * a `unitDepth` keeps honouring the links it handed out before.
+ */
+export function sectionLinker(
+  basePath: string,
+  chapterSlug: string,
+  bookWide: boolean,
+): (id: string) => string {
+  return (id: string) =>
+    bookWide
+      ? readerHref(basePath, undefined, { section: id })
+      : headingHref(basePath, chapterSlug, id);
 }
 
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);

@@ -31,7 +31,11 @@ describe('allowedUnits', () => {
   it('keeps the order the book returns, repeats included', () => {
     const gate = (units: Unit[]) => [units[1], units[0], units[1]];
 
-    expect(allowedUnits(unitsOf(markdown, 2), gate).map((unit) => unit.id)).toEqual(['2', '1', '2']);
+    expect(allowedUnits(unitsOf(markdown, 2), gate).map((unit) => unit.id)).toEqual([
+      '2',
+      '1',
+      '2',
+    ]);
   });
 
   it('can refuse everything without breaking', () => {

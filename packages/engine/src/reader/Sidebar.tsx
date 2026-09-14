@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react';
-import type { Book } from '../types';
+import type { Book, Chapter } from '../types';
 import { navSections } from './navSections';
 
 interface SidebarProps {
@@ -9,6 +9,15 @@ interface SidebarProps {
   activeSlug?: string;
   /** The part whose landing page is open, when `view === 'part'`. */
   activePart?: string;
+  /**
+   * The chapters to list. Defaults to all of them.
+   *
+   * A gated book passes only the ones its reader has entered: with seven acts,
+   * listing them all would name the acts — a spoiler in itself — and let anyone
+   * open the last one without earning a section of it. The same rule the
+   * contents rail follows, one level up.
+   */
+  chapters?: Chapter[];
   /** Drawn as an open drawer on a narrow screen; ignored on a wide one. */
   open?: boolean;
   /** Called when the reader picks a destination, so the drawer can close. */
@@ -23,13 +32,14 @@ export function Sidebar({
   view,
   activeSlug,
   activePart,
+  chapters = book.chapters,
   open = false,
   onNavigate,
   onSearch,
 }: SidebarProps) {
-  const currentSlug = view === 'chapter' ? (activeSlug ?? book.chapters[0]?.slug) : undefined;
+  const currentSlug = view === 'chapter' ? (activeSlug ?? chapters[0]?.slug) : undefined;
 
-  const sections = navSections(book.chapters, book.descriptor.parts);
+  const sections = navSections(chapters, book.descriptor.parts);
   const activePartId =
     activePart ??
     sections.find((section) => section.chapters.some((chapter) => chapter.slug === currentSlug))

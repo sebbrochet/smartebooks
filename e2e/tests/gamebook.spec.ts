@@ -233,3 +233,45 @@ test('an ending lists the routes taken, and the gaps between them', async ({ pag
   await record.getByRole('link', { name: '3', exact: true }).click();
   await expect(page.locator('article.prose')).toContainText('The shed smells of creosote');
 });
+
+/**
+ * The book is written in two files and numbered straight through them, which
+ * is how a seven-act one has to work. Which file holds section 11 is the
+ * author's filing, so it appears in neither the prose nor the link.
+ */
+test('a choice crosses into another file without saying so', async ({ page }) => {
+  await page.goto(BOOK);
+
+  // 1 → 3 → 5 → 8 are in the first file; 11 is in the second.
+  await page.getByRole('link', { name: 'turn to 3' }).click();
+  await page.getByRole('link', { name: 'turn to 5' }).click();
+  await page.getByRole('link', { name: 'turn to 8' }).click();
+
+  const crossing = page.getByRole('link', { name: 'turn to 11' });
+  await expect(crossing).toHaveAttribute('href', '#/gamebook?s=11');
+
+  await crossing.click();
+  await expect(page.locator('article.prose')).toContainText('You took your time');
+
+  // The rail is still one continuous journey; the boundary left no mark on it.
+  await expect(page.locator('.toc a')).toHaveCount(5);
+});
+
+/**
+ * The gate closed at the section and left open one level up: a list naming
+ * every act is a spoiler on its own, and a link to one is a way past every
+ * choice the reader has not made yet.
+ */
+test('the second act is not named until the reader has been there', async ({ page }) => {
+  await page.goto(BOOK);
+
+  const nav = page.locator('#book-nav');
+  await expect(nav).not.toContainText('The Kitchen Window');
+
+  await page.getByRole('link', { name: 'turn to 3' }).click();
+  await page.getByRole('link', { name: 'turn to 5' }).click();
+  await page.getByRole('link', { name: 'turn to 8' }).click();
+  await page.getByRole('link', { name: 'turn to 11' }).click();
+
+  await expect(nav).toContainText('The Kitchen Window');
+});

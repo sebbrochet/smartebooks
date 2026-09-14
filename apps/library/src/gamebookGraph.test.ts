@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { checkBook, graphOf, sectionOf } from '@smart-ebooks/islands-gamebook';
 import { chapterUnits, type Unit } from '@smart-ebooks/engine';
 import cellarDoor from '../../../books/gamebook/content/01-the-cellar-door.md?raw';
+import kitchenWindow from '../../../books/gamebook/content/02-the-kitchen-window.md?raw';
 
 /**
  * SPEC011 K4 — the argument for this domain paying the platform back: a
@@ -11,8 +12,13 @@ import cellarDoor from '../../../books/gamebook/content/01-the-cellar-door.md?ra
  * book, because nothing turned prose into a graph. This is the join, and it is
  * pointed at the bundled demo rather than a fixture: a rule that only ever sees
  * invented input is a rule nobody has checked against a real author.
+ *
+ * **Assembled from every chapter**, because the book spans two files and its
+ * sections are numbered straight through them. Checking one file at a time
+ * would report every choice that leaves it as a broken target — worse than not
+ * checking, because the author would learn to ignore it.
  */
-const units = chapterUnits(cellarDoor, 2).units;
+const units = [cellarDoor, kitchenWindow].flatMap((markdown) => chapterUnits(markdown, 2).units);
 
 const unit = (id: string, markdown: string): Unit => ({ id, title: id, markdown });
 
@@ -30,6 +36,27 @@ describe('the bundled gamebook', () => {
     expect(graph.sections).toHaveLength(20);
     expect(graph.sections.filter((section) => section.kind === 'ending')).toHaveLength(7);
     expect(graph.sections.filter((section) => section.kind === 'death')).toHaveLength(1);
+  });
+
+  /**
+   * The reason the assembly above has to be book-wide. Section 8 is in the
+   * first file and both of its choices land in the second, so a per-file check
+   * would call them broken and a per-file reader could not follow them.
+   */
+  it('has choices that cross a file boundary', () => {
+    const first = new Set(chapterUnits(cellarDoor, 2).units.map((each) => each.id));
+    const eight = graphOf(units).sections.find((section) => section.id === '8');
+
+    expect(eight?.choices).toEqual(['11', '12']);
+    expect(eight?.choices.some((target) => first.has(target))).toBe(false);
+  });
+
+  // Every section is numbered once across the whole book, which is what lets a
+  // link name 217 without naming the file it is filed in.
+  it('numbers its sections once across both files', () => {
+    const ids = units.map((each) => each.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 

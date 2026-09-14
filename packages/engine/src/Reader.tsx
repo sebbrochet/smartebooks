@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Book } from './types';
+import type { Book, Chapter } from './types';
 import { createIslandRegistry } from './islandRegistry';
 import { missingIslands } from './package/islandRequirements';
 import { BookProvider } from './reader/BookContext';
@@ -17,8 +17,9 @@ import { SearchOverlay } from './reader/SearchOverlay';
 import { useActiveSection, scrollToSpot } from './reader/useActiveSection';
 import { furthestOf } from './reader/furthest';
 import './reader/reader.css';
-import { chapterHeadings, headingHref, type Unit } from './markdown/headings';
-import { allowedUnits, railEntries, unitsOf } from './reader/units';
+import { chapterHeadings, sectionLinker, type Unit } from './markdown/headings';
+import { allowedUnits, railEntries } from './reader/units';
+import { bookUnits } from './reader/bookUnits';
 import { bookTotals } from './markdown/scorables';
 import { ProgressDashboard } from './components/ProgressDashboard';
 
@@ -108,11 +109,38 @@ export function Reader({
     [book, view, partId],
   );
 
-  // Also resolved when a part view finds no such part, because that falls back
-  // to the chapter rather than to an error page.
+  /*
+   * Every unit the book carries, and the ones this reader may open (R1.1a).
+   *
+   * **Book-wide, not chapter-wide.** A gamebook's choice may cross a file
+   * boundary, and the reader is never told that it did — section 217 is section
+   * 217 wherever the author filed it. Asked once for the whole book so that
+   * crossing an act costs nothing extra.
+   *
+   * Still two steps: the walk depends on the book, the gate on a journey that
+   * changes with every choice.
+   */
+  const carried = useMemo(
+    () => bookUnits(book.chapters, book.descriptor.unitDepth),
+    [book.chapters, book.descriptor.unitDepth],
+  );
+
+  const units = useMemo(() => allowedUnits(carried.all, gate), [carried, gate]);
+
+  const delivered = units.find((unit) => unit.id === heading) ?? units[0];
+
+  /*
+   * Which file is on screen.
+   *
+   * For a book addressed by unit, the route need not carry a chapter at all,
+   * so the delivered unit decides it. Also resolved when a part view finds no
+   * such part, because that falls back to the chapter rather than to an error
+   * page.
+   */
   const activeChapter =
     view === 'chapter' || (view === 'part' && !activePart)
-      ? ((chapterSlug ? book.chapters.find((c) => c.slug === chapterSlug) : book.chapters[0]) ??
+      ? ((delivered ? carried.chapterOf.get(delivered.id) : undefined) ??
+        (chapterSlug ? book.chapters.find((c) => c.slug === chapterSlug) : book.chapters[0]) ??
         book.chapters[0])
       : undefined;
 
@@ -124,47 +152,58 @@ export function Reader({
     [activeChapter],
   );
 
-  /*
-   * The chapter's units, filtered by whatever the book allows (R1.1a).
-   *
-   * Resolved **here rather than in `ChapterView`** so that one answer serves
-   * both the rail and the page. Two resolutions would let the rail refuse a
-   * unit the page then delivered, which is the failure the gate exists to
-   * prevent.
-   *
-   * Two memos and not one: the split is the expensive half and depends only on
-   * the file, while `gate` is a fresh closure on every choice a reader makes.
-   */
-  const carried = useMemo(
-    () => unitsOf(activeChapter?.markdown ?? '', book.descriptor.unitDepth),
-    [activeChapter, book.descriptor.unitDepth],
-  );
-
-  const units = useMemo(() => allowedUnits(carried, gate), [carried, gate]);
-
-  const delivered = units.find((unit) => unit.id === heading) ?? units[0];
-
   const rail = useMemo(
     () => railEntries(units, headings, book.descriptor.unitDepth ?? 2),
     [units, headings, book.descriptor.unitDepth],
   );
 
   /*
-   * What search may see. Undefined for an ordinary book, which is the whole of
-   * it; for a gated book, the current chapter reduced to the units the reader
-   * may open, so a result can never name a section they have not reached.
+   * The chapters the navigation may name.
    *
-   * Scoped to the active chapter because that is where the gate is asked. A
-   * gated book spanning several files would need the gate asked of each, and
-   * nothing has wanted that yet.
+   * A book addressed by unit lists only the files its reader has actually
+   * entered. Listing all seven acts of a gamebook would name them, which is a
+   * spoiler on its own, and would hand over the last act to anyone who clicked
+   * it — the gate closed at the section and left open one level up.
    */
-  const searchScope = useMemo(
-    () =>
-      units.length > 0 && activeChapter
-        ? [{ ...activeChapter, markdown: units.map((unit) => unit.markdown).join('\n\n') }]
-        : undefined,
-    [units, activeChapter],
-  );
+  const navChapters = useMemo(() => {
+    if (!book.descriptor.unitDepth) return book.chapters;
+
+    const entered = new Set(units.map((unit) => carried.chapterOf.get(unit.id)?.slug));
+    return book.chapters.filter((chapter) => entered.has(chapter.slug));
+  }, [book.chapters, book.descriptor.unitDepth, units, carried]);
+
+  /*
+   * What search may see. Undefined for an ordinary book, which is the whole of
+   * it; for a gated book, the units the reader may open and nothing else, so a
+   * result can never name a section they have not reached.
+   *
+   * Grouped back into the files the units came from, because a search result
+   * names the chapter it was found in. Deduplicated because a journey records
+   * revisits and a reader should not be offered the same section twice.
+   */
+  const searchScope = useMemo(() => {
+    if (units.length === 0) return undefined;
+
+    const byChapter = new Map<string, { chapter: Chapter; parts: string[] }>();
+    const seen = new Set<string>();
+
+    for (const unit of units) {
+      if (seen.has(unit.id)) continue;
+      seen.add(unit.id);
+
+      const chapter = carried.chapterOf.get(unit.id);
+      if (!chapter) continue;
+
+      const group = byChapter.get(chapter.slug) ?? { chapter, parts: [] };
+      group.parts.push(unit.markdown);
+      byChapter.set(chapter.slug, group);
+    }
+
+    return [...byChapter.values()].map(({ chapter, parts }) => ({
+      ...chapter,
+      markdown: parts.join('\n\n'),
+    }));
+  }, [units, carried]);
 
   const spot = useActiveSection(headings);
   const activeSlug = activeChapter?.slug;
@@ -309,6 +348,7 @@ export function Reader({
           view={view}
           activeSlug={activeChapter?.slug}
           activePart={activePart?.id}
+          chapters={navChapters}
           open={navOpen}
           onNavigate={() => setNavOpen(false)}
           onSearch={() => {
@@ -383,7 +423,7 @@ export function Reader({
         {view === 'chapter' && activeChapter && (
           <TableOfContents
             headings={rail}
-            linkTo={(id) => headingHref(basePath, activeChapter.slug, id)}
+            linkTo={sectionLinker(basePath, activeChapter.slug, Boolean(book.descriptor.unitDepth))}
             activeId={delivered ? delivered.id : (spot.sectionId ?? heading)}
           />
         )}
