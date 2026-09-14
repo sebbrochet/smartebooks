@@ -188,9 +188,13 @@ function extractTitle(markdown, fallback) {
  * package built here and one exported from the browser have to describe the
  * same book. The rules are: a declared `chapters` array wins; otherwise order
  * comes from a numeric filename prefix (999 without one) and the title from the
- * first `#` heading. Duplicated rather than imported because these scripts
- * cannot load the engine's TypeScript — the same tax `island-contract.json`
- * pays, and `package.test.mjs` is what keeps the two honest.
+ * first `#` heading. Duplicated rather than imported, and `package.test.mjs` is
+ * what keeps the two honest.
+ *
+ * The reason given for the duplication used to be that these scripts cannot
+ * load the engine's TypeScript. That is no longer true — `lint-gamebook.mjs`
+ * imports it directly — so this pair is now a *choice* to be revisited rather
+ * than a constraint to be worked around.
  *
  * @param folder book folder name
  * @param files  `[{ path, markdown }]` for the book's content

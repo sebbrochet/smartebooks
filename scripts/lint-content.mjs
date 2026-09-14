@@ -1,8 +1,9 @@
 /**
  * Validates every bundled book before it can be built or published.
  *
- * Two passes: the descriptor (does this book declare what it is?) and the
- * content (does it use islands it actually has?). The rule that matters most is
+ * Three passes: the descriptor (does this book declare what it is?), the
+ * content (does it use islands it actually has?) and, for a gamebook, the graph
+ * (can a reader finish it?). The rule that matters most is
  * `visibility-missing`: publication has to be a decision an author made, not a
  * consequence of where a folder sits (SPEC003 D1 / E1.1).
  *
@@ -10,6 +11,30 @@
  */
 import { listBookFolders, readDescriptor, validateBook } from './book-sources.mjs';
 import { validateBookContent } from './lint-islands.mjs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+/*
+ * The gamebook check imports the pack's rules instead of copying them, and
+ * those rules are TypeScript. Node can strip types but older versions have to
+ * be asked, so this asks itself rather than the caller.
+ *
+ * It has to be here and not in an npm script, because the callers that matter
+ * are not npm: a book kept in its own repository runs this file through
+ * `spawnSync(process.execPath, [script])`, and a flag it does not know to pass
+ * would take the check away from exactly the books it was built for.
+ */
+if (!process.features.typescript) {
+  const flags = ['--disable-warning=ExperimentalWarning', '--experimental-strip-types'];
+  const again = spawnSync(
+    process.execPath,
+    [...flags, fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    { stdio: 'inherit' },
+  );
+  process.exit(again.status ?? 1);
+}
+
+const { checkGamebook } = await import('./lint-gamebook.mjs');
 
 const folders = listBookFolders();
 
@@ -19,7 +44,9 @@ const folders = listBookFolders();
 const problems = folders.flatMap((folder) => {
   const descriptorProblems = validateBook(folder);
   const broken = descriptorProblems.some((problem) => problem.severity !== 'warning');
-  return broken ? descriptorProblems : [...descriptorProblems, ...validateBookContent(folder)];
+  return broken
+    ? descriptorProblems
+    : [...descriptorProblems, ...validateBookContent(folder), ...checkGamebook(folder)];
 });
 
 /**
