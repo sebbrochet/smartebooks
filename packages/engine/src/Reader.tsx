@@ -320,6 +320,7 @@ export function Reader({
       trusted={trusted}
       resolveAsset={resolveAsset}
       registry={registry}
+      language={book.meta.language}
     >
       <ReaderBar
         title={book.meta.title}

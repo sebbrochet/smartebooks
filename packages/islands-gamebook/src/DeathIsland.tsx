@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { attrText, useBook, type IslandComponentProps } from '@smart-ebooks/engine';
 import { respawn } from './journey';
 import { usePlaythrough } from './playthrough';
+import { wordsFor } from './words';
 import './gamebook.css';
 
 /**
@@ -20,11 +21,12 @@ import './gamebook.css';
  * carries its own snapshot (K2.6, QG10).
  */
 export default function DeathIsland({ attributes, children }: IslandComponentProps) {
-  const { linkTo } = useBook();
+  const { linkTo, language } = useBook();
   const [play, commit] = usePlaythrough();
   const to = attrText(attributes.to);
+  const words = wordsFor(language);
 
-  const label = (children as ReactNode) ?? 'Your story ends here.';
+  const label = (children as ReactNode) ?? words.storyEnds;
 
   // Without a destination there is nowhere to send them, and without a journey
   // there is nothing to truncate. The linter is what complains (K4.6).
@@ -46,7 +48,7 @@ export default function DeathIsland({ attributes, children }: IslandComponentPro
           });
         }}
       >
-        return to {to}
+        {words.returnTo(to)}
       </a>
     </span>
   );

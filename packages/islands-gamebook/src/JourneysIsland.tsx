@@ -1,6 +1,7 @@
 import { unseenBetween } from './journey';
 import { usePlaythrough } from './playthrough';
 import { useBook, type IslandComponentProps } from '@smart-ebooks/engine';
+import { wordsFor } from './words';
 import './gamebook.css';
 
 /**
@@ -20,8 +21,9 @@ import './gamebook.css';
  * an earlier route would offer doors the gate refuses.
  */
 export default function JourneysIsland({ children }: IslandComponentProps) {
-  const { linkTo } = useBook();
+  const { linkTo, language } = useBook();
   const [play] = usePlaythrough();
+  const words = wordsFor(language);
 
   if (!play) return <>{children}</>;
 
@@ -33,11 +35,11 @@ export default function JourneysIsland({ children }: IslandComponentProps) {
   ]).size;
 
   return (
-    <aside className="gamebook-journeys" aria-label="Your journeys">
-      <p className="gamebook-journeys__title">Your journeys</p>
+    <aside className="gamebook-journeys" aria-label={words.journeys}>
+      <p className="gamebook-journeys__title">{words.journeys}</p>
       <ol className="gamebook-journeys__list">
         <li>
-          <span className="gamebook-journeys__label">This one</span>{' '}
+          <span className="gamebook-journeys__label">{words.thisOne}</span>{' '}
           {play.visits.map((visit, index) => (
             <span key={visit.id}>
               {index > 0 ? ' → ' : ''}
@@ -48,7 +50,7 @@ export default function JourneysIsland({ children }: IslandComponentProps) {
         {earlier.map((journey, index) => (
           <li key={journey.at}>
             <span className="gamebook-journeys__label">
-              {index === 0 && earlier.length > 1 ? 'The one before' : 'Earlier'}
+              {index === 0 && earlier.length > 1 ? words.theOneBefore : words.earlier}
             </span>{' '}
             <span className="gamebook-journeys__route">
               {journey.visits.map((visit) => visit.section).join(' → ')}
@@ -56,10 +58,7 @@ export default function JourneysIsland({ children }: IslandComponentProps) {
           </li>
         ))}
       </ol>
-      <p className="gamebook-journeys__seen">
-        You have read {read} {read === 1 ? 'section' : 'sections'}
-        {missed.length > 0 ? `, and have never seen ${missed.join(', ')}.` : '.'}
-      </p>
+      <p className="gamebook-journeys__seen">{words.sectionsRead(read, missed)}</p>
     </aside>
   );
 }

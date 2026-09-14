@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { attrText, useBook, type IslandComponentProps } from '@smart-ebooks/engine';
 import { restart } from './journey';
 import { usePlaythrough } from './playthrough';
+import { wordsFor } from './words';
 import './gamebook.css';
 
 /**
@@ -23,11 +24,11 @@ import './gamebook.css';
  * knows which section is its first.
  */
 export default function RestartIsland({ attributes, children }: IslandComponentProps) {
-  const { linkTo } = useBook();
+  const { linkTo, language } = useBook();
   const [play, commit] = usePlaythrough();
   const to = attrText(attributes.to);
 
-  const label = textOf(children) || 'Begin again';
+  const label = textOf(children) || wordsFor(language).beginAgain;
 
   // Nothing to restart before the reader has chosen anything, and nowhere to
   // send them without a destination. The prose the author wrote is the fallback.

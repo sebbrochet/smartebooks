@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { attrText, useBook, type IslandComponentProps } from '@smart-ebooks/engine';
 import { current, tookFrom } from './journey';
 import { take, usePlaythrough } from './playthrough';
+import { wordsFor } from './words';
 import './gamebook.css';
 
 /**
@@ -23,12 +24,13 @@ import './gamebook.css';
  * something the printed original cannot do.
  */
 export default function ChoiceIsland({ attributes, children }: IslandComponentProps) {
-  const { unit, linkTo } = useBook();
+  const { unit, linkTo, language } = useBook();
   const [play, commit] = usePlaythrough();
   const to = attrText(attributes.to);
+  const words = wordsFor(language);
 
   const label = useMemo(() => textOf(children), [children]);
-  const printed = label ? `${label} — turn to ${to}` : `turn to ${to}`;
+  const printed = words.choice(label, to);
 
   // Without a destination there is no choice to offer, and the prose the author
   // wrote is better than an error: the linter is what complains (K4.1).
@@ -54,7 +56,7 @@ export default function ChoiceIsland({ attributes, children }: IslandComponentPr
       return (
         <a className="gamebook-choice gamebook-choice--taken" href={linkTo?.(to) ?? `#${to}`}>
           {printed}
-          <span className="gamebook-choice__note"> (you went this way)</span>
+          <span className="gamebook-choice__note">{words.wentThisWay}</span>
         </a>
       );
     }
@@ -62,7 +64,7 @@ export default function ChoiceIsland({ attributes, children }: IslandComponentPr
     return (
       <span className="gamebook-choice gamebook-choice--refused">
         {printed}
-        <span className="gamebook-choice__note"> (not taken)</span>
+        <span className="gamebook-choice__note">{words.notTaken}</span>
       </span>
     );
   }
@@ -88,7 +90,7 @@ export default function ChoiceIsland({ attributes, children }: IslandComponentPr
         });
       }}
     >
-      {label ? (children as ReactNode) : `turn to ${to}`}
+      {label ? (children as ReactNode) : words.turnTo(to)}
     </a>
   );
 }

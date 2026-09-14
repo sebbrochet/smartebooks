@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
-import type { IslandComponentProps } from '@smart-ebooks/engine';
+import { useBook, type IslandComponentProps } from '@smart-ebooks/engine';
+import { wordsFor } from './words';
 import './gamebook.css';
 
 /**
@@ -18,7 +19,11 @@ import './gamebook.css';
  * ends.
  */
 export default function EndingIsland({ children }: IslandComponentProps) {
+  const { language } = useBook();
+
   return (
-    <span className="gamebook-ending">{(children as ReactNode) ?? 'Your story ends here.'}</span>
+    <span className="gamebook-ending">
+      {(children as ReactNode) ?? wordsFor(language).storyEnds}
+    </span>
   );
 }

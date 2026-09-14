@@ -13,6 +13,15 @@ interface BookContextValue {
   /** Island lookup scoped to this book. */
   registry: IslandRegistry;
   /**
+   * The book's declared language (BCP 47), when it declares one.
+   *
+   * Here because a pack's own words are part of the prose, not chrome around
+   * it: a gamebook's `turn to 45` is the printed book's line and has to be the
+   * French one in a French book. The engine supplies the fact and translates
+   * nothing — which words those are is the pack's business.
+   */
+  language?: string;
+  /**
    * The unit this island is rendered in, when the book's files carry units
    * (SPEC005 M2). Undefined when the file is the page, which is every book
    * that does not declare a `unitDepth`.
@@ -52,16 +61,18 @@ export function BookProvider({
   trusted = true,
   resolveAsset,
   registry,
+  language,
   children,
 }: {
   slug: string;
   trusted?: boolean;
   resolveAsset?: AssetResolver;
   registry: IslandRegistry;
+  language?: string;
   children: ReactNode;
 }) {
   return (
-    <BookContext.Provider value={{ slug, trusted, resolveAsset, registry }}>
+    <BookContext.Provider value={{ slug, trusted, resolveAsset, registry, language }}>
       {children}
     </BookContext.Provider>
   );
