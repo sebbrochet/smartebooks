@@ -125,6 +125,30 @@ npm run package -- <slug>        # build a portable .smartbook (or --all)
 > site bundle, so the build refuses to run when any book there is not public. Package a private book
 > with `npm run package -- <slug>` and share the `.smartbook` file directly.
 
+## Read a private book the way a reader will
+
+A `.smartbook` is read by importing it: **Import book** on the shelf, then pick the file. That is the
+whole supported route for a book that is not part of this repository — there is no build that
+includes it, by design.
+
+It is also the only way to *measure* one. `npm run preview:book` runs a book against the dev server,
+which is right for writing but not for judging: those numbers carry Vite's dev-mode cost, not a
+reader's.
+
+```powershell
+npm run package -- <slug>   # → dist/<slug>.smartbook  (honours SMART_EBOOKS_BOOKS_DIR)
+npm run build               # → apps/library/dist/
+npm run preview             # serve the built app, then Import book
+```
+
+The build refuses while a book is linked into `books/`, so stop the preview first — the link is
+removed when it exits. That is the same rule that keeps a private book out of the bundle, and it is
+why this route imports the package instead of building it in.
+
+An imported book is **untrusted**, so its Markdown goes through sanitising that a bundled book skips.
+Measurements taken this way are therefore the honest ones for a book that will be shared as a
+package, and slightly pessimistic for one that will be bundled.
+
 ## Where to start
 
 Read **`books/guide/`** — a worked example whose chapters document the authoring model while
