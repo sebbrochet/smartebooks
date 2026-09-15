@@ -137,7 +137,19 @@ Task-list syntax marks the answer(s); a blockquote after a question is its expla
 ````
 
 - Multiple `###` questions allowed in one quiz block.
-- `[x]` = correct option(s); more than one `[x]` = multi-select.
+- `[x]` = correct option(s); more than one `[x]` = multi-select. The island switches from radios to
+  checkboxes on its own, and marks the answer right only when the reader's set matches exactly — no
+  partial credit, which is how "choose two" is marked in practice.
+- Attribute: `shuffle` (`none` | `questions` | `options` | `both`, default `none`). Re-running a quiz
+  in a fixed arrangement trains recall of *position* rather than of the material, so a revision set
+  is usually worth shuffling. It is **off by default** because order is sometimes load-bearing:
+  a set that builds question by question, or an option that says *"both of the above"*, must not
+  move. An arrangement is dealt per attempt and kept until the reader retries, so reloading the page
+  does not deal a new hand; answers are recorded against the question as written, never against a
+  position on screen.
+- **Do not number the options.** Writing `- [ ] A. …` puts the letter in the option's *text*, where
+  it survives shuffling and starts lying. The same goes for an explanation that argues by letter
+  (*"A is wrong…"*) — name the option instead, and it stays true in any order.
 - **State:** best score, attempts, last answers, completed flag.
 
 ### `:::flashcard` — Flip card / spaced repetition (container)

@@ -53,6 +53,12 @@
     "choice": { "to": { "type": "string", "required": true } },
     "restart": { "to": { "type": "string", "required": true } },
     "checkpoint": { "label": { "type": "string" } },
+    "quiz": {
+      "shuffle": {
+        "type": "enum",
+        "values": ["none", "questions", "options", "both"]
+      }
+    },
     "video": { "src": { "type": "asset", "required": true }, "title": { "type": "string" } },
     "media-lesson": {
       "src": { "type": "asset", "required": true },

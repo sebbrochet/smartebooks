@@ -2,6 +2,7 @@ import { lazy, type ComponentType } from 'react';
 import type { IslandDefinition } from '../islandRegistry';
 import type { IslandComponentProps } from '../types';
 import { QuizIsland } from './QuizIsland';
+import { SHUFFLES } from './quizOrder';
 import { CheckpointIsland } from './CheckpointIsland';
 import { VideoIsland } from './VideoIsland';
 import { FlashcardIsland } from './FlashcardIsland';
@@ -48,6 +49,12 @@ export const defaultIslands: IslandDefinition[] = [
     name: 'quiz',
     component: QuizIsland,
     stateful: true,
+    // Off by default: order is sometimes load-bearing (a set that builds
+    // question by question, an option that says "both of the above"), and only
+    // the author knows which.
+    attributes: {
+      shuffle: { type: 'enum', values: SHUFFLES, default: 'none' },
+    },
     extract: (node) => extractQuiz(node),
     fallback: quizFallback,
   },
