@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { QuizIsland } from './QuizIsland';
+import { IslandHost } from '../markdown/IslandHost';
+import { defaultIslands } from './defaults';
 import { BookProvider } from '../reader/BookContext';
 import { createIslandRegistry } from '../islandRegistry';
 import type { QuizQuestion } from '../types';
@@ -23,6 +25,8 @@ vi.mock('idb-keyval', () => ({
 }));
 
 const registry = createIslandRegistry([]);
+/** The real registry, so the host can resolve `quiz` the way a book does. */
+const hosted = createIslandRegistry(defaultIslands);
 
 const questions: QuizQuestion[] = [
   {
@@ -119,5 +123,42 @@ describe('a quiz that has been shuffled', () => {
     await render('none');
 
     expect(optionTexts()).toEqual(['right', 'wrong-1', 'wrong-2', 'wrong-3']);
+  });
+
+  /**
+   * Reported from a reader: scrolling reshuffled the quiz.
+   *
+   * The reader shell re-renders as the page scrolls — it tracks which section
+   * is in view — and an island that deals a new arrangement on every render
+   * turns that into the questions visibly rearranging themselves under the
+   * cursor. A hand is dealt per attempt, not per paint.
+   *
+   * Driven through `IslandHost` rather than the component, because the props
+   * are only stable if the host keeps them stable; handing `data` straight to
+   * the island would test a situation the reader never gets.
+   */
+  it('keeps its hand when the page merely re-renders', async () => {
+    // Advancing, not constant: a stub that always returns the same number deals
+    // the same permutation twice, so a quiz that re-deals on every render would
+    // look stable and this test would pass against the bug it exists for.
+    let calls = 0;
+    vi.spyOn(Math, 'random').mockImplementation(() => (calls++ % 7) / 7);
+
+    const config = JSON.stringify({ attributes: { shuffle: 'both' }, data: questions });
+    // Built fresh each time: re-rendering the *same* element object lets React
+    // skip the work entirely, which is not what scrolling does.
+    const tree = () => (
+      <BookProvider slug="demo" trusted registry={hosted}>
+        <IslandHost type="quiz" islandId="q" config={config} />
+      </BookProvider>
+    );
+
+    await act(async () => root.render(tree()));
+    const first = optionTexts();
+
+    // What a scroll does: the same content, rendered again.
+    await act(async () => root.render(tree()));
+
+    expect(optionTexts()).toEqual(first);
   });
 });

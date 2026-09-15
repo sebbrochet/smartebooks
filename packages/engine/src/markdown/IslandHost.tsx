@@ -1,4 +1,4 @@
-import { Suspense, type ReactNode } from 'react';
+import { Suspense, useMemo, type ReactNode } from 'react';
 import { useBook } from '../reader/BookContext';
 import { IslandBoundary } from './IslandBoundary';
 import type { AttributeValue } from '../islands/attributes';
@@ -34,7 +34,20 @@ function safeParse(config: string | undefined): ParsedConfig {
 export function IslandHost({ type, islandId, config, children }: IslandHostProps) {
   const { trusted, registry, resolveAsset } = useBook();
   const definition = type ? registry.get(type) : undefined;
-  const parsed = safeParse(config);
+
+  /*
+   * Parsed once per config, not once per render.
+   *
+   * The reader re-renders as the page scrolls — it tracks which section is in
+   * view — and this used to hand every island a **freshly parsed `data`** each
+   * time. Anything memoised on `data` therefore recomputed on every paint: a
+   * reader reported a shuffled quiz visibly rearranging itself as they
+   * scrolled, which is that, seen from the outside.
+   *
+   * The saving is incidental but real — a chess game's PGN was re-parsed from
+   * JSON on every scroll frame too.
+   */
+  const parsed = useMemo(() => safeParse(config), [config]);
 
   if (!definition) {
     return (
