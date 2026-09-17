@@ -9,45 +9,45 @@ somewhere you have not been.
 The cellar door stands open at the bottom of the garden, and the lamp in the kitchen window has gone
 out. You did not leave it open.
 
-If you go down at once, :choice{to="2"}.
+:choice[If you go down at once]{to="2"}.
 
-If you fetch the lantern from the shed first, :choice{to="3"}.
+:choice[If you fetch the lantern from the shed first]{to="3"}.
 
 ## 2
 
 The steps are wet. Four down, the dark closes over you like water, and your hand finds a wall that is
 not where the wall should be.
 
-If you feel your way along it, :choice{to="4"}.
+:choice[If you feel your way along it]{to="4"}.
 
-If you go back up while you still know the way, :choice{to="1"}.
+:choice[If you go back up while you still know the way]{to="1"}.
 
 ## 3
 
 The shed smells of creosote and last summer. The lantern is where it always is, and beside it, which
 is not where it always is, a key on a loop of green string.
 
-If you take the key as well, :choice{to="5"}.
+:choice[If you take the key as well]{to="5"}.
 
-If you leave it — it is not yours — :choice{to="4"}.
+:choice[If you leave it — it is not yours]{to="4"}.
 
 ## 4
 
 The wall gives way to a doorframe, and the doorframe to a room that your house does not have. A
 single chair faces the corner, as though someone has been made to sit in it.
 
-If you sit down, :choice{to="6"}.
+:choice[If you sit down]{to="6"}.
 
-If you turn the chair around, :choice{to="7"}.
+:choice[If you turn the chair around]{to="7"}.
 
 ## 5
 
 With the lantern lit the cellar is only a cellar: shelves, a bicycle, jars of something that was
 plums. The green key fits a door behind the shelves that you have somehow never once noticed.
 
-If you open it, :choice{to="8"}.
+:choice[If you open it]{to="8"}.
 
-If you put the key back and go to bed, :choice{to="9"}.
+:choice[If you put the key back and go to bed]{to="9"}.
 
 ## 6
 
@@ -63,18 +63,18 @@ steps, and after a longer while you stop minding.
 The chair scrapes. Facing the room, it is an ordinary chair, and the room is an ordinary room with a
 low ceiling and a smell of coal — and a door in the far wall with a green-painted frame.
 
-If you go through, :choice{to="8"}.
+:choice[If you go through]{to="8"}.
 
-If you carry the chair back up to the kitchen, because it is yours now, :choice{to="10"}.
+:choice[If you carry the chair back up to the kitchen, because it is yours now]{to="10"}.
 
 ## 8
 
 Behind the green door is a staircase going up, which is wrong, because you came down. At the top is a
 kitchen with the lamp lit in the window.
 
-If you call out, :choice{to="11"}.
+:choice[If you call out]{to="11"}.
 
-If you go quietly to the window, :choice{to="12"}.
+:choice[If you go quietly to the window]{to="12"}.
 
 ## 9
 

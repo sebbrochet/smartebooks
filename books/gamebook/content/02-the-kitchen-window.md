@@ -4,18 +4,18 @@
 
 "You took your time," says your own voice from the hall, and you hear yourself put the kettle on.
 
-If you answer, :choice{to="13"}.
+:choice[If you answer]{to="13"}.
 
-If you go back down the green stairs, :choice{to="14"}.
+:choice[If you go back down the green stairs]{to="14"}.
 
 ## 12
 
 Through the glass you can see the garden, the shed, and the cellar door standing open at the bottom
 of it. A figure is going down the steps with a lantern. It has your walk.
 
-If you knock on the glass, :choice{to="15"}.
+:choice[If you knock on the glass]{to="15"}.
 
-If you blow out the lamp, :choice{to="16"}.
+:choice[If you blow out the lamp]{to="16"}.
 
 ## 13
 
@@ -39,25 +39,25 @@ The green stairs go down a long way further than they went up. You are still des
 The figure stops. It does not look up, because it knows exactly which window you are at, and it lifts
 the lantern so you can see its face properly.
 
-If you look, :choice{to="17"}.
+:choice[If you look]{to="17"}.
 
-If you run for the front door, :choice{to="18"}.
+:choice[If you run for the front door]{to="18"}.
 
 ## 16
 
 The garden goes dark, and the lantern at the cellar door goes out at the same moment, as lamps do
 when they are the same lamp.
 
-If you light it again, :choice{to="19"}.
+:choice[If you light it again]{to="19"}.
 
-If you leave the house by the front door and keep walking, :choice{to="20"}.
+:choice[If you leave the house by the front door and keep walking]{to="20"}.
 
 ## 17
 
 It is your face, and it is kind, and it is sorry. "Go back up," it says, "and shut the door, and this
 time leave the lamp on."
 
-If you do as you are told, :choice{to="19"}.
+:choice[If you do as you are told]{to="19"}.
 
 ## 18
 
