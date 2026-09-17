@@ -22,6 +22,11 @@ import './gamebook.css';
  * The last two are prose about the reader's own history. Showing the road
  * refused is the richest part of rereading one of these books, and it is
  * something the printed original cannot do.
+ *
+ * All three print the same line. Until 2026-09-17 the offered state rendered
+ * the author's label alone, so a labelled choice hid where it went — which is
+ * why the books that wanted the number visible put it in the label, and then
+ * saw it twice everywhere else (K4.7).
  */
 export default function ChoiceIsland({ attributes, children }: IslandComponentProps) {
   const { unit, linkTo, language } = useBook();
@@ -75,6 +80,9 @@ export default function ChoiceIsland({ attributes, children }: IslandComponentPr
    * that the journey is written **before** the route changes — the gate is
    * asked about the destination the moment it arrives, and would refuse a
    * section the journey does not yet contain.
+   *
+   * `printed`, not the author's children: all three states say the same line,
+   * and the live section is the one a reader most needs the destination in.
    */
   return (
     <a
@@ -90,7 +98,7 @@ export default function ChoiceIsland({ attributes, children }: IslandComponentPr
         });
       }}
     >
-      {label ? (children as ReactNode) : words.turnTo(to)}
+      {printed}
     </a>
   );
 }

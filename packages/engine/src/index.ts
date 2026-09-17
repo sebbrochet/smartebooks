@@ -17,7 +17,7 @@ export type {
 
 // Reader shell
 export { Reader, type ReaderProps } from './Reader';
-export { BookProvider, useBook } from './reader/BookContext';
+export { BookProvider, UnitProvider, useBook } from './reader/BookContext';
 export { usePersistentState } from './store/usePersistentState';
 export { useAssetResolver, type AssetResolver } from './reader/useAssetResolver';
 export { ThemeToggle } from './reader/ThemeToggle';

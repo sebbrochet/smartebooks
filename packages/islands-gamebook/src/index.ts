@@ -8,7 +8,8 @@
  * be hardest to retrofit (§8).
  */
 import { lazy } from 'react';
-import type { IslandDefinition } from '@smart-ebooks/engine';
+import { mdastToText, type IslandDefinition } from '@smart-ebooks/engine';
+import { wordsFor } from './words';
 
 export * from './journey';
 export * from './condition';
@@ -44,9 +45,15 @@ export function gamebookIslands(): IslandDefinition[] {
       // `turn to 45` is the printed gamebook's own line, so this static form is
       // the source rather than a degradation of it (§5.1). Inline text, not a
       // paragraph: a choice sits inside the author's sentence.
-      fallback: (_node, _data, ctx) => {
+      //
+      // A fallback replaces the directive's children, so the label has to be
+      // read back or the author's sentence is deleted from the printed form.
+      fallback: (node, _data, ctx) => {
         const to = typeof ctx.attributes.to === 'string' ? ctx.attributes.to : '';
-        return to ? [{ type: 'text', value: `turn to ${to}` }] : undefined;
+        if (!to) return undefined;
+
+        // English, as every fallback here is: nothing passes a language in.
+        return [{ type: 'text', value: wordsFor(undefined).choice(mdastToText(node).trim(), to) }];
       },
     },
     {
