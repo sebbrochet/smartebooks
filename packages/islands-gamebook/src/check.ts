@@ -39,6 +39,7 @@ export type Rule =
   | 'start-missing'
   | 'duplicate-id'
   | 'choice-target'
+  | 'choice-label-names-target'
   | 'dead-end'
   | 'unreachable'
   | 'unknown-name'

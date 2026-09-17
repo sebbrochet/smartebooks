@@ -150,4 +150,24 @@ describe('a gamebook is checked as one book', () => {
     assert.equal(code, 0, output);
     assert.match(output, /gamebook-unitless/);
   });
+
+  /**
+   * The rule a migration is measured by, so it has to reach an author without
+   * stopping them: a book written entirely in this shape reports every section
+   * and still exits 0.
+   */
+  test('a label that repeats its own destination is a warning an author can see', () => {
+    book('doubled', {
+      '01-one.md': ['# Act one', '', '## 1', '', 'Une porte. :choice[Allez au 2]{to="2"}.'].join(
+        '\n',
+      ),
+      '02-two.md': ACT_TWO,
+    });
+
+    const { code, output } = lint();
+
+    assert.equal(code, 0, output);
+    assert.match(output, /warning choice-label-names-target/);
+    assert.match(output, /content\/01-one\.md:3/);
+  });
 });

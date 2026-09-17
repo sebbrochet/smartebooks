@@ -22,7 +22,7 @@ import { BOOKS_DIR, deriveChapters, listContentFiles, readDescriptor } from './b
 register('./ts-hooks.mjs', import.meta.url);
 
 const { chapterUnits } = await import('../packages/engine/src/markdown/headings.ts');
-const { graphOf } = await import('../packages/islands-gamebook/src/bookGraph.ts');
+const { graphOf, labelProblems } = await import('../packages/islands-gamebook/src/bookGraph.ts');
 const { checkBook } = await import('../packages/islands-gamebook/src/check.ts');
 
 /** The line a section's heading is on, so the output is somewhere to jump to. */
@@ -80,7 +80,7 @@ export function checkGamebook(folder) {
     }
   }
 
-  return checkBook(graphOf(units)).map((problem) => {
+  return [...checkBook(graphOf(units)), ...labelProblems(units)].map((problem) => {
     // A duplicate is reported where the *second* one is written; the first is
     // the one the book keeps, so it is not the line an author needs to open.
     const found = places.get(problem.section) ?? [];
