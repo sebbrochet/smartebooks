@@ -79,12 +79,15 @@ function namesTarget(label: string, to: string): boolean {
 /**
  * Choices whose label already says where they go.
  *
- * `:choice[Rendez-vous au 3]{to="3"}` reads correctly while it is the choice
- * being offered, because that state renders the author's label alone. In the
- * two states a reader sees *afterwards* — the road taken and the road refused —
- * `ChoiceIsland` renders `words.choice(label, to)`, which appends the
- * navigation phrase itself: the reader gets **"Rendez-vous au 3 — rendez-vous
- * au 3"**. The label field is for the sentence, not for the number.
+ * All three rendered states print `words.choice(label, to)`, which appends the
+ * navigation phrase itself — so `:choice[Rendez-vous au 3]{to="3"}` reads
+ * **"Rendez-vous au 3 — rendez-vous au 3"** from the moment it is offered. The
+ * label field is for the sentence, not for the number.
+ *
+ * Worth knowing why a book would do this: until 2026-09-17 the offered state
+ * rendered the label alone, so writing the number into the label was the only
+ * way to get it onto the live page. The warning is about a workaround, not
+ * carelessness.
  *
  * A warning rather than an error because it is a judgement about prose, and
  * because the books that do this do it in every section: an error would turn a
@@ -107,8 +110,8 @@ export function labelProblems(units: Unit[]): Problem[] {
         section: unit.id,
         message:
           `"${unit.id}" offers :choice[${label}]{to="${to}"}, whose label already names ${to}. ` +
-          `Once the reader has left this section the pack adds the destination itself, ` +
-          `so it is printed twice.`,
+          `The pack prints the destination itself, in every state, ` +
+          `so the reader sees it printed twice.`,
       });
     }
   }
