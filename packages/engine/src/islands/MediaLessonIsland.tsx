@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { IslandComponentProps } from '../types';
 import { useBook } from '../reader/BookContext';
+import { useMessages } from '../i18n/messages';
 import { isHttpsUrl } from './mediaUrl';
 import { attrText } from './attributes';
 import { MediaProvider, SequenceProvider } from './mediaContext';
@@ -36,6 +37,7 @@ export default function MediaLessonIsland({
   children,
 }: IslandComponentProps) {
   const { trusted } = useBook();
+  const words = useMessages();
   const src = attrText(attributes.src);
   const poster = attrText(attributes.poster);
   const marks = useMemo(() => (data as { marks?: TimeMark[] })?.marks ?? [], [data]);
@@ -94,7 +96,7 @@ export default function MediaLessonIsland({
   if (!src) {
     return (
       <div className="island island--unknown" role="note">
-        A media lesson is missing a <code>src</code>.
+        {words.islandBroken}
       </div>
     );
   }
@@ -104,7 +106,7 @@ export default function MediaLessonIsland({
   if (!trusted && !packagedAssets.includes('src') && !isHttpsUrl(src)) {
     return (
       <div className="island island--disabled" role="note">
-        Media source blocked in an imported book.
+        {words.islandBlocked}
       </div>
     );
   }

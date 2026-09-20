@@ -61,7 +61,7 @@ describe('inline islands', () => {
   it('degrades to the plain word when the island is unknown', () => {
     const output = html('A :nosuchthing[palimpsest]{ref="x"} page.');
     expect(output).toContain('palimpsest');
-    expect(output).not.toContain('Unknown interactive block');
+    expect(output).not.toContain('island--unknown');
   });
 
   it('degrades to the plain word when a block island is written inline', () => {

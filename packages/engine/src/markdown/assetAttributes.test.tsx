@@ -40,29 +40,32 @@ describe('engine-resolved assets', () => {
   it('allows a packaged asset in an imported book', () => {
     const html = render('::audio{id="a" src="assets/tune.mp3"}', { trusted: false });
     expect(html).toContain('blob:resolved-tune');
-    expect(html).not.toContain('blocked');
+    expect(html).not.toContain('island--disabled');
   });
 
   it('allows an https source in an imported book', () => {
     const html = render('::audio{id="a" src="https://example.com/t.mp3"}', { trusted: false });
-    expect(html).not.toContain('blocked');
+    expect(html).not.toContain('island--disabled');
   });
 
+  // The marker rather than the sentence: the sentence is the reader's and is
+  // translated (SPEC015 L1.6), and a security test that reads prose stops
+  // testing anything the day the prose changes — quietly, if it was a negative.
   it('blocks a non-https source in an imported book', () => {
     const html = render('::audio{id="a" src="http://example.com/t.mp3"}', { trusted: false });
-    expect(html).toContain('blocked');
+    expect(html).toContain('island--disabled');
   });
 
   // The reason `packagedAssets` exists rather than sniffing the resolved value:
   // a book could otherwise claim to ship media by writing a blob: URL itself.
   it('does not let a book fake a packaged asset', () => {
     const html = render('::audio{id="a" src="blob:evil"}', { trusted: false });
-    expect(html).toContain('blocked');
+    expect(html).toContain('island--disabled');
   });
 
   it('blocks an assets/ path the package does not actually contain', () => {
     const html = render('::audio{id="a" src="assets/missing.mp3"}', { trusted: false });
-    expect(html).toContain('blocked');
+    expect(html).toContain('island--disabled');
   });
 
   it('still resolves for video, which shares the mechanism', () => {

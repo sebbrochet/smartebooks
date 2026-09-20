@@ -1,5 +1,6 @@
 import { Suspense, useMemo, type ReactNode } from 'react';
 import { useBook } from '../reader/BookContext';
+import { useMessages } from '../i18n/messages';
 import { IslandBoundary } from './IslandBoundary';
 import type { AttributeValue } from '../islands/attributes';
 
@@ -34,6 +35,7 @@ function safeParse(config: string | undefined): ParsedConfig {
 export function IslandHost({ type, islandId, config, children }: IslandHostProps) {
   const { trusted, registry, resolveAsset } = useBook();
   const definition = type ? registry.get(type) : undefined;
+  const words = useMessages();
 
   /*
    * Parsed once per config, not once per render.
@@ -50,9 +52,13 @@ export function IslandHost({ type, islandId, config, children }: IslandHostProps
   const parsed = useMemo(() => safeParse(config), [config]);
 
   if (!definition) {
+    // The name is the author's problem, not the reader's, and `lint:content`
+    // is what tells them — this can only be reached by an imported book, which
+    // no linter gated. `IslandHostInline` has always done it this way.
+    console.warn(`No island named "${type ?? '(none)'}" is registered for this book.`);
     return (
       <div className="island island--unknown" role="note">
-        Unknown interactive block: <code>{type ?? '(none)'}</code>
+        {words.islandBroken}
       </div>
     );
   }
@@ -60,7 +66,7 @@ export function IslandHost({ type, islandId, config, children }: IslandHostProps
   if (!trusted && definition.disabledWhenUntrusted) {
     return (
       <div className="island island--disabled" role="note">
-        Interactive <code>{type}</code> is disabled in imported books.
+        {words.islandBlocked}
       </div>
     );
   }

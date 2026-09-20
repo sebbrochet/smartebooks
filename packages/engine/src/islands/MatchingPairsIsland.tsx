@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
+import { useMessages } from '../i18n/messages';
 
 interface MatchConfig {
   pairs: [string, string][];
@@ -25,6 +26,7 @@ function shuffle<T>(input: T[]): T[] {
  * Pairs come from a JSON body parsed at parse time.
  */
 export function MatchingPairsIsland({ id, data }: IslandComponentProps) {
+  const words = useMessages();
   const pairs = useMemo<[string, string][]>(() => {
     const cfg = data as MatchConfig;
     return Array.isArray(cfg?.pairs) ? cfg.pairs : [];
@@ -74,7 +76,7 @@ export function MatchingPairsIsland({ id, data }: IslandComponentProps) {
   if (pairs.length === 0) {
     return (
       <div className="island game--matching island--unknown" role="note">
-        This matching game has no pairs configured.
+        {words.islandBroken}
       </div>
     );
   }

@@ -39,7 +39,7 @@ describe('renderMarkdown sanitization (untrusted)', () => {
         {node}
       </BookProvider>,
     );
-    expect(html).toMatch(/disabled in imported books/i);
+    expect(html).toContain('island--disabled');
     expect(html).not.toContain('interactive</b>');
   });
 

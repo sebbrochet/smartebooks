@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LANGUAGE_KEY } from '../store/platformSettings';
+import { createIslandRegistry } from '../islandRegistry';
+import { BookProvider } from '../reader/BookContext';
+import { IslandHost } from '../markdown/IslandHost';
 import { deviceLanguage, messagesFor, resolveLanguage } from './messages';
 import { MessagesProvider } from './MessagesProvider';
-import { ReaderBar } from './ReaderBar';
+import { ReaderBar } from '../reader/ReaderBar';
 
 describe('resolveLanguage', () => {
   it('reads the device when the reader has chosen nothing', () => {
@@ -84,6 +87,52 @@ describe('a reader whose shell speaks French', () => {
   // The book's own title is never translated, and sits inside the chrome that is.
   it('keeps the book title exactly as the book wrote it', () => {
     expect(inA('fr')).toContain('Un livre');
+  });
+});
+
+/**
+ * SPEC015 L1.6. The notice a reader gets for an island the book asked for and
+ * they cannot have used to name the directive — *"Unknown interactive block:
+ * `chess-board`"* — which is the author's problem stated in the author's
+ * vocabulary, to somebody who can do nothing with either.
+ */
+describe('an island the reader cannot have', () => {
+  const registry = createIslandRegistry([]);
+
+  const shown = (language: 'en' | 'fr') =>
+    renderToStaticMarkup(
+      <BookProvider slug="b" registry={registry}>
+        <MessagesProvider language={language}>
+          <IslandHost type="chess-board" islandId="x" />
+        </MessagesProvider>
+      </BookProvider>,
+    );
+
+  it('says so in the reader’s language, not the author’s vocabulary', () => {
+    const html = shown('fr');
+
+    expect(html).toContain('Cette partie du livre');
+    expect(html).not.toContain('chess-board');
+  });
+
+  // The marker is what the rest of the suite asserts on, so it has to survive
+  // the wording changing underneath it.
+  it('keeps the placeholder a placeholder', () => {
+    expect(shown('en')).toContain('island--unknown');
+  });
+
+  /*
+   * The information is moved, not dropped. An imported book is the only way to
+   * reach this — `lint:content` gates every bundled one — so somebody
+   * debugging a book they were given still needs the name.
+   */
+  it('tells the console what it does not tell the reader', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    shown('en');
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('chess-board'));
+    warn.mockRestore();
   });
 });
 

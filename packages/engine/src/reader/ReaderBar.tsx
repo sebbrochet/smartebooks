@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Icon } from './Icon';
-import { useMessages } from './messages';
+import { useMessages } from '../i18n/messages';
 import { ThemeToggle } from './ThemeToggle';
 import { ReadingSettings } from './ReadingSettings';
 

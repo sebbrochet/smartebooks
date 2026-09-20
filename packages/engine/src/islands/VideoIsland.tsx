@@ -3,6 +3,7 @@ import type { IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
 import { useBook } from '../reader/BookContext';
 import { useOnline } from '../reader/useOnline';
+import { useMessages } from '../i18n/messages';
 import { isHttpsUrl } from './mediaUrl';
 import { attrText } from './attributes';
 
@@ -46,6 +47,7 @@ function toYouTubeEmbed(src: string): string | null {
  * request this exists to avoid.
  */
 export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentProps) {
+  const words = useMessages();
   const { trusted } = useBook();
   const online = useOnline();
   const src = attrText(attributes.src);
@@ -58,7 +60,7 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
   if (!src) {
     return (
       <div className="island island--video island--unknown" role="note">
-        Video is missing a <code>src</code>.
+        {words.islandBroken}
       </div>
     );
   }
@@ -67,7 +69,7 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
   if (!trusted && !embed && !fromPackage && !isHttpsUrl(src)) {
     return (
       <div className="island island--video island--disabled" role="note">
-        Video source blocked in an imported book.
+        {words.islandBlocked}
       </div>
     );
   }

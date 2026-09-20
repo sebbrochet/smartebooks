@@ -26,7 +26,7 @@ describe('per-book island scoping', () => {
 
   it('renders "unknown" for a directive outside the book’s registry', () => {
     const html = render('::chessboard{id="c"}\n');
-    expect(html).toContain('Unknown interactive block');
+    expect(html).toContain('island--unknown');
     expect(html).not.toContain('island:demo');
   });
 

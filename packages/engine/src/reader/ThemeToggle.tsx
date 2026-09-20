@@ -1,5 +1,5 @@
 import { useTheme, type Theme } from './useTheme';
-import { useMessages } from './messages';
+import { useMessages } from '../i18n/messages';
 import { Icon, type IconName } from './Icon';
 
 const ICONS: Record<Theme, IconName> = { light: 'sun', dark: 'moon', system: 'auto' };

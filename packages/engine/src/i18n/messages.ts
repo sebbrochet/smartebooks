@@ -31,6 +31,18 @@ export interface Messages {
   themeAction: (name: string) => string;
   /** The tooltip, which does not. */
   themeTitle: (name: string) => string;
+  /**
+   * An island the book asked for and the reader cannot have, for a reason that
+   * is the *author's* — an unknown directive, a missing source, an empty game.
+   *
+   * One message for all of them on purpose (SPEC015 L1.6). The reader can act
+   * on none of it, and naming the directive told them which word the author got
+   * wrong in a language they may not read. The detail goes to the console,
+   * where `IslandBoundary` already sends its own.
+   */
+  islandBroken: string;
+  /** An island the book asked for and an *imported* book is not allowed to run. */
+  islandBlocked: string;
 }
 
 const EN: Messages = {
@@ -39,6 +51,8 @@ const EN: Messages = {
   themeName: { light: 'Light', dark: 'Dark', system: 'System' },
   themeAction: (name) => `Theme: ${name}. Activate to change.`,
   themeTitle: (name) => `Theme: ${name}`,
+  islandBroken: 'This part of the book could not be shown.',
+  islandBlocked: 'Imported books are not allowed to play this.',
 };
 
 // U+00A0 before the colon, which is what French typography wants and what a
@@ -49,6 +63,8 @@ const FR: Messages = {
   themeName: { light: 'Clair', dark: 'Sombre', system: 'Système' },
   themeAction: (name) => `Thème\u00a0: ${name}. Activer pour changer.`,
   themeTitle: (name) => `Thème\u00a0: ${name}`,
+  islandBroken: 'Cette partie du livre n’a pas pu être affichée.',
+  islandBlocked: 'Un livre importé n’est pas autorisé à lire ce contenu.',
 };
 
 export type Language = 'en' | 'fr';

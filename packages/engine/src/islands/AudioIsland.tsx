@@ -2,6 +2,7 @@ import type { IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
 import { useBook } from '../reader/BookContext';
 import { useOnline } from '../reader/useOnline';
+import { useMessages } from '../i18n/messages';
 import { isHttpsUrl } from './mediaUrl';
 import { attrText } from './attributes';
 
@@ -10,6 +11,7 @@ import { attrText } from './attributes';
  * "played" flag when playback starts.
  */
 export function AudioIsland({ id, attributes, packagedAssets }: IslandComponentProps) {
+  const words = useMessages();
   const { trusted } = useBook();
   const online = useOnline();
   const src = attrText(attributes.src);
@@ -20,7 +22,7 @@ export function AudioIsland({ id, attributes, packagedAssets }: IslandComponentP
   if (!src) {
     return (
       <div className="island island--audio island--unknown" role="note">
-        Audio is missing a <code>src</code>.
+        {words.islandBroken}
       </div>
     );
   }
@@ -28,7 +30,7 @@ export function AudioIsland({ id, attributes, packagedAssets }: IslandComponentP
   if (!trusted && !fromPackage && !isHttpsUrl(src)) {
     return (
       <div className="island island--audio island--disabled" role="note">
-        Audio source blocked in an imported book.
+        {words.islandBlocked}
       </div>
     );
   }

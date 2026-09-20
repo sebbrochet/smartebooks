@@ -77,6 +77,7 @@ describe('island plugin API', () => {
         {renderMarkdown('::notdeclared{id="x"}\n', { registry })}
       </BookProvider>,
     );
-    expect(html).toMatch(/unknown interactive block/i);
+    // The marker, not the sentence: the sentence is translated (SPEC015 L1.6).
+    expect(html).toContain('island--unknown');
   });
 });

@@ -27,8 +27,8 @@ export {
   useMessages,
   type Language,
   type Messages,
-} from './reader/messages';
-export { MessagesProvider } from './reader/MessagesProvider';
+} from './i18n/messages';
+export { MessagesProvider } from './i18n/MessagesProvider';
 export { usePersistentState } from './store/usePersistentState';
 export { useAssetResolver, type AssetResolver } from './reader/useAssetResolver';
 export { ThemeToggle } from './reader/ThemeToggle';
