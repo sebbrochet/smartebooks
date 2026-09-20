@@ -19,6 +19,7 @@ export const THEME_KEY = `${PREFIX}theme`;
 export const RESUME_MODE_KEY = `${PREFIX}resumeMode`;
 export const LAST_READ_KEY = `${PREFIX}lastRead`;
 export const READING_KEY = `${PREFIX}reading`;
+export const LANGUAGE_KEY = `${PREFIX}language`;
 
 /** Pre-1.0 theme key, migrated on first load. */
 const LEGACY_THEME_KEY = 'smart-ebook-theme';
@@ -34,6 +35,24 @@ export type Theme = 'light' | 'dark' | 'system';
 export type ResumeMode = 'shelf' | 'instant' | 'cover';
 
 export const RESUME_MODES: ResumeMode[] = ['shelf', 'instant', 'cover'];
+
+/**
+ * Which language the *shell* speaks (SPEC015 L1.1) — the book's own language is
+ * a property of the book and is never this (SPEC015 §2).
+ *
+ * `'system'` stores the **choice**, not the result, exactly as `Theme` does: a
+ * reader who has chosen nothing keeps following their device when they travel
+ * or when a language they read is added.
+ */
+export type LanguageChoice = 'system' | string;
+
+export function getLanguageChoice(): LanguageChoice {
+  return read(LANGUAGE_KEY) ?? 'system';
+}
+
+export function setLanguageChoice(choice: LanguageChoice): void {
+  write(LANGUAGE_KEY, choice);
+}
 
 /** Pointer to the last thing the reader had open. */
 export interface LastRead {

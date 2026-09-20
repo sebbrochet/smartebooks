@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Icon } from './Icon';
+import { useMessages } from './messages';
 import { ThemeToggle } from './ThemeToggle';
 import { ReadingSettings } from './ReadingSettings';
 
@@ -48,6 +49,7 @@ interface ReaderBarProps {
  */
 export function ReaderBar({ title, leading, actions, navigation }: ReaderBarProps) {
   const barRef = useRef<HTMLElement>(null);
+  const words = useMessages();
 
   /*
    * The bar publishes its own height, and everything that sticks below it reads
@@ -104,21 +106,21 @@ export function ReaderBar({ title, leading, actions, navigation }: ReaderBarProp
               // accessibility tree: `aria-label` keeps the accessible name
               // stable at every width, which is what assistive technology
               // announces and what the e2e suite queries by (SPEC009 T10).
-              aria-label="Contents"
-              title="Contents"
+              aria-label={words.contents}
+              title={words.contents}
             >
               <Icon name="menu" />
-              <span className="ui-btn__label">Contents</span>
+              <span className="ui-btn__label">{words.contents}</span>
             </button>
             <button
               type="button"
               className="ui-btn reader__search-toggle"
               onClick={navigation.onOpenSearch}
-              aria-label="Search"
-              title="Search"
+              aria-label={words.search}
+              title={words.search}
             >
               <Icon name="search" />
-              <span className="ui-btn__label">Search</span>
+              <span className="ui-btn__label">{words.search}</span>
             </button>
           </>
         )}

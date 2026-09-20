@@ -14,7 +14,12 @@ import { createRoot } from 'react-dom/client';
 // Cyrillic book anyone writes.
 import '@fontsource-variable/inter/wght.css';
 import '@fontsource-variable/jetbrains-mono/wght.css';
+import { applyDocumentLanguage, deviceLanguage } from '@smart-ebooks/engine';
 import App from './App';
+
+// `<html lang>` is the shell's language, not the book's — the book declares its
+// own and `ChapterView` puts it on the article (SPEC015 L1.3).
+applyDocumentLanguage(deviceLanguage());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

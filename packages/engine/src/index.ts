@@ -18,6 +18,17 @@ export type {
 // Reader shell
 export { Reader, type ReaderProps } from './Reader';
 export { BookProvider, UnitProvider, useBook } from './reader/BookContext';
+export {
+  LANGUAGES,
+  applyDocumentLanguage,
+  deviceLanguage,
+  messagesFor,
+  resolveLanguage,
+  useMessages,
+  type Language,
+  type Messages,
+} from './reader/messages';
+export { MessagesProvider } from './reader/MessagesProvider';
 export { usePersistentState } from './store/usePersistentState';
 export { useAssetResolver, type AssetResolver } from './reader/useAssetResolver';
 export { ThemeToggle } from './reader/ThemeToggle';
