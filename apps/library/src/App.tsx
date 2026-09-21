@@ -29,6 +29,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { CoverSplash } from './CoverSplash';
 import { BackupControls } from './BackupControls';
 import { BookExport } from './BookExport';
+import { LanguageSettings } from './LanguageSettings';
 import './App.css';
 
 export default function App() {
@@ -233,6 +234,7 @@ export default function App() {
         <span className="ui-btn__label">{words.tools}</span>
       </button>
       <div className="reader__tools" id="reader-tools" hidden={!toolsOpen}>
+        <LanguageSettings />
         <BackupControls bookSlug={activeBook?.meta.slug} />
         {activeBook && <BookExport book={activeBook} />}
         {activeBook && (

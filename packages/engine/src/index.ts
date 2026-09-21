@@ -20,8 +20,11 @@ export { Reader, type ReaderProps } from './Reader';
 export { BookProvider, UnitProvider, useBook } from './reader/BookContext';
 export {
   LANGUAGES,
+  LANGUAGE_NAMES,
   applyDocumentLanguage,
+  chooseLanguage,
   deviceLanguage,
+  languageChoice,
   messagesFor,
   resolveLanguage,
   useMessages,

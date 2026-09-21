@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useSyncExternalStore } from 'react';
 import {
   getLanguageChoice,
+  setLanguageChoice,
   type LanguageChoice,
   type ResumeMode,
   type TextFace,
@@ -175,6 +176,10 @@ export interface Messages {
   checkAnswers: string;
   tryAgain: string;
   quizScore: (score: number, total: number) => string;
+
+  /** The picker's own label; the options name themselves (`LANGUAGE_NAMES`). */
+  languageSetting: string;
+  languageFollowDevice: string;
 }
 
 const EN: Messages = {
@@ -298,6 +303,8 @@ const EN: Messages = {
   checkAnswers: 'Check answers',
   tryAgain: 'Try again',
   quizScore: (score, total) => `Score: ${score} / ${total}`,
+  languageSetting: 'Language',
+  languageFollowDevice: 'Follow my device',
 };
 
 // U+00A0 before the colon, which is what French typography wants and what a
@@ -432,6 +439,8 @@ const FR: Messages = {
   checkAnswers: 'Vérifier les réponses',
   tryAgain: 'Réessayer',
   quizScore: (score, total) => `Score\u00a0: ${score} / ${total}`,
+  languageSetting: 'Langue',
+  languageFollowDevice: 'Suivre mon appareil',
 };
 
 export type Language = 'en' | 'fr';
@@ -477,6 +486,37 @@ export function deviceLanguage(): Language {
   return resolveLanguage(getLanguageChoice(), preferred);
 }
 
+/** The language every component is *currently* rendering in, and who to tell. */
+const listeners = new Set<() => void>();
+let speaking: Language | undefined;
+
+function snapshot(): Language {
+  speaking ??= deviceLanguage();
+  return speaking;
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Record the reader's choice and speak it immediately.
+ *
+ * An external store rather than a provider threaded through the app, because
+ * the two settings beside this one do not need React at all: a theme is a `<html
+ * data-theme>` attribute and the reading preferences are custom properties, so
+ * both apply by changing the DOM and nothing re-renders. Language is the first
+ * device setting whose value is *in* the tree, and this is the smallest thing
+ * that makes every component notice.
+ */
+export function chooseLanguage(choice: LanguageChoice): void {
+  setLanguageChoice(choice);
+  speaking = deviceLanguage();
+  applyDocumentLanguage(speaking);
+  for (const listener of [...listeners]) listener();
+}
+
 /**
  * `<html lang>` is the **shell's** language; `<article lang>` stays the book's
  * (`ChapterView`). Both are needed: a screen reader and a hyphenation engine
@@ -493,6 +533,18 @@ export const MessagesContext = createContext<Messages | null>(null);
 /** Falls back to the device, so nothing has to be wrapped for the default to work. */
 export function useMessages(): Messages {
   const provided = useContext(MessagesContext);
-  const fromDevice = useMemo(() => messagesFor(deviceLanguage()), []);
-  return provided ?? fromDevice;
+  // Server snapshot is English: `renderToStaticMarkup` has no device to ask.
+  const language = useSyncExternalStore(subscribe, snapshot, () => 'en' as Language);
+  return provided ?? messagesFor(language);
 }
+
+/** The reader's stored choice, which is `'system'` until they say otherwise. */
+export function languageChoice(): LanguageChoice {
+  return getLanguageChoice();
+}
+
+/**
+ * Each language named in itself, which is what a picker shows and the one part
+ * of this file that never needs translating.
+ */
+export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', fr: 'Français' };

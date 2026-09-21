@@ -107,6 +107,24 @@
     display: none;
   }
 
+  /* A setting rather than an action, in a panel that is otherwise buttons. */
+  .reader__setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+
+  .reader__setting select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--island-bg);
+    color: var(--fg);
+  }
+
   /*
    * Deliberately width-only, unlike the engine's same-numbered breakpoint. That
    * one asks "is this a phone" and so also asks about height; this one asks "is

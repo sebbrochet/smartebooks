@@ -76,4 +76,37 @@ test.describe('a reader whose browser asks for something we do not speak', () =>
     await expect(page.getByRole('button', { name: 'Contents' })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   });
+
+  /*
+   * The whole reason the preference is stored as a *choice*: this reader's
+   * device will never ask for French, so following it is not enough.
+   *
+   * And it has to take effect where they are standing. Until this shipped, the
+   * resolved language was memoised per component on mount, so writing the
+   * setting changed nothing until a reload — which is the sort of thing that
+   * looks like the setting not working at all.
+   */
+  test('can ask for French anyway, and gets it without reloading', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+    await page.getByRole('button', { name: 'Tools' }).click();
+    await page.getByTestId('language-choice').selectOption('fr');
+
+    await expect(page.getByRole('button', { name: 'Sommaire' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+
+    // The book is not the shell, and did not move.
+    await expect(page.locator('article.prose')).not.toHaveAttribute('lang', 'fr');
+  });
+
+  test('keeps that choice on the next visit', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+    await page.getByRole('button', { name: 'Tools' }).click();
+    await page.getByTestId('language-choice').selectOption('fr');
+    await expect(page.getByRole('button', { name: 'Sommaire' })).toBeVisible();
+
+    await page.reload();
+
+    await expect(page.getByRole('button', { name: 'Sommaire' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+  });
 });
