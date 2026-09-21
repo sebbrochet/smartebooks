@@ -6,23 +6,9 @@ import {
   TEXT_SIZES,
   type ReadingPreferences,
 } from '../store/platformSettings';
+import { useMessages } from '../i18n/messages';
 import { useReadingPreferences } from './useReadingPreferences';
 import { Icon } from './Icon';
-
-/** The words a reader would use, rather than the values they map to. */
-const LABELS: Record<string, string> = {
-  small: 'Small',
-  medium: 'Medium',
-  large: 'Large',
-  xlarge: 'Extra large',
-  tight: 'Tight',
-  normal: 'Normal',
-  loose: 'Loose',
-  narrow: 'Narrow',
-  wide: 'Wide',
-  sans: 'Sans',
-  serif: 'Serif',
-};
 
 /**
  * Type size, spacing, line length and face.
@@ -36,6 +22,7 @@ const LABELS: Record<string, string> = {
  */
 export function ReadingSettings() {
   const { preferences, update, reset } = useReadingPreferences();
+  const words = useMessages();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -74,41 +61,49 @@ export function ReadingSettings() {
         // Named explicitly because the visible label is hidden on a phone, and
         // `display: none` removes text from the accessibility tree as well as
         // from the screen (SPEC009 T10).
-        aria-label="Reading settings"
-        title="Reading settings"
+        aria-label={words.readingSettings}
+        title={words.readingSettings}
         onClick={() => setOpen((was) => !was)}
       >
         <Icon name="text" />
-        <span className="ui-btn__label">Reading</span>
+        <span className="ui-btn__label">{words.readingSettingsShort}</span>
       </button>
 
       <div className="reading-settings__panel" id="reading-settings" hidden={!open}>
         <Choice
-          legend="Text size"
+          name="size"
+          legend={words.textSize}
           options={TEXT_SIZES}
+          labels={words.textSizeName}
           value={preferences.size}
           onChange={(value) => update('size', value)}
         />
         <Choice
-          legend="Line spacing"
+          name="leading"
+          legend={words.lineSpacing}
           options={TEXT_LEADINGS}
+          labels={words.lineSpacingName}
           value={preferences.leading}
           onChange={(value) => update('leading', value)}
         />
         <Choice
-          legend="Line length"
+          name="measure"
+          legend={words.lineLength}
           options={TEXT_MEASURES}
+          labels={words.lineLengthName}
           value={preferences.measure}
           onChange={(value) => update('measure', value)}
         />
         <Choice
-          legend="Typeface"
+          name="face"
+          legend={words.typeface}
           options={TEXT_FACES}
+          labels={words.typefaceName}
           value={preferences.face}
           onChange={(value) => update('face', value)}
         />
         <button type="button" className="reading-settings__reset" onClick={reset}>
-          Reset to defaults
+          {words.resetToDefaults}
         </button>
       </div>
     </div>
@@ -123,18 +118,21 @@ export function ReadingSettings() {
  * for without a label per button.
  */
 function Choice<T extends string>({
+  name,
   legend,
   options,
+  labels,
   value,
   onChange,
 }: {
+  /** Stable, and not derived from the legend: the legend is translated. */
+  name: string;
   legend: string;
   options: T[];
+  labels: Record<T, string>;
   value: T;
   onChange: (value: T) => void;
 }) {
-  const name = `reading-${legend.replace(/\s+/g, '-').toLowerCase()}`;
-
   return (
     <fieldset className="reading-settings__group">
       <legend>{legend}</legend>
@@ -143,12 +141,12 @@ function Choice<T extends string>({
           <label key={option} className={option === value ? 'is-selected' : undefined}>
             <input
               type="radio"
-              name={name}
+              name={`reading-${name}`}
               value={option}
               checked={option === value}
               onChange={() => onChange(option)}
             />
-            {LABELS[option] ?? option}
+            {labels[option]}
           </label>
         ))}
       </div>

@@ -1,5 +1,13 @@
 import { createContext, useContext, useMemo } from 'react';
-import { getLanguageChoice, type LanguageChoice, type Theme } from '../store/platformSettings';
+import {
+  getLanguageChoice,
+  type LanguageChoice,
+  type TextFace,
+  type TextLeading,
+  type TextMeasure,
+  type TextSize,
+  type Theme,
+} from '../store/platformSettings';
 
 /**
  * What the **shell** says out loud (SPEC015).
@@ -43,6 +51,44 @@ export interface Messages {
   islandBroken: string;
   /** An island the book asked for and an *imported* book is not allowed to run. */
   islandBlocked: string;
+
+  /** The control's accessible name; the visible one is shortened to fit a phone. */
+  readingSettings: string;
+  readingSettingsShort: string;
+  textSize: string;
+  lineSpacing: string;
+  lineLength: string;
+  typeface: string;
+  resetToDefaults: string;
+  /**
+   * One record per setting, though `normal` appears in two of them.
+   *
+   * Sharing a single map keyed by the value looked like deduplication and is a
+   * translation bug: in French the spacing is an *interligne* and the measure a
+   * *longueur*, so the same English "Normal" has to be `Normal` in one and
+   * `Normale` in the other.
+   */
+  textSizeName: Record<TextSize, string>;
+  lineSpacingName: Record<TextLeading, string>;
+  lineLengthName: Record<TextMeasure, string>;
+  typefaceName: Record<TextFace, string>;
+
+  /** The dialog's accessible name. The book's title is never translated. */
+  searchIn: (title: string) => string;
+  searchThisBook: string;
+  searchPlaceholder: string;
+  close: string;
+  searchPrompt: string;
+  searchNoMatches: string;
+  /**
+   * *"9 matching passages in 2 chapters"*, as one sentence.
+   *
+   * It was assembled in the JSX from two counts and two ternaries, which is the
+   * shape `words.ts` warns about: the agreement is not ours to assume. French
+   * inflects the participle as well as the noun, and keeps the singular at
+   * zero where English does not.
+   */
+  searchCount: (passages: number, chapters: number) => string;
 }
 
 const EN: Messages = {
@@ -53,6 +99,26 @@ const EN: Messages = {
   themeTitle: (name) => `Theme: ${name}`,
   islandBroken: 'This part of the book could not be shown.',
   islandBlocked: 'Imported books are not allowed to play this.',
+  readingSettings: 'Reading settings',
+  readingSettingsShort: 'Reading',
+  textSize: 'Text size',
+  lineSpacing: 'Line spacing',
+  lineLength: 'Line length',
+  typeface: 'Typeface',
+  resetToDefaults: 'Reset to defaults',
+  textSizeName: { small: 'Small', medium: 'Medium', large: 'Large', xlarge: 'Extra large' },
+  lineSpacingName: { tight: 'Tight', normal: 'Normal', loose: 'Loose' },
+  lineLengthName: { narrow: 'Narrow', normal: 'Normal', wide: 'Wide' },
+  typefaceName: { sans: 'Sans', serif: 'Serif' },
+  searchIn: (title) => `Search ${title}`,
+  searchThisBook: 'Search this book',
+  searchPlaceholder: 'Search this book…',
+  close: 'Close',
+  searchPrompt: 'Type to search this book.',
+  searchNoMatches: 'No matches.',
+  searchCount: (passages, chapters) =>
+    `${passages} matching ${passages === 1 ? 'passage' : 'passages'} in ` +
+    `${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}`,
 };
 
 // U+00A0 before the colon, which is what French typography wants and what a
@@ -65,6 +131,30 @@ const FR: Messages = {
   themeTitle: (name) => `Thème\u00a0: ${name}`,
   islandBroken: 'Cette partie du livre n’a pas pu être affichée.',
   islandBlocked: 'Un livre importé n’est pas autorisé à lire ce contenu.',
+  readingSettings: 'Réglages de lecture',
+  readingSettingsShort: 'Lecture',
+  textSize: 'Taille du texte',
+  lineSpacing: 'Interligne',
+  lineLength: 'Longueur de ligne',
+  typeface: 'Police',
+  resetToDefaults: 'Rétablir les valeurs par défaut',
+  textSizeName: { small: 'Petite', medium: 'Moyenne', large: 'Grande', xlarge: 'Très grande' },
+  // *Interligne* is masculine and *longueur* feminine, which is the whole
+  // reason these are two records and not one.
+  lineSpacingName: { tight: 'Serré', normal: 'Normal', loose: 'Aéré' },
+  lineLengthName: { narrow: 'Étroite', normal: 'Normale', wide: 'Large' },
+  typefaceName: { sans: 'Sans empattement', serif: 'Avec empattements' },
+  searchIn: (title) => `Rechercher dans ${title}`,
+  searchThisBook: 'Rechercher dans ce livre',
+  searchPlaceholder: 'Rechercher dans ce livre…',
+  close: 'Fermer',
+  searchPrompt: 'Saisissez un mot à rechercher.',
+  searchNoMatches: 'Aucun résultat.',
+  // The participle agrees as well as the noun, and French keeps the singular at
+  // one *and* at zero — which is why this is a sentence and not two ternaries.
+  searchCount: (passages, chapters) =>
+    `${passages} passage${passages > 1 ? 's' : ''} trouvé${passages > 1 ? 's' : ''} ` +
+    `dans ${chapters} chapitre${chapters > 1 ? 's' : ''}`,
 };
 
 export type Language = 'en' | 'fr';

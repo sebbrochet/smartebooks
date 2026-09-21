@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Book, Chapter } from '../types';
+import { useMessages } from '../i18n/messages';
 import { highlight } from './search';
 import { buildIndex, queryIndex, completeTerm, tokenize, type PassageHit } from './searchIndex';
 import { readerHref, type Heading } from '../markdown/headings';
@@ -43,6 +44,7 @@ interface Row {
  * pages (N15).
  */
 export function SearchOverlay({ book, basePath, open, onClose, scope }: SearchOverlayProps) {
+  const words = useMessages();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -206,17 +208,17 @@ export function SearchOverlay({ book, basePath, open, onClose, scope }: SearchOv
         className="search-overlay__panel"
         role="dialog"
         aria-modal="true"
-        aria-label={`Search ${book.meta.title}`}
+        aria-label={words.searchIn(book.meta.title)}
       >
         <div className="search-overlay__field">
           <label htmlFor="book-search" className="visually-hidden">
-            Search this book
+            {words.searchThisBook}
           </label>
           <input
             ref={inputRef}
             id="book-search"
             type="search"
-            placeholder="Search this book…"
+            placeholder={words.searchPlaceholder}
             autoComplete="off"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -228,7 +230,7 @@ export function SearchOverlay({ book, basePath, open, onClose, scope }: SearchOv
             aria-activedescendant={rows.length > 0 ? `search-result-${selected}` : undefined}
           />
           <button type="button" className="search-overlay__close" onClick={onClose}>
-            Close
+            {words.close}
           </button>
         </div>
 
@@ -236,13 +238,12 @@ export function SearchOverlay({ book, basePath, open, onClose, scope }: SearchOv
             the reader something "2 results" does not (N12). */}
         <p className="search-overlay__meta" role="status">
           {query.trim() === '' ? (
-            'Type to search this book.'
+            words.searchPrompt
           ) : passageCount === 0 ? (
-            'No matches.'
+            words.searchNoMatches
           ) : (
             <>
-              {passageCount} matching {passageCount === 1 ? 'passage' : 'passages'} in{' '}
-              {chapterCount} {chapterCount === 1 ? 'chapter' : 'chapters'}
+              {words.searchCount(passageCount, chapterCount)}
               {completion && (
                 <>
                   {' · '}

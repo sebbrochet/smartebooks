@@ -23,6 +23,24 @@ test.describe('a reader whose browser asks for French', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await expect(page.locator('article.prose')).not.toHaveAttribute('lang', 'fr');
   });
+
+  /*
+   * The risk translation actually carries is length. French runs longer than
+   * English, "Avec empattements" is three times the width of "Serif", and a
+   * panel sized around English is where that shows up first.
+   */
+  test('can read the reading settings without the panel bursting', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+    await page.getByRole('button', { name: 'Réglages de lecture' }).click();
+
+    const panel = page.locator('.reading-settings__panel');
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText('Interligne')).toBeVisible();
+    await expect(panel.getByRole('radio', { name: 'Avec empattements' })).toBeVisible();
+
+    const overflowing = await panel.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    expect(overflowing).toBe(false);
+  });
 });
 
 test.describe('a reader whose browser asks for something we do not speak', () => {

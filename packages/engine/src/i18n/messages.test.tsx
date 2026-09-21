@@ -153,4 +153,37 @@ describe('a message that carries a value', () => {
       'Thème\u00a0: Sombre. Activer pour changer.',
     );
   });
+
+  /*
+   * This used to be two counts and two ternaries in the JSX, which can only
+   * ever inflect a noun. French inflects the participle with it.
+   */
+  it('agrees a count with the words around it', () => {
+    expect(messagesFor('en').searchCount(1, 1)).toBe('1 matching passage in 1 chapter');
+    expect(messagesFor('en').searchCount(9, 2)).toBe('9 matching passages in 2 chapters');
+
+    expect(messagesFor('fr').searchCount(1, 1)).toBe('1 passage trouvé dans 1 chapitre');
+    expect(messagesFor('fr').searchCount(9, 2)).toBe('9 passages trouvés dans 2 chapitres');
+  });
+});
+
+/**
+ * One record per setting rather than one keyed by the stored value. Sharing it
+ * looked like deduplication and hid a translation bug: the same English
+ * "Normal" belongs to a masculine noun in one setting and a feminine one in the
+ * other.
+ */
+describe('two settings that share an English word', () => {
+  it('do not have to share the French one', () => {
+    const fr = messagesFor('fr');
+
+    expect(fr.lineSpacingName.normal).toBe('Normal');
+    expect(fr.lineLengthName.normal).toBe('Normale');
+  });
+
+  it('still share it where English is the same word', () => {
+    const en = messagesFor('en');
+
+    expect(en.lineSpacingName.normal).toBe(en.lineLengthName.normal);
+  });
 });
