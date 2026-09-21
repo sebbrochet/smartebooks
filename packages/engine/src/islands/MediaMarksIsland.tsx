@@ -1,4 +1,5 @@
 import { useMediaLesson, useSequence } from './mediaContext';
+import { useMessages } from '../i18n/messages';
 import { formatTime } from './timedMedia';
 import './timedMedia.css';
 
@@ -17,11 +18,15 @@ import './timedMedia.css';
 export default function MediaMarksIsland() {
   const lesson = useMediaLesson();
   const sequence = useSequence();
+  const words = useMessages();
 
   if (!lesson || !sequence) {
+    // Missed by the L1.6 sweep: an authoring mistake, told to the reader in the
+    // author's vocabulary. The console keeps the detail.
+    console.warn('`::media-marks` has to be inside a `:::media-lesson`.');
     return (
       <div className="island island--unknown" role="note">
-        <code>::media-marks</code> has to be inside a <code>:::media-lesson</code>.
+        {words.islandBroken}
       </div>
     );
   }
@@ -29,13 +34,13 @@ export default function MediaMarksIsland() {
   if (lesson.marks.length === 0) {
     return (
       <div className="island island--unknown" role="note">
-        This lesson has no marks to show.
+        {words.mediaNoMarks}
       </div>
     );
   }
 
   return (
-    <nav className="island media-marks" aria-label="Moments in this recording">
+    <nav className="island media-marks" aria-label={words.mediaMoments}>
       <ol className="media-marks__list">
         {lesson.marks.map((mark) => {
           const position = String(mark.at);

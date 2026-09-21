@@ -51,7 +51,7 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
   const { trusted } = useBook();
   const online = useOnline();
   const src = attrText(attributes.src);
-  const title = attrText(attributes.title, 'Video');
+  const title = attrText(attributes.title, words.video);
   const fromPackage = packagedAssets.includes('src');
   const embed = useMemo(() => toYouTubeEmbed(src), [src]);
   const [watched, setWatched] = usePersistentState<boolean>(`media:${id}`, false);
@@ -108,10 +108,10 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
               type="button"
               className="video__facade"
               onClick={play}
-              aria-label={`Play ${title} (loads from YouTube)`}
+              aria-label={words.videoFacadePlay(title)}
             >
               <span className="video__play" aria-hidden="true" />
-              <span className="video__notice">Loads from YouTube when you press play</span>
+              <span className="video__notice">{words.videoFacadeNotice}</span>
             </button>
           )}
         </div>
@@ -125,7 +125,7 @@ export function VideoIsland({ id, attributes, packagedAssets }: IslandComponentP
       <figcaption>{title}</figcaption>
       {needsNetwork && (
         <p className="island__offline" role="note">
-          This video is not part of the book and needs a connection to play.
+          {words.videoOffline}
         </p>
       )}
     </figure>

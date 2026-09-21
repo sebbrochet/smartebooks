@@ -150,6 +150,31 @@ export interface Messages {
   resumeContinueNow: string;
   resumeGoToLibrary: string;
   resuming: (title: string) => string;
+
+  /** Used when the author gave the media no title of their own. */
+  audio: string;
+  video: string;
+  audioOffline: string;
+  videoOffline: string;
+  videoFacadeNotice: string;
+  videoFacadePlay: (title: string) => string;
+  mediaMoments: string;
+  mediaNoMarks: string;
+  checkpointDefault: string;
+  flashcardFront: string;
+  flashcardBack: string;
+  flashcardGrading: string;
+  flashcardGrade: Record<'again' | 'good' | 'easy', string>;
+  flashcardStreak: (reps: number) => string;
+  matchingSolved: (moves: number) => string;
+  matchingBest: (best: number) => string;
+  matchingMoves: (moves: number) => string;
+  playAgain: string;
+  reset: string;
+  quiz: string;
+  checkAnswers: string;
+  tryAgain: string;
+  quizScore: (score: number, total: number) => string;
 }
 
 const EN: Messages = {
@@ -250,6 +275,29 @@ const EN: Messages = {
   resumeContinueNow: 'Continue now',
   resumeGoToLibrary: 'Go to library instead',
   resuming: (title) => `Resuming ${title}…`,
+  audio: 'Audio',
+  video: 'Video',
+  audioOffline: 'This audio is not part of the book and needs a connection to play.',
+  videoOffline: 'This video is not part of the book and needs a connection to play.',
+  videoFacadeNotice: 'Loads from YouTube when you press play',
+  videoFacadePlay: (title) => `Play ${title} (loads from YouTube)`,
+  mediaMoments: 'Moments in this recording',
+  mediaNoMarks: 'This lesson has no marks to show.',
+  checkpointDefault: 'Mark this section as complete',
+  flashcardFront: 'Front — tap to reveal',
+  flashcardBack: 'Back — tap to flip back',
+  flashcardGrading: 'How well did you know it?',
+  flashcardGrade: { again: 'Again', good: 'Good', easy: 'Easy' },
+  flashcardStreak: (reps) => `Review streak: ${reps}`,
+  matchingSolved: (moves) => `Solved in ${moves} ${moves === 1 ? 'move' : 'moves'}!`,
+  matchingBest: (best) => `Best: ${best}`,
+  matchingMoves: (moves) => `Moves: ${moves}`,
+  playAgain: 'Play again',
+  reset: 'Reset',
+  quiz: 'Quiz',
+  checkAnswers: 'Check answers',
+  tryAgain: 'Try again',
+  quizScore: (score, total) => `Score: ${score} / ${total}`,
 };
 
 // U+00A0 before the colon, which is what French typography wants and what a
@@ -361,6 +409,29 @@ const FR: Messages = {
   resumeContinueNow: 'Continuer maintenant',
   resumeGoToLibrary: 'Aller à la bibliothèque',
   resuming: (title) => `Reprise de ${title}…`,
+  audio: 'Audio',
+  video: 'Vidéo',
+  audioOffline: 'Cet audio ne fait pas partie du livre et nécessite une connexion pour être lu.',
+  videoOffline: 'Cette vidéo ne fait pas partie du livre et nécessite une connexion pour être lue.',
+  videoFacadeNotice: 'Chargée depuis YouTube quand vous lancez la lecture',
+  videoFacadePlay: (title) => `Lire ${title} (chargement depuis YouTube)`,
+  mediaMoments: 'Moments de cet enregistrement',
+  mediaNoMarks: 'Cette leçon n’a aucun repère à afficher.',
+  checkpointDefault: 'Marquer cette section comme terminée',
+  flashcardFront: 'Recto — appuyez pour révéler',
+  flashcardBack: 'Verso — appuyez pour retourner',
+  flashcardGrading: 'Connaissiez-vous la réponse\u00a0?',
+  flashcardGrade: { again: 'À revoir', good: 'Bien', easy: 'Facile' },
+  flashcardStreak: (reps) => `Série de révisions\u00a0: ${reps}`,
+  matchingSolved: (moves) => `Résolu en ${moves} coup${moves > 1 ? 's' : ''}\u00a0!`,
+  matchingBest: (best) => `Meilleur\u00a0: ${best}`,
+  matchingMoves: (moves) => `Coups\u00a0: ${moves}`,
+  playAgain: 'Rejouer',
+  reset: 'Réinitialiser',
+  quiz: 'Quiz',
+  checkAnswers: 'Vérifier les réponses',
+  tryAgain: 'Réessayer',
+  quizScore: (score, total) => `Score\u00a0: ${score} / ${total}`,
 };
 
 export type Language = 'en' | 'fr';

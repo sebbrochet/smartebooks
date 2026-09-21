@@ -128,13 +128,14 @@ export function MatchingPairsIsland({ id, data }: IslandComponentProps) {
       <div className="matching__status" role="status">
         {solved ? (
           <span>
-            Solved in {moves} moves! {best.best !== null && <em>Best: {best.best}</em>}
+            {words.matchingSolved(moves)}{' '}
+            {best.best !== null && <em>{words.matchingBest(best.best)}</em>}
           </span>
         ) : (
-          <span>Moves: {moves}</span>
+          <span>{words.matchingMoves(moves)}</span>
         )}
         <button type="button" className="matching__reset" onClick={reset}>
-          {solved ? 'Play again' : 'Reset'}
+          {solved ? words.playAgain : words.reset}
         </button>
       </div>
     </div>

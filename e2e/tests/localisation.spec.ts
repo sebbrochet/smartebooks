@@ -52,6 +52,19 @@ test.describe('a reader whose browser asks for French', () => {
     await expect(page.getByText('À mon retour')).toBeVisible();
     await expect(page.getByText('Library', { exact: true })).toHaveCount(0);
   });
+
+  /*
+   * An island's own buttons are a third place the strings can drift: they are
+   * neither the app nor the reader shell, and a reader meets them inside the
+   * book's prose — where the surrounding words are the author's, not ours.
+   */
+  test('is offered a quiz in French, inside prose that stays the author’s', async ({ page }) => {
+    await page.goto('/#/guide/01-getting-started');
+
+    const quiz = page.locator('.island--quiz').first();
+    await expect(quiz.getByRole('button', { name: 'Vérifier les réponses' })).toBeVisible();
+    await expect(quiz.getByRole('button', { name: 'Check answers' })).toHaveCount(0);
+  });
 });
 
 test.describe('a reader whose browser asks for something we do not speak', () => {

@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import type { FlashcardData, IslandComponentProps } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
+import { useMessages } from '../i18n/messages';
 
 type Grade = 'again' | 'good' | 'easy';
+
+const GRADES: Grade[] = ['again', 'good', 'easy'];
 
 interface ReviewState {
   reps: number;
@@ -18,6 +21,7 @@ export function FlashcardIsland({ id, data }: IslandComponentProps) {
   const card = (data ?? { front: '', back: '' }) as FlashcardData;
   const [flipped, setFlipped] = useState(false);
   const [review, setReview] = usePersistentState<ReviewState>(`review:${id}`, { reps: 0 });
+  const words = useMessages();
 
   function grade(g: Grade) {
     setReview({
@@ -38,23 +42,19 @@ export function FlashcardIsland({ id, data }: IslandComponentProps) {
       >
         <span className="flashcard__side">{flipped ? card.back : card.front}</span>
         <span className="flashcard__hint">
-          {flipped ? 'Back — tap to flip back' : 'Front — tap to reveal'}
+          {flipped ? words.flashcardBack : words.flashcardFront}
         </span>
       </button>
       {flipped && (
-        <div className="flashcard__grades" role="group" aria-label="How well did you know it?">
-          <button type="button" onClick={() => grade('again')}>
-            Again
-          </button>
-          <button type="button" onClick={() => grade('good')}>
-            Good
-          </button>
-          <button type="button" onClick={() => grade('easy')}>
-            Easy
-          </button>
+        <div className="flashcard__grades" role="group" aria-label={words.flashcardGrading}>
+          {GRADES.map((value) => (
+            <button key={value} type="button" onClick={() => grade(value)}>
+              {words.flashcardGrade[value]}
+            </button>
+          ))}
         </div>
       )}
-      {review.reps > 0 && <p className="flashcard__reps">Review streak: {review.reps}</p>}
+      {review.reps > 0 && <p className="flashcard__reps">{words.flashcardStreak(review.reps)}</p>}
     </div>
   );
 }

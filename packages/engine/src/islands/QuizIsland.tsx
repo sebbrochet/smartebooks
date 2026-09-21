@@ -3,6 +3,7 @@ import type { IslandComponentProps, QuizQuestion } from '../types';
 import { usePersistentState } from '../store/usePersistentState';
 import { scores } from '../store/store';
 import { useBook } from '../reader/BookContext';
+import { useMessages } from '../i18n/messages';
 import { attrText } from './attributes';
 import { fitsQuiz, quizOrder, type QuizOrder, type Shuffle } from './quizOrder';
 
@@ -22,6 +23,7 @@ interface QuizProgress {
  * scores the reader's answers, and persists the best result locally.
  */
 export function QuizIsland({ id, attributes, data }: IslandComponentProps) {
+  const words = useMessages();
   const { slug } = useBook();
   const questions = useMemo<QuizQuestion[]>(
     () => (Array.isArray(data) ? (data as QuizQuestion[]) : []),
@@ -104,7 +106,7 @@ export function QuizIsland({ id, attributes, data }: IslandComponentProps) {
   }
 
   return (
-    <section className="island island--quiz" aria-label="Quiz">
+    <section className="island island--quiz" aria-label={words.quiz}>
       {/* Walked through the order, so `qi` and `oi` stay the authored indices
           everything else — selections, scoring, the radio group name — uses. */}
       {order.questions.map((qi) => {
@@ -146,15 +148,13 @@ export function QuizIsland({ id, attributes, data }: IslandComponentProps) {
 
       {!state.submitted ? (
         <button type="button" className="quiz__submit" onClick={submit}>
-          Check answers
+          {words.checkAnswers}
         </button>
       ) : (
         <div className="quiz__result" role="status">
-          <strong>
-            Score: {score} / {questions.length}
-          </strong>
+          <strong>{words.quizScore(score, questions.length)}</strong>
           <button type="button" className="quiz__retry" onClick={retry}>
-            Try again
+            {words.tryAgain}
           </button>
         </div>
       )}

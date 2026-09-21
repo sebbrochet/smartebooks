@@ -1,6 +1,7 @@
 import type { IslandComponentProps } from '../types';
 import type { CheckpointState } from '../store/store';
 import { usePersistentState } from '../store/usePersistentState';
+import { useMessages } from '../i18n/messages';
 import { attrText } from './attributes';
 
 type State = CheckpointState;
@@ -10,7 +11,8 @@ type State = CheckpointState;
  * its completion flag locally.
  */
 export function CheckpointIsland({ id, attributes }: IslandComponentProps) {
-  const label = attrText(attributes.label, 'Mark this section as complete');
+  const words = useMessages();
+  const label = attrText(attributes.label, words.checkpointDefault);
   const [state, setState, loaded] = usePersistentState<State>(`progress:${id}`, {
     complete: false,
   });

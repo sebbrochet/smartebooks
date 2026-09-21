@@ -15,7 +15,7 @@ export function AudioIsland({ id, attributes, packagedAssets }: IslandComponentP
   const { trusted } = useBook();
   const online = useOnline();
   const src = attrText(attributes.src);
-  const title = attrText(attributes.title, 'Audio');
+  const title = attrText(attributes.title, words.audio);
   const fromPackage = packagedAssets.includes('src');
   const [played, setPlayed] = usePersistentState<boolean>(`media:${id}`, false);
 
@@ -44,7 +44,7 @@ export function AudioIsland({ id, attributes, packagedAssets }: IslandComponentP
           `useOnline` for why this warns rather than disables. */}
       {!fromPackage && !online && (
         <p className="island__offline" role="note">
-          This audio is not part of the book and needs a connection to play.
+          {words.audioOffline}
         </p>
       )}
     </figure>
