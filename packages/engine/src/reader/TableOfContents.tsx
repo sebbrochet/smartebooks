@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Heading } from '../markdown/headings';
 import { useMediaQuery, NARROW } from './useMediaQuery';
+import { useMessages } from '../i18n/messages';
 import { keepInView } from './keepInView';
 
 interface TableOfContentsProps {
@@ -29,6 +30,7 @@ interface TableOfContentsProps {
  */
 export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsProps) {
   const narrow = useMediaQuery(NARROW);
+  const words = useMessages();
   const [openOnPhone, setOpenOnPhone] = useState(false);
   const railRef = useRef<HTMLElement>(null);
 
@@ -74,12 +76,12 @@ export function TableOfContents({ headings, linkTo, activeId }: TableOfContentsP
             onClick={() => setOpenOnPhone((previous) => !previous)}
           >
             <span className="toc__marker" aria-hidden="true" />
-            On this page
+            {words.onThisPage}
           </button>
         </h2>
       ) : (
         <h2 className="toc__title" id="toc-title">
-          On this page
+          {words.onThisPage}
         </h2>
       )}
       <ul className="toc__list" id="toc-list" hidden={!listVisible}>

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { renderMarkdown } from '../markdown/render';
 import { sectionLinker, type Unit } from '../markdown/headings';
 import { UnitProvider } from './BookContext';
+import { useMessages } from '../i18n/messages';
 import type { Book, Chapter } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
 
@@ -42,6 +43,7 @@ export function ChapterView({
   section,
   units = [],
 }: ChapterViewProps) {
+  const words = useMessages();
   const linkTo = useMemo(
     () => sectionLinker(basePath, chapter.slug, Boolean(book.descriptor.unitDepth)),
     [basePath, chapter.slug, book.descriptor.unitDepth],
@@ -111,7 +113,7 @@ export function ChapterView({
        * over a whole act nobody earned.
        */}
       {!book.descriptor.unitDepth && (
-        <nav className="chapter-nav" aria-label="Chapter navigation">
+        <nav className="chapter-nav" aria-label={words.chapterNavigation}>
           {prev ? (
             <a className="chapter-nav__prev" href={`#${basePath}/${prev.slug}`}>
               <span aria-hidden="true">←</span> {prev.title}

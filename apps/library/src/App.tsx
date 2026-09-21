@@ -9,6 +9,7 @@ import {
   getLastRead,
   reading,
   setLastRead,
+  useMessages,
 } from '@smart-ebooks/engine';
 import { useShelfBooks } from './useShelfBooks';
 import { useServiceWorker } from './useServiceWorker';
@@ -62,6 +63,7 @@ export default function App() {
    * measured 97px in four rows (SPEC009 T10).
    */
   const [toolsOpen, setToolsOpen] = useState(false);
+  const words = useMessages();
 
   // Reopening on every navigation would put the panel back over the text.
   useEffect(() => setToolsOpen(false), [route]);
@@ -223,12 +225,12 @@ export default function App() {
         className="ui-btn reader__tools-toggle"
         aria-expanded={toolsOpen}
         aria-controls="reader-tools"
-        aria-label="Tools"
-        title="Tools"
+        aria-label={words.tools}
+        title={words.tools}
         onClick={() => setToolsOpen((open) => !open)}
       >
         <Icon name="more" />
-        <span className="ui-btn__label">Tools</span>
+        <span className="ui-btn__label">{words.tools}</span>
       </button>
       <div className="reader__tools" id="reader-tools" hidden={!toolsOpen}>
         <BackupControls bookSlug={activeBook?.meta.slug} />
@@ -241,7 +243,7 @@ export default function App() {
               setResetting({ slug: activeBook.meta.slug, title: activeBook.meta.title })
             }
           >
-            Reset progress
+            {words.resetProgress}
           </button>
         )}
       </div>
@@ -251,7 +253,7 @@ export default function App() {
   return (
     <div className="reader">
       <a className="skip-link" href="#main">
-        Skip to content
+        {words.skipToContent}
       </a>
       {updateReady && (
         /*
@@ -261,9 +263,9 @@ export default function App() {
          * same reason: announce it, do not interrupt.
          */
         <div className="app-update" role="status">
-          <span>A new version of Smart Ebooks is ready.</span>
+          <span>{words.updateReady}</span>
           <button type="button" onClick={update}>
-            Reload to update
+            {words.reloadToUpdate}
           </button>
         </div>
       )}
@@ -303,9 +305,14 @@ export default function App() {
            * nowhere to go (SPEC009 T10).
            */
           leading={
-            <a className="ui-btn reader__home" href="#/" aria-label="Library" title="Library">
+            <a
+              className="ui-btn reader__home"
+              href="#/"
+              aria-label={words.library}
+              title={words.library}
+            >
               <Icon name="back" />
-              <span className="ui-btn__label">Library</span>
+              <span className="ui-btn__label">{words.library}</span>
             </a>
           }
           actions={tools}
@@ -318,8 +325,8 @@ export default function App() {
 
       {resetting && (
         <ConfirmDialog
-          title={`Reset your progress in ${resetting.title}?`}
-          confirmLabel="Reset progress"
+          title={words.resetProgressIn(resetting.title)}
+          confirmLabel={words.resetProgress}
           onCancel={() => setResetting(undefined)}
           onConfirm={() => {
             const { slug } = resetting;
@@ -327,23 +334,15 @@ export default function App() {
             void resetBook(slug);
           }}
         >
-          <p>
-            This clears every quiz score, checkpoint and reading position for this book on this
-            device.
-          </p>
+          <p>{words.resetProgressClears}</p>
           {/* Delete's dialog can promise the book comes back. This one cannot,
               so it points at the only thing that would have made it reversible
               — and says so before the reader finds out afterwards. */}
-          <p>
-            It cannot be undone. If you want to keep a copy, cancel and use <b>Export progress</b>{' '}
-            first.
-          </p>
+          <p>{words.resetProgressUndone(words.exportProgress)}</p>
         </ConfirmDialog>
       )}
 
-      <footer className="reader__footer">
-        Your progress and scores are stored locally in your browser. Nothing is sent to a server.
-      </footer>
+      <footer className="reader__footer">{words.resetProgressStorage}</footer>
     </div>
   );
 }

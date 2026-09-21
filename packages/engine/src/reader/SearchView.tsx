@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Book } from '../types';
+import { useMessages } from '../i18n/messages';
 import { searchChapters } from './search';
 
 interface SearchViewProps {
@@ -10,12 +11,13 @@ interface SearchViewProps {
 
 export function SearchView({ book, basePath, query }: SearchViewProps) {
   const results = useMemo(() => searchChapters(book.chapters, query), [book.chapters, query]);
+  const words = useMessages();
 
   return (
-    <section className="search-view" aria-label="Search results">
-      <h1>Search{query ? `: “${query}”` : ''}</h1>
-      {query && results.length === 0 && <p>No results found.</p>}
-      {!query && <p>Type a term in the search box to find content across this book.</p>}
+    <section className="search-view" aria-label={words.searchResults}>
+      <h1>{words.searchHeading(query)}</h1>
+      {query && results.length === 0 && <p>{words.searchViewEmpty}</p>}
+      {!query && <p>{words.searchViewHint}</p>}
       <ul className="search-view__list">
         {results.map((result) => (
           <li key={result.slug}>

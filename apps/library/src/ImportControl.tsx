@@ -6,6 +6,7 @@ import {
   orphanedState,
   parseSmartbook,
   previewImport,
+  useMessages,
   type ImportedPackage,
 } from '@smart-ebooks/engine';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -31,6 +32,7 @@ import { warmIslandPacks } from './islandPacks';
  * library and to pull down the code the book's islands need (SPEC003 E2.1).
  */
 export function ImportControl({ onImported }: { onImported: () => void }) {
+  const words = useMessages();
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, setPending] = useState<{
@@ -64,10 +66,13 @@ export function ImportControl({ onImported }: { onImported: () => void }) {
 
     setStatus(
       orphans.length === 0
-        ? `Imported “${stored.descriptor.title}”.`
-        : `Imported “${stored.descriptor.title}”. ${orphans.length} saved ${
-            orphans.length === 1 ? 'answer is' : 'answers are'
-          } not in this edition (${named}${orphans.length > 3 ? '…' : ''}). Nothing was deleted.`,
+        ? words.importedTitled(stored.descriptor.title)
+        : words.importedWithOrphans(
+            stored.descriptor.title,
+            orphans.length,
+            named,
+            orphans.length > 3,
+          ),
     );
     onImported();
   }
@@ -91,14 +96,14 @@ export function ImportControl({ onImported }: { onImported: () => void }) {
 
       await store(pkg);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Import failed.');
+      setStatus(error instanceof Error ? error.message : words.importFailed);
     }
   }
 
   return (
     <div className="shelf__import">
       <button type="button" className="reader__reset" onClick={() => fileRef.current?.click()}>
-        Import book
+        {words.importBook}
       </button>
       <input
         ref={fileRef}
@@ -120,11 +125,11 @@ export function ImportControl({ onImported }: { onImported: () => void }) {
 
       {pending && (
         <ConfirmDialog
-          title={`Replace ${pending.pkg.descriptor.title} with an older edition?`}
-          confirmLabel="Import anyway"
+          title={words.replaceWithOlder(pending.pkg.descriptor.title)}
+          confirmLabel={words.importAnyway}
           onCancel={() => {
             setPending(undefined);
-            setStatus('Import cancelled — you kept the edition you had.');
+            setStatus(words.importCancelled);
           }}
           onConfirm={() => {
             const { pkg } = pending;
@@ -132,13 +137,15 @@ export function ImportControl({ onImported }: { onImported: () => void }) {
             void store(pkg);
           }}
         >
+          {/* Both editions are optional on a descriptor, and this dialog only
+              opens when one was compared against the other — the old markup
+              rendered `undefined` as nothing, and so does this. */}
           <p>
-            This file is edition <b>{pending.pkg.descriptor.edition}</b>. You already have{' '}
-            <b>{pending.replaced}</b>, which is newer.
+            {words.replaceEditions(pending.pkg.descriptor.edition ?? '', pending.replaced ?? '')}
           </p>
           {/* Said plainly, because the reader cannot see it: the risk here is
               to the book's text, not to their work. */}
-          <p>Your progress is kept either way, but the book’s text will go back.</p>
+          <p>{words.replaceKeepsProgress}</p>
         </ConfirmDialog>
       )}
     </div>

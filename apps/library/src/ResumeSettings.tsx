@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { getResumeMode, setResumeMode, type ResumeMode } from '@smart-ebooks/engine';
+import { getResumeMode, setResumeMode, useMessages, type ResumeMode } from '@smart-ebooks/engine';
 
-const LABELS: Record<ResumeMode, string> = {
-  shelf: 'Always show my library',
-  instant: 'Open my last book',
-  cover: 'Open my last book, with its cover',
-};
+const MODES: ResumeMode[] = ['shelf', 'instant', 'cover'];
 
 /**
  * How the platform should open on a return visit. A device preference, so it
@@ -13,10 +9,11 @@ const LABELS: Record<ResumeMode, string> = {
  */
 export function ResumeSettings() {
   const [mode, setMode] = useState<ResumeMode>(() => getResumeMode());
+  const words = useMessages();
 
   return (
     <label className="shelf__setting">
-      <span>When I come back</span>
+      <span>{words.resumeWhenIComeBack}</span>
       <select
         value={mode}
         data-testid="resume-mode"
@@ -26,9 +23,9 @@ export function ResumeSettings() {
           setResumeMode(next);
         }}
       >
-        {(Object.keys(LABELS) as ResumeMode[]).map((value) => (
+        {MODES.map((value) => (
           <option key={value} value={value}>
-            {LABELS[value]}
+            {words.resumeModeName[value]}
           </option>
         ))}
       </select>

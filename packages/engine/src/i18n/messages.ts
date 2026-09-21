@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo } from 'react';
 import {
   getLanguageChoice,
   type LanguageChoice,
+  type ResumeMode,
   type TextFace,
   type TextLeading,
   type TextMeasure,
@@ -89,6 +90,66 @@ export interface Messages {
    * zero where English does not.
    */
   searchCount: (passages: number, chapters: number) => string;
+
+  chapterNavigation: string;
+  bookNavigation: string;
+  onThisPage: string;
+  searchResults: string;
+  /** Empty query gives the bare word; a query is quoted the way the language quotes. */
+  searchHeading: (query: string) => string;
+  /** The search *view*, which is a page; `searchNoMatches` is the overlay. */
+  searchViewEmpty: string;
+  searchViewHint: string;
+  overviewOf: (title: string) => string;
+  chapterCount: (chapters: number) => string;
+  quizzesAnswered: (taken: number, total: number) => string;
+  pointsScored: (score: number, points: number) => string;
+  noQuiz: string;
+  pointsUnanswered: (points: number) => string;
+  chapterScore: (score: number, points: number, taken: number, quizzes: number) => string;
+
+  library: string;
+  tools: string;
+  skipToContent: string;
+  updateReady: string;
+  reloadToUpdate: string;
+  imported: string;
+  resumeWhenIComeBack: string;
+  resumeModeName: Record<ResumeMode, string>;
+  exportProgress: string;
+  exportProgressHint: (scope: string) => string;
+  scopeThisBook: string;
+  scopeAllBooks: string;
+  importProgress: string;
+  importProgressHint: string;
+  importFailed: string;
+  importedCounts: (entries: number, books: number) => string;
+  exportBook: string;
+  exportBookHint: string;
+  importBook: string;
+  importedTitled: (title: string) => string;
+  /** Answers kept from an edition that no longer has the questions (SPEC003 E1.2). */
+  importedWithOrphans: (title: string, orphans: number, named: string, more: boolean) => string;
+  importCancelled: string;
+  importAnyway: string;
+  replaceWithOlder: (title: string) => string;
+  replaceEditions: (incoming: string, held: string) => string;
+  replaceKeepsProgress: string;
+  deleteBook: string;
+  deleteAction: string;
+  shelfIntro: string;
+  deleteKeepsFile: string;
+  deleteBookTitled: (title: string) => string;
+  deleteImportedBook: (title: string) => string;
+  deleteRemovesFromLibrary: string;
+  resetProgress: string;
+  resetProgressIn: (title: string) => string;
+  resetProgressClears: string;
+  resetProgressStorage: string;
+  resetProgressUndone: (exportLabel: string) => string;
+  resumeContinueNow: string;
+  resumeGoToLibrary: string;
+  resuming: (title: string) => string;
 }
 
 const EN: Messages = {
@@ -119,6 +180,76 @@ const EN: Messages = {
   searchCount: (passages, chapters) =>
     `${passages} matching ${passages === 1 ? 'passage' : 'passages'} in ` +
     `${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}`,
+  chapterNavigation: 'Chapter navigation',
+  bookNavigation: 'Book navigation',
+  onThisPage: 'On this page',
+  searchResults: 'Search results',
+  searchHeading: (query) => (query ? `Search: “${query}”` : 'Search'),
+  searchViewEmpty: 'No results found.',
+  searchViewHint: 'Type a term in the search box to find content across this book.',
+  overviewOf: (title) => `Overview of ${title}`,
+  chapterCount: (chapters) => `${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}`,
+  quizzesAnswered: (taken, total) => `${taken} of ${total} quizzes answered`,
+  pointsScored: (score, points) => `${score}/${points} points`,
+  noQuiz: 'No quiz',
+  pointsUnanswered: (points) => `${points} ${points === 1 ? 'point' : 'points'} unanswered`,
+  chapterScore: (score, points, taken, quizzes) =>
+    `${score}/${points} points · ${taken}/${quizzes} quizzes`,
+  library: 'Library',
+  tools: 'Tools',
+  skipToContent: 'Skip to content',
+  updateReady: 'A new version of Smart Ebooks is ready.',
+  reloadToUpdate: 'Reload to update',
+  imported: 'Imported',
+  resumeWhenIComeBack: 'When I come back',
+  resumeModeName: {
+    shelf: 'Always show my library',
+    instant: 'Open my last book',
+    cover: 'Open my last book, with its cover',
+  },
+  exportProgress: 'Export progress',
+  exportProgressHint: (scope) => `Download a backup of progress for ${scope}`,
+  scopeThisBook: 'this book',
+  scopeAllBooks: 'all books',
+  importProgress: 'Import progress',
+  importProgressHint: 'Restore progress from a backup file',
+  importFailed: 'Import failed.',
+  importedCounts: (entries, books) =>
+    `Imported ${entries} item${entries === 1 ? '' : 's'} across ` +
+    `${books} book${books === 1 ? '' : 's'}.`,
+  exportBook: 'Export book',
+  exportBookHint: 'Download this book as a .smartbook package',
+  importBook: 'Import book',
+  importedTitled: (title) => `Imported “${title}”.`,
+  importedWithOrphans: (title, orphans, named, more) =>
+    `Imported “${title}”. ${orphans} saved ${orphans === 1 ? 'answer is' : 'answers are'} ` +
+    `not in this edition (${named}${more ? '…' : ''}). Nothing was deleted.`,
+  importCancelled: 'Import cancelled — you kept the edition you had.',
+  importAnyway: 'Import anyway',
+  replaceWithOlder: (title) => `Replace ${title} with an older edition?`,
+  replaceEditions: (incoming, held) =>
+    `This file is edition ${incoming}. You already have ${held}, which is newer.`,
+  replaceKeepsProgress: 'Your progress is kept either way, but the book’s text will go back.',
+  deleteBook: 'Delete book',
+  deleteAction: 'Delete',
+  shelfIntro:
+    'Every book below runs on the same Smart Ebooks engine. Pick one to start reading, or import a .smartbook package.',
+  deleteKeepsFile:
+    'The .smartbook file on your computer is not touched, and your progress and scores are kept if you import this book again.',
+  deleteBookTitled: (title) => `Delete ${title}?`,
+  deleteImportedBook: (title) => `Delete imported book ${title}`,
+  deleteRemovesFromLibrary: 'This removes the book from your library.',
+  resetProgress: 'Reset progress',
+  resetProgressIn: (title) => `Reset your progress in ${title}?`,
+  resetProgressClears:
+    'This clears every quiz score, checkpoint and reading position for this book on this device.',
+  resetProgressStorage:
+    'Your progress and scores are stored locally in your browser. Nothing is sent to a server.',
+  resetProgressUndone: (exportLabel) =>
+    `It cannot be undone. If you want to keep a copy, cancel and use ${exportLabel} first.`,
+  resumeContinueNow: 'Continue now',
+  resumeGoToLibrary: 'Go to library instead',
+  resuming: (title) => `Resuming ${title}…`,
 };
 
 // U+00A0 before the colon, which is what French typography wants and what a
@@ -155,6 +286,81 @@ const FR: Messages = {
   searchCount: (passages, chapters) =>
     `${passages} passage${passages > 1 ? 's' : ''} trouvé${passages > 1 ? 's' : ''} ` +
     `dans ${chapters} chapitre${chapters > 1 ? 's' : ''}`,
+  chapterNavigation: 'Navigation entre chapitres',
+  bookNavigation: 'Navigation dans le livre',
+  onThisPage: 'Sur cette page',
+  searchResults: 'Résultats de recherche',
+  // Guillemets, and the space before the colon: both belong to the language.
+  searchHeading: (query) => (query ? `Recherche\u00a0: «\u00a0${query}\u00a0»` : 'Recherche'),
+  searchViewEmpty: 'Aucun résultat.',
+  searchViewHint: 'Saisissez un terme dans la zone de recherche pour parcourir ce livre.',
+  overviewOf: (title) => `Vue d’ensemble de ${title}`,
+  chapterCount: (chapters) => `${chapters} chapitre${chapters > 1 ? 's' : ''}`,
+  // *Quiz* does not take an -s in French; the participle agreeing with it does.
+  quizzesAnswered: (taken, total) => `${taken} quiz sur ${total} complété${taken > 1 ? 's' : ''}`,
+  pointsScored: (score, points) => `${score}/${points} points`,
+  noQuiz: 'Aucun quiz',
+  pointsUnanswered: (points) => `${points} point${points > 1 ? 's' : ''} en attente`,
+  chapterScore: (score, points, taken, quizzes) =>
+    `${score}/${points} points · ${taken}/${quizzes} quiz`,
+  library: 'Bibliothèque',
+  tools: 'Outils',
+  skipToContent: 'Aller au contenu',
+  updateReady: 'Une nouvelle version de Smart Ebooks est disponible.',
+  reloadToUpdate: 'Recharger pour mettre à jour',
+  imported: 'Importé',
+  resumeWhenIComeBack: 'À mon retour',
+  resumeModeName: {
+    shelf: 'Toujours afficher ma bibliothèque',
+    instant: 'Ouvrir mon dernier livre',
+    cover: 'Ouvrir mon dernier livre, avec sa couverture',
+  },
+  exportProgress: 'Exporter ma progression',
+  exportProgressHint: (scope) => `Télécharger une sauvegarde de la progression pour ${scope}`,
+  scopeThisBook: 'ce livre',
+  scopeAllBooks: 'tous les livres',
+  importProgress: 'Importer une progression',
+  importProgressHint: 'Restaurer la progression depuis un fichier de sauvegarde',
+  importFailed: 'L’import a échoué.',
+  importedCounts: (entries, books) =>
+    `${entries} élément${entries > 1 ? 's' : ''} importé${entries > 1 ? 's' : ''} ` +
+    `dans ${books} livre${books > 1 ? 's' : ''}.`,
+  exportBook: 'Exporter le livre',
+  exportBookHint: 'Télécharger ce livre au format .smartbook',
+  importBook: 'Importer un livre',
+  importedTitled: (title) => `«\u00a0${title}\u00a0» importé.`,
+  importedWithOrphans: (title, orphans, named, more) =>
+    `«\u00a0${title}\u00a0» importé. ${orphans} réponse${orphans > 1 ? 's' : ''} enregistrée${
+      orphans > 1 ? 's' : ''
+    } ${orphans > 1 ? 'ne figurent' : 'ne figure'} pas dans cette édition ` +
+    `(${named}${more ? '…' : ''}). Rien n’a été supprimé.`,
+  importCancelled: 'Import annulé — vous avez gardé l’édition que vous aviez.',
+  importAnyway: 'Importer quand même',
+  replaceWithOlder: (title) => `Remplacer ${title} par une édition plus ancienne\u00a0?`,
+  replaceEditions: (incoming, held) =>
+    `Ce fichier est l’édition ${incoming}. Vous avez déjà ${held}, qui est plus récente.`,
+  replaceKeepsProgress:
+    'Votre progression est conservée dans les deux cas, mais le texte du livre reviendra en arrière.',
+  deleteBook: 'Supprimer le livre',
+  deleteAction: 'Supprimer',
+  shelfIntro:
+    'Chaque livre ci-dessous fonctionne sur le même moteur Smart Ebooks. Choisissez-en un pour commencer, ou importez un paquet .smartbook.',
+  deleteKeepsFile:
+    'Le fichier .smartbook sur votre ordinateur n’est pas touché, et votre progression et vos scores sont conservés si vous réimportez ce livre.',
+  deleteBookTitled: (title) => `Supprimer ${title}\u00a0?`,
+  deleteImportedBook: (title) => `Supprimer le livre importé ${title}`,
+  deleteRemovesFromLibrary: 'Le livre est retiré de votre bibliothèque.',
+  resetProgress: 'Effacer ma progression',
+  resetProgressIn: (title) => `Effacer votre progression dans ${title}\u00a0?`,
+  resetProgressClears:
+    'Cela efface tous les scores de quiz, les jalons et la position de lecture de ce livre sur cet appareil.',
+  resetProgressStorage:
+    'Votre progression et vos scores sont enregistrés localement dans votre navigateur. Rien n’est envoyé à un serveur.',
+  resetProgressUndone: (exportLabel) =>
+    `C’est irréversible. Pour en garder une copie, annulez et utilisez d’abord ${exportLabel}.`,
+  resumeContinueNow: 'Continuer maintenant',
+  resumeGoToLibrary: 'Aller à la bibliothèque',
+  resuming: (title) => `Reprise de ${title}…`,
 };
 
 export type Language = 'en' | 'fr';

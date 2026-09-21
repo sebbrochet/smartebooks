@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Book } from '@smart-ebooks/engine';
+import { useMessages, type Book } from '@smart-ebooks/engine';
 import { BookCover } from './BookCover';
 import { hashFor } from './launch';
 
@@ -18,6 +18,7 @@ interface CoverSplashProps {
  * behind an animation.
  */
 export function CoverSplash({ book, chapterSlug, onDismiss }: CoverSplashProps) {
+  const words = useMessages();
   const skipRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function CoverSplash({ book, chapterSlug, onDismiss }: CoverSplashProps) 
       <div className="splash__card">
         <BookCover book={book} size="large" />
         <p className="splash__status" role="status">
-          Resuming <strong>{book.meta.title}</strong>…
+          {words.resuming(book.meta.title)}
         </p>
         <div className="splash__actions">
           <button

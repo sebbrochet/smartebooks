@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { exportProgress, importProgress } from '@smart-ebooks/engine';
+import { exportProgress, importProgress, useMessages } from '@smart-ebooks/engine';
 
 /**
  * Reader-state backup controls. Exports the reader's local progress (one book,
@@ -9,6 +9,7 @@ import { exportProgress, importProgress } from '@smart-ebooks/engine';
 export function BackupControls({ bookSlug }: { bookSlug?: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const words = useMessages();
 
   async function handleExport() {
     const backup = await exportProgress(bookSlug);
@@ -26,17 +27,15 @@ export function BackupControls({ bookSlug }: { bookSlug?: string }) {
     try {
       const data = JSON.parse(await file.text());
       const result = await importProgress(data, 'merge');
-      setStatus(
-        `Imported ${result.entriesImported} item(s) across ${result.booksImported} book(s).`,
-      );
+      setStatus(words.importedCounts(result.entriesImported, result.booksImported));
       // Reload so every island re-reads its restored state.
       location.reload();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Import failed.');
+      setStatus(error instanceof Error ? error.message : words.importFailed);
     }
   }
 
-  const scopeLabel = bookSlug ? 'this book' : 'all books';
+  const scopeLabel = bookSlug ? words.scopeThisBook : words.scopeAllBooks;
 
   return (
     <>
@@ -44,17 +43,17 @@ export function BackupControls({ bookSlug }: { bookSlug?: string }) {
         type="button"
         className="reader__reset"
         onClick={handleExport}
-        title={`Download a backup of progress for ${scopeLabel}`}
+        title={words.exportProgressHint(scopeLabel)}
       >
-        Export progress
+        {words.exportProgress}
       </button>
       <button
         type="button"
         className="reader__reset"
         onClick={() => fileRef.current?.click()}
-        title="Restore progress from a backup file"
+        title={words.importProgressHint}
       >
-        Import progress
+        {words.importProgress}
       </button>
       <input
         ref={fileRef}

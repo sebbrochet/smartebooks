@@ -41,6 +41,17 @@ test.describe('a reader whose browser asks for French', () => {
     const overflowing = await panel.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
     expect(overflowing).toBe(false);
   });
+
+  // The shelf is a different app from the reader, and its strings live in
+  // apps/library rather than the engine — so it can drift independently.
+  test('gets a French library too, not only a French reader', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: 'Bibliothèque', level: 1 })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Importer un livre' })).toBeVisible();
+    await expect(page.getByText('À mon retour')).toBeVisible();
+    await expect(page.getByText('Library', { exact: true })).toHaveCount(0);
+  });
 });
 
 test.describe('a reader whose browser asks for something we do not speak', () => {

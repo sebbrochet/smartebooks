@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import type { Book, Chapter } from '../types';
 import { navSections } from './navSections';
+import { useMessages } from '../i18n/messages';
 
 interface SidebarProps {
   book: Book;
@@ -37,6 +38,7 @@ export function Sidebar({
   onNavigate,
   onSearch,
 }: SidebarProps) {
+  const words = useMessages();
   const currentSlug = view === 'chapter' ? (activeSlug ?? chapters[0]?.slug) : undefined;
 
   const sections = navSections(chapters, book.descriptor.parts);
@@ -80,7 +82,7 @@ export function Sidebar({
     <nav
       id="book-nav"
       className={open ? 'sidebar sidebar--open' : 'sidebar'}
-      aria-label="Book navigation"
+      aria-label={words.bookNavigation}
       onClick={dismissIfLink}
     >
       {/* Looks like a field, behaves like a button: the real input lives in the
@@ -88,7 +90,7 @@ export function Sidebar({
           about what was typed. */}
       <button type="button" className="sidebar__search" onClick={onSearch}>
         <span aria-hidden="true">⌕</span>
-        <span>Search this book</span>
+        <span>{words.searchThisBook}</span>
         <kbd aria-hidden="true">/</kbd>
       </button>
       <ul className="sidebar__list">
@@ -142,7 +144,7 @@ export function Sidebar({
                 <a
                   className="sidebar__part-link"
                   href={`#${basePath}/part/${section.id}`}
-                  aria-label={`Overview of ${section.title}`}
+                  aria-label={words.overviewOf(section.title)}
                   aria-current={activePart === section.id ? 'page' : undefined}
                 >
                   <span aria-hidden="true">≡</span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Book } from '../types';
 import type { IslandRegistry } from '../islandRegistry';
 import type { NavSection } from './navSections';
+import { useMessages } from '../i18n/messages';
 import { readPartProgress, type PartProgress } from '../store/bookProgress';
 import { subscribeToStore } from '../store/store';
 
@@ -27,6 +28,7 @@ interface PartViewProps {
  * which is a fact about effort rather than about readiness.
  */
 export function PartView({ book, basePath, section, registry }: PartViewProps) {
+  const words = useMessages();
   const [progress, setProgress] = useState<PartProgress>();
 
   useEffect(() => {
@@ -52,18 +54,15 @@ export function PartView({ book, basePath, section, registry }: PartViewProps) {
       <h1>{section.title}</h1>
 
       <p className="part__summary" role="status">
-        {section.chapters.length} {section.chapters.length === 1 ? 'chapter' : 'chapters'}
+        {words.chapterCount(section.chapters.length)}
         {progress && progress.quizzes > 0 && (
           <>
             {' · '}
-            {progress.quizzesTaken} of {progress.quizzes} quizzes answered
+            {words.quizzesAnswered(progress.quizzesTaken, progress.quizzes)}
             {progress.quizzesTaken > 0 && (
               <>
                 {' · '}
-                <strong>
-                  {progress.score}/{progress.points}
-                </strong>{' '}
-                points
+                <strong>{words.pointsScored(progress.score, progress.points)}</strong>
               </>
             )}
           </>
@@ -82,10 +81,10 @@ export function PartView({ book, basePath, section, registry }: PartViewProps) {
               {row && (
                 <span className="part__chapter-score">
                   {row.quizzes === 0
-                    ? 'No quiz'
+                    ? words.noQuiz
                     : row.quizzesTaken === 0
-                      ? `${row.points} ${row.points === 1 ? 'point' : 'points'} unanswered`
-                      : `${row.score}/${row.points} points · ${row.quizzesTaken}/${row.quizzes} quizzes`}
+                      ? words.pointsUnanswered(row.points)
+                      : words.chapterScore(row.score, row.points, row.quizzesTaken, row.quizzes)}
                 </span>
               )}
             </li>

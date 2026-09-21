@@ -1,10 +1,11 @@
-import { exportBookToZip, type Book } from '@smart-ebooks/engine';
+import { exportBookToZip, useMessages, type Book } from '@smart-ebooks/engine';
 
 /**
  * Download the active book as a portable `.smartbook` package (a zip of its
  * `smartbook.json` + Markdown content). Content only — never reader progress.
  */
 export function BookExport({ book }: { book: Book }) {
+  const words = useMessages();
   function handleExport() {
     const bytes = exportBookToZip(book);
     const blob = new Blob([bytes], { type: 'application/zip' });
@@ -21,9 +22,9 @@ export function BookExport({ book }: { book: Book }) {
       type="button"
       className="reader__reset"
       onClick={handleExport}
-      title="Download this book as a .smartbook package"
+      title={words.exportBookHint}
     >
-      Export book
+      {words.exportBook}
     </button>
   );
 }
