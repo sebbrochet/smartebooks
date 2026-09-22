@@ -5,7 +5,7 @@
   "slug": "chess",
   "visibility": "public",
   "title": "Chess: Boards & Puzzles",
-  "description": "A demo book showing domain-specific chess islands (PGN board + puzzle) on the shared engine.",
+  "description": "Famous games replayed move by move, positions to weigh up, and puzzles that tell you whether you found the move.",
   "authors": ["Smart Ebooks"],
   "createdAt": "2026-08-23",
   "engine": { "min": "0.1.0" },

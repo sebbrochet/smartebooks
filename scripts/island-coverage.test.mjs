@@ -2,9 +2,10 @@
  * Run with `npm run test:scripts`.
  *
  * Every island the platform provides must be demonstrated by at least one
- * bundled book. The books under `books/` are the platform's own documentation
- * and its worked examples, so an island nobody uses there is one nobody has
- * seen working, and one no reviewer can eyeball after a change.
+ * bundled book. The books under `books/` are written for readers, not for
+ * authors — each one shows a kind of book somebody would want to read — so an
+ * island nobody uses there is one nobody has seen working, one no reviewer can
+ * eyeball after a change, and one no genre has yet asked for.
  *
  * This test exists because two islands had already slipped through: `mermaid`,
  * added the same day, and `chess-analysis`, which the chess book only ever used
