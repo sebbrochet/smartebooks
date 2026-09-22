@@ -407,6 +407,44 @@ test('an update waits for the reader, and installs only when they ask', async ({
   await expect.poll(() => page.evaluate(() => caches.keys())).toEqual([`smart-ebooks-${version}`]);
 });
 
+/**
+ * SPEC003 E2.7. The product could already *offer* an update; what it could not
+ * say is that there is nothing to offer — so a reader seeing no strip could not
+ * tell a current build from a broken update mechanism.
+ */
+test('a reader can ask, and is told when there is nothing new', async ({ page }) => {
+  await page.goto('/');
+  await waitForController(page);
+
+  await page.getByRole('button', { name: 'Tools' }).click();
+  await page.getByRole('button', { name: 'Check for updates' }).click();
+
+  await expect(page.getByText('You have the latest version.')).toBeVisible();
+  await expect(page.locator('.app-update')).toHaveCount(0);
+});
+
+/*
+ * The claim this feature can get wrong, and the only one that matters: saying
+ * "up to date" while an update is on its way. `update()` resolves when the
+ * check finishes rather than when a worker has installed, so the answer is
+ * watched for rather than read off the promise — and a waiting worker outranks
+ * whatever the check concluded.
+ */
+test('a reader who asks while a new version exists is offered it, not reassured', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForController(page);
+
+  deployNewVersion();
+
+  await page.getByRole('button', { name: 'Tools' }).click();
+  await page.getByRole('button', { name: 'Check for updates' }).click();
+
+  await expect(page.locator('.app-update')).toBeVisible();
+  await expect(page.getByText('You have the latest version.')).toHaveCount(0);
+});
+
 test('a reader who ignores the update keeps reading the version they opened', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
   await waitForController(page);

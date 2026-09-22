@@ -30,6 +30,7 @@ import { CoverSplash } from './CoverSplash';
 import { BackupControls } from './BackupControls';
 import { BookExport } from './BookExport';
 import { LanguageSettings } from './LanguageSettings';
+import { UpdateCheck } from './UpdateCheck';
 import './App.css';
 
 export default function App() {
@@ -74,7 +75,7 @@ export default function App() {
 
   // A new build of the *app*, which is not the same thing as a new edition of a
   // book and must not look like one (SPEC003 E2.1).
-  const { updateReady, update } = useServiceWorker();
+  const { updateReady, update, check, checkState } = useServiceWorker();
 
   // Track where the reader is, so the next visit can resume. Landing on the
   // shelf is treated as "I want my library" for the rest of this session.
@@ -235,6 +236,7 @@ export default function App() {
       </button>
       <div className="reader__tools" id="reader-tools" hidden={!toolsOpen}>
         <LanguageSettings />
+        <UpdateCheck state={checkState} onCheck={check} />
         <BackupControls bookSlug={activeBook?.meta.slug} />
         {activeBook && <BookExport book={activeBook} />}
         {activeBook && (

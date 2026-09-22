@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { STALE_BUILD_EVENT } from '@smart-ebooks/engine';
 
 /**
@@ -30,8 +30,21 @@ const RECOVERED = 'smart-ebooks:recovered-stale-build';
  * is precisely what a dev server must not do, and debugging a stale worker
  * costs more time than the feature saves.
  */
-export function useServiceWorker(): { updateReady: boolean; update: () => void } {
+/**
+ * What a reader who *asked* is told (SPEC003 E2.7). `idle` says nothing, which
+ * is right until they press the button and again once the strip is speaking.
+ */
+export type UpdateCheck = 'idle' | 'checking' | 'current' | 'failed';
+
+export function useServiceWorker(): {
+  updateReady: boolean;
+  update: () => void;
+  check: () => void;
+  checkState: UpdateCheck;
+} {
   const [waiting, setWaiting] = useState<ServiceWorker>();
+  const [checkState, setCheckState] = useState<UpdateCheck>('idle');
+  const known = useRef<ServiceWorkerRegistration>(undefined);
 
   useEffect(() => {
     if (import.meta.env.DEV) return;
@@ -86,6 +99,7 @@ export function useServiceWorker(): { updateReady: boolean; update: () => void }
     const watch = (registration: ServiceWorkerRegistration) => {
       if (cancelled) return;
       current = registration;
+      known.current = registration;
 
       // A worker can already be waiting when the page loads — the reader may
       // have opened a tab, been given an update, and closed it again.
@@ -131,6 +145,59 @@ export function useServiceWorker(): { updateReady: boolean; update: () => void }
 
   return {
     updateReady: waiting !== undefined,
+    // Whatever the check concluded, a waiting worker outranks it: the strip is
+    // the answer, and an "up to date" note beneath it would be the one wrong
+    // thing this feature can say (QD6).
+    // Whatever the check concluded, a waiting worker outranks it: the strip is
+    // the answer, and an "up to date" note beneath it would be the one wrong
+    // thing this feature can say (QD6). This is the durable half; `busy` below
+    // is what stops it being said for an instant first.
+    checkState: waiting !== undefined ? 'idle' : checkState,
+    check: () => {
+      const found = known.current;
+      if (!found) {
+        // No worker: development, an unsupported browser, or a registration
+        // that failed. "Could not check" is true in all three.
+        setCheckState('failed');
+        return;
+      }
+
+      setCheckState('checking');
+
+      /*
+       * Watched rather than inferred from the promise. `update()` resolves when
+       * the *check* finishes, not when a new worker has installed — the comment
+       * on `onStale` above records the offline test that proved it — so reading
+       * `waiting` here would report "up to date" while an update installs.
+       *
+       * So: if anything began installing, say nothing and let the strip speak.
+       * Only silence on both counts is worth calling up to date.
+       */
+      let installing = false;
+      const onFound = () => {
+        installing = true;
+      };
+      found.addEventListener('updatefound', onFound);
+
+      void found
+        .update()
+        .then(() => {
+          /*
+           * Either guard alone satisfies the e2e, which is why both had to be
+           * removed together to see it fail. They cover different moments: a
+           * worker that is still *installing* has not set `waiting` yet, so
+           * without this the note appears and is withdrawn a beat later.
+           */
+          const busy = installing || Boolean(found.installing) || Boolean(found.waiting);
+          setCheckState(busy ? 'idle' : 'current');
+        })
+        .catch(() => {
+          // Offline, or the server did not answer. Either way the reader has
+          // learned nothing about whether a new version exists.
+          setCheckState('failed');
+        })
+        .finally(() => found.removeEventListener('updatefound', onFound));
+    },
     update: () => {
       if (!waiting) return;
       // Reload once the new worker has actually taken over, rather than

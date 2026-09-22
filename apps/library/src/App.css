@@ -125,6 +125,13 @@
     color: var(--fg);
   }
 
+  /* The button and whatever it concluded, as one item of the tools column. */
+  .reader__update-check {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
   /*
    * Deliberately width-only, unlike the engine's same-numbered breakpoint. That
    * one asks "is this a phone" and so also asks about height; this one asks "is

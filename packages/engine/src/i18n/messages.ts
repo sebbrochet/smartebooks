@@ -180,6 +180,10 @@ export interface Messages {
   /** The picker's own label; the options name themselves (`LANGUAGE_NAMES`). */
   languageSetting: string;
   languageFollowDevice: string;
+  updateCheck: string;
+  updateChecking: string;
+  updateNone: string;
+  updateCheckFailed: string;
 }
 
 const EN: Messages = {
@@ -305,6 +309,10 @@ const EN: Messages = {
   quizScore: (score, total) => `Score: ${score} / ${total}`,
   languageSetting: 'Language',
   languageFollowDevice: 'Follow my device',
+  updateCheck: 'Check for updates',
+  updateChecking: 'Checking…',
+  updateNone: 'You have the latest version.',
+  updateCheckFailed: 'Could not check — you may be offline.',
 };
 
 // U+00A0 before the colon, which is what French typography wants and what a
@@ -441,6 +449,10 @@ const FR: Messages = {
   quizScore: (score, total) => `Score\u00a0: ${score} / ${total}`,
   languageSetting: 'Langue',
   languageFollowDevice: 'Suivre mon appareil',
+  updateCheck: 'Rechercher des mises à jour',
+  updateChecking: 'Recherche en cours…',
+  updateNone: 'Vous avez la dernière version.',
+  updateCheckFailed: 'Vérification impossible — vous êtes peut-être hors ligne.',
 };
 
 export type Language = 'en' | 'fr';
