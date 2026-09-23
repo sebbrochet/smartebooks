@@ -22,5 +22,8 @@ playwright-report/
 memory-bank/
 plan.md
 
+# CI run logs pulled down to diagnose a failure
+ci-logs/
+
 # TS build info
 *.tsbuildinfo
