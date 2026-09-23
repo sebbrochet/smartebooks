@@ -127,8 +127,8 @@ test('the contents rail lists the sections and jumps to one', async ({ page }) =
   // listing them would offer the reader links that scroll nowhere.
   await expect(toc.getByRole('link', { name: /What does a .token. represent/ })).toHaveCount(0);
 
-  await toc.getByRole('link', { name: 'Watch it in action' }).click();
-  await expect(page).toHaveURL(/#\/guide\/01-getting-started\?s=watch-it-in-action$/);
+  await toc.getByRole('link', { name: 'Play a matching game' }).click();
+  await expect(page).toHaveURL(/#\/guide\/01-getting-started\?s=play-a-matching-game$/);
 
   // Still in the chapter, scrolled down it — not navigated away by a bare
   // fragment colliding with the hash route.
@@ -141,13 +141,13 @@ test('the contents rail lists the sections and jumps to one', async ({ page }) =
 test('a section can be linked to directly and survives a reload', async ({ page }) => {
   await page.goto('/#/guide/01-getting-started');
 
-  const heading = page.locator('h2#watch-it-in-action');
+  const heading = page.locator('h2#play-a-matching-game');
   await expect(heading.locator('a.heading-anchor')).toHaveAttribute(
     'href',
-    '#/guide/01-getting-started?s=watch-it-in-action',
+    '#/guide/01-getting-started?s=play-a-matching-game',
   );
 
-  await page.goto('/#/guide/01-getting-started?s=watch-it-in-action');
+  await page.goto('/#/guide/01-getting-started?s=play-a-matching-game');
   await expect(heading).toBeInViewport();
 });
 
@@ -258,7 +258,7 @@ test.describe('on a narrow screen', () => {
     await toggle.click();
     await expect(page.locator('.toc__list')).toBeVisible();
     await expect(
-      page.locator('.toc__list').getByRole('link', { name: 'Watch it in action' }),
+      page.locator('.toc__list').getByRole('link', { name: 'Play a matching game' }),
     ).toBeVisible();
   });
 
@@ -373,10 +373,10 @@ test('the contents rail tracks the section being read', async ({ page }) => {
   // is not enough and should not be: a heading sitting at the bottom of the
   // screen belongs to a section the reader has not started.
   await page.evaluate(() => {
-    const el = document.getElementById('watch-it-in-action');
+    const el = document.getElementById('play-a-matching-game');
     window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 20);
   });
-  await expect(active).toHaveText('Watch it in action');
+  await expect(active).toHaveText('Play a matching game');
   await expect(active).toHaveAttribute('aria-current', 'true');
 
   // The last section's heading can never reach the line, because the section

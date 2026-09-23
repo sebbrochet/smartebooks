@@ -12,7 +12,7 @@ describe('islandIds', () => {
       '- [x] Yes',
       ':::',
       '',
-      '::video{id="v-1" src="https://example.com/a.mp4"}',
+      '::checkpoint{id="v-1"}',
       '',
       'A :term[palimpsest]{id="t-1" definition="Scraped."} page.',
       '',
@@ -36,7 +36,7 @@ describe('islandIds', () => {
   });
 
   it('reports each id once, however often it appears', () => {
-    expect(islandIds('::video{id="v" src="a"}\n\n::video{id="v" src="b"}\n')).toEqual(['v']);
+    expect(islandIds('::checkpoint{id="v"}\n\n::checkpoint{id="v"}\n')).toEqual(['v']);
   });
 });
 

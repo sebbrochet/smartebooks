@@ -30,15 +30,15 @@ function makeChessBook(markdown: string): Book {
 
 describe('collectDirectiveNames', () => {
   it('finds container and leaf directives, without duplicates', () => {
-    const md = ':::quiz{id="q"}\ntext\n:::\n\n::video{id="v" src="x"}\n\n::video{id="w" src="y"}\n';
-    expect(collectDirectiveNames(md)).toEqual(['quiz', 'video']);
+    const md = ':::quiz{id="q"}\ntext\n:::\n\n::checkpoint{id="v"}\n\n::checkpoint{id="w"}\n';
+    expect(collectDirectiveNames(md)).toEqual(['quiz', 'checkpoint']);
   });
 });
 
 describe('deriveRequiredIslands', () => {
   it('lists the islands the content actually uses', () => {
-    const book = makeChessBook('::video{id="v" src="assets/a.mp4"}\n\n::chess-board{id="b"}\n');
-    expect(deriveRequiredIslands(book)).toEqual(['chess-board', 'video']);
+    const book = makeChessBook('::checkpoint{id="v"}\n\n::chess-board{id="b"}\n');
+    expect(deriveRequiredIslands(book)).toEqual(['checkpoint', 'chess-board']);
   });
 
   it('records an alias under its canonical name', () => {
@@ -64,10 +64,10 @@ describe('deriveRequiredIslands', () => {
 
 describe('exportBookToZip', () => {
   it('writes the required islands into the descriptor', () => {
-    const book = makeChessBook('::chess-board{id="b"}\n\n::audio{id="a" src="assets/a.mp3"}\n');
+    const book = makeChessBook('::chess-board{id="b"}\n\n::checkpoint{id="a"}\n');
     const entries = unzipSync(exportBookToZip(book));
     const descriptor = JSON.parse(strFromU8(entries['smartbook.json']));
-    expect(descriptor.islands.required).toEqual(['audio', 'chess-board']);
+    expect(descriptor.islands.required).toEqual(['checkpoint', 'chess-board']);
   });
 
   it('preserves pack options alongside the derived requirements', () => {
@@ -86,9 +86,9 @@ describe('missingIslands', () => {
   });
 
   it('reports nothing when every requirement is available', () => {
-    expect(missingIslands({ islands: { required: ['quiz', 'audio'] } }, defaultIslands)).toEqual(
-      [],
-    );
+    expect(
+      missingIslands({ islands: { required: ['quiz', 'checkpoint'] } }, defaultIslands),
+    ).toEqual([]);
   });
 
   it('reports an island this reader cannot provide', () => {

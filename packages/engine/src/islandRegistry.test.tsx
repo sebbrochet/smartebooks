@@ -17,7 +17,7 @@ describe('createIslandRegistry', () => {
   it('scopes lookups to the provided definitions', () => {
     const registry = createIslandRegistry([demo('quiz'), demo('chessboard')]);
     expect(registry.get('quiz')?.name).toBe('quiz');
-    expect(registry.get('video')).toBeUndefined();
+    expect(registry.get('not-provided')).toBeUndefined();
     expect(registry.names().sort()).toEqual(['chessboard', 'quiz']);
   });
 

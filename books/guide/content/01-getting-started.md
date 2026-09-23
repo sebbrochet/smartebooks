@@ -2,7 +2,7 @@
 
 Welcome to your first **smart ebook** chapter. This page is plain Markdown — but it
 comes alive. Sprinkled through the prose you'll find interactive **islands**: quizzes,
-checkpoints, and videos that remember what you did, entirely in your browser.
+checkpoints, and flashcards that remember what you did, entirely in your browser.
 
 > 📌 **Key concept**: A smart ebook keeps _content-first authoring_ (you write Markdown)
 > while adding _app-grade interactivity_ (React components mounted where you declare them).
@@ -38,10 +38,6 @@ Try the quiz below. Your best score is saved locally and restored when you come 
 
 :::
 
-## Watch it in action
-
-::video{id="ch1-intro-vid" src="https://youtu.be/aqz-KE-bpKQ" title="Big Buck Bunny (demo embed)"}
-
 ## Review with a flashcard
 
 Tap the card to flip it, then rate how well you knew the answer. Your review streak is
@@ -71,45 +67,6 @@ moves is remembered.
 ```
 
 :::
-
-## Listen along
-
-Audio clips work the same way. This one is a **packaged asset**: it lives in the book's
-own `assets/` folder, so it travels with a `.smartbook` and works offline.
-
-::audio{id="ch1-audio" src="assets/narration.wav" title="Chapter narration (sample)"}
-
-## A recording the prose can drive
-
-A `:::media-lesson` goes further than playing something. It **owns** the recording, keeps
-it in view, and lets the prose point into it: the author declares the moments worth naming,
-and a moment named in a sentence becomes something the reader can touch.
-
-:::media-lesson{id="ch1-lesson" src="assets/narration.wav"}
-
-```marks
-0:00  The opening tone
-0:01  Where it turns
-0:02  The last word
-```
-
-The player above does not scroll away, because it is not in this prose at all — the
-container renders it, and these paragraphs scroll underneath. That is the same arrangement
-a chess game uses, for the same reason.
-
-Touch :at[0:01] and the recording moves there. Touch :at[0:02] and it moves again, while
-the index below follows along on its own as the sound plays.
-
-::media-marks
-
-A time nobody declared, like :at[9:59], stays the plain text it was written as — the same
-rule every island follows: the reader never loses a page to a typo, and the linter is what
-complains.
-
-:::
-
-This sample is three seconds long, so the moments are close together. The mechanism does
-not care: a lecture with forty marks works the same way, which is what the format is for.
 
 ## Still on the roadmap
 

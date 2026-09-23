@@ -31,9 +31,9 @@ the book has to give. Try this one:
 
 :::
 
-## Watch, listen, review
+## Review, and review again
 
-Media and flashcards are tracked too — a watched video, a played audio clip, a review
-streak. It all feeds your personal, private dashboard.
+Flashcards are tracked too — a review streak builds up as you go. It all feeds your
+personal, private dashboard.
 
 ::checkpoint{id="ch3-done" label="I finished the tracking chapter"}

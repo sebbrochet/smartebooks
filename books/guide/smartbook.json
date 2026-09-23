@@ -20,5 +20,5 @@
     { "file": "02-interactivity-toolkit.md", "order": 2 },
     { "file": "03-tracking-progress.md", "order": 3 }
   ],
-  "assets": ["assets/cover.svg", "assets/narration.wav"]
+  "assets": ["assets/cover.svg"]
 }

@@ -35,7 +35,7 @@ import { usedIslands } from '../../../scripts/lint-islands.mjs';
 const markdown = {
   './content/02-endgames.md': '# Endgames\n\n::chessboard{id="e"}\n',
   './content/01-openings.md':
-    '# Openings\n\n:::quiz{id="q"}\n\n### Q\n\n:::\n\n::audio{id="a" src="https://e.com/a.mp3"}\n',
+    '# Openings\n\n:::quiz{id="q"}\n\n### Q\n\n:::\n\n::checkpoint{id="a"}\n',
   // No numeric prefix and no `#` heading: exercises both fallbacks (order 999,
   // title from the slug), which a fixture of tidy files would silently skip.
   './content/appendix.md': 'Loose notes.\n',
@@ -161,7 +161,7 @@ describe('CLI and browser exporters agree', () => {
     expect(usedIslands(base, files)).toEqual(required);
     // ::chessboard is an alias; both sides must record the canonical name.
     expect(required).toContain('chess-board');
-    expect(required).toEqual(['audio', 'chess-board', 'quiz']);
+    expect(required).toEqual(['checkpoint', 'chess-board', 'quiz']);
   });
 
   it('keeps a declared requirement neither side can recognise', () => {
