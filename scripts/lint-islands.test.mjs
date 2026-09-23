@@ -295,9 +295,10 @@ describe('checkDirectives', () => {
   });
 
   test('rejects a missing required attribute', () => {
-    const problems = checkDirectives(book(), file('::video{id="v" title="No source"}'));
+    const descriptor = book({ packs: { chess: {} } });
+    const problems = checkDirectives(descriptor, file('::chess-puzzle{id="p"}'));
     assert.deepEqual(rules(problems), ['attribute-invalid']);
-    assert.match(problems[0].message, /"src" is required/);
+    assert.match(problems[0].message, /"fen" is required/);
   });
 
   // A choice with nowhere to go used to render as the words `turn to ` in the
@@ -337,7 +338,10 @@ describe('checkDirectives', () => {
   });
 
   test('says nothing about attributes an island never declared', () => {
-    assert.deepEqual(checkDirectives(book(), file('::video{id="v" src="a.mp4" data-x="y"}')), []);
+    assert.deepEqual(
+      checkDirectives(book(), file('::checkpoint{id="c" label="Done" data-x="y"}')),
+      [],
+    );
   });
 });
 
@@ -347,21 +351,22 @@ describe('checkDirectives', () => {
  * author is the only one who can still fix it (SPEC001 P2.3 follow-up).
  */
 describe('packaged assets', () => {
-  const withAssets = (markdown, assets) => checkDirectives(book(), file(markdown), 'demo', assets);
+  const withAssets = (markdown, assets) =>
+    checkDirectives(book({ packs: { chess: {} } }), file(markdown), 'demo', assets);
 
   test('accepts an asset the book ships', () => {
-    const problems = withAssets('::audio{id="a" src="assets/narration.wav"}', [
-      'assets/narration.wav',
+    const problems = withAssets('::chess-board{id="b" pgn="assets/immortal.pgn"}', [
+      'assets/immortal.pgn',
     ]);
     assert.deepEqual(problems, []);
   });
 
   test('rejects an asset the book does not ship', () => {
-    const problems = withAssets('::audio{id="a" src="assets/naration.wav"}', [
-      'assets/narration.wav',
+    const problems = withAssets('::chess-board{id="b" pgn="assets/imortal.pgn"}', [
+      'assets/immortal.pgn',
     ]);
     assert.deepEqual(rules(problems), ['asset-missing']);
-    assert.match(problems[0].message, /src="assets\/naration\.wav" does not exist/);
+    assert.match(problems[0].message, /pgn="assets\/imortal\.pgn" does not exist/);
   });
 
   test('rejects a missing image, which resolves the same way', () => {
@@ -373,14 +378,19 @@ describe('packaged assets', () => {
   });
 
   test('leaves external URLs alone', () => {
-    const markdown = '::video{id="v" src="https://example.com/a.mp4"}\n\n![x](https://e.com/i.png)';
+    const markdown =
+      '::chess-board{id="b" pgn="https://example.com/a.pgn"}\n\n![x](https://e.com/i.png)';
     assert.deepEqual(withAssets(markdown, []), []);
   });
 
   // Callers that cannot supply the asset list must get silence, not a report
   // that every asset in the book is missing.
   test('skips the check when the asset list is unknown', () => {
-    assert.deepEqual(checkDirectives(book(), file('::audio{id="a" src="assets/x.wav"}')), []);
+    const descriptor = book({ packs: { chess: {} } });
+    assert.deepEqual(
+      checkDirectives(descriptor, file('::chess-board{id="b" pgn="assets/x.pgn"}')),
+      [],
+    );
   });
 });
 

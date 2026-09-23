@@ -1,24 +1,24 @@
 import { test, expect } from '@playwright/test';
 
-const CHAPTER = '/#/guide/02-interactivity-toolkit';
+const CHAPTER = '/#/football/02-close-calls';
 
 test('returning to the site resumes the last book and chapter', async ({ page }) => {
   await page.goto(CHAPTER);
-  await expect(page.getByRole('heading', { name: /interactivity/i }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /close calls/i }).first()).toBeVisible();
 
   // Come back to the bare entry URL, as a returning reader would.
   await page.goto('/');
-  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect(page).toHaveURL(/02-close-calls/);
 });
 
 test('resume returns to the place, not just to the chapter', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
 
   // Read down to a section, and pause long enough for the position to be
   // written — it is deliberately not saved on every scroll frame.
   await page.evaluate(() => {
-    const heading = document.getElementById('play-a-matching-game');
+    const heading = document.getElementById('match-the-signals');
     window.scrollTo(0, heading.getBoundingClientRect().top + window.scrollY + 40);
   });
   const left = await page.evaluate(() => window.scrollY);
@@ -29,7 +29,7 @@ test('resume returns to the place, not just to the chapter', async ({ page }) =>
   // for the library is a choice the app deliberately remembers, and it
   // suppresses resume.
   await page.goto('/');
-  await expect(page).toHaveURL(/01-getting-started/);
+  await expect(page).toHaveURL(/01-the-basics/);
 
   // Within a line or two of where they stopped. Returning to the chapter but
   // not the place is most of the way to not resuming at all.
@@ -38,20 +38,20 @@ test('resume returns to the place, not just to the chapter', async ({ page }) =>
 });
 
 test('a deep link wins over a remembered place', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 1200));
   await page.waitForTimeout(1200);
 
   // Asking for a section must not be overruled by where this reader happened
   // to stop last time.
-  await page.goto('/#/guide/01-getting-started?s=test-yourself');
+  await page.goto('/#/football/01-the-basics?s=test-yourself');
   await expect(page.locator('h2#test-yourself')).toBeInViewport();
 });
 
 test('a deep link is never hijacked by resume', async ({ page }) => {
   await page.goto(CHAPTER);
-  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect(page).toHaveURL(/02-close-calls/);
 
   // A different book, linked directly, must win over the resume pointer.
   await page.goto('/#/chess/01-chess-basics');
@@ -73,7 +73,7 @@ test('the "always show my library" preference disables resume', async ({ page })
   await page.getByTestId('resume-mode').selectOption('shelf');
 
   await page.goto(CHAPTER);
-  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect(page).toHaveURL(/02-close-calls/);
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
@@ -100,19 +100,19 @@ test('opening a book from the library returns to the chapter you were reading', 
   await page.getByRole('link', { name: 'Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 
-  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
+  await page.getByRole('link', { name: /Know the Game/ }).click();
 
-  await expect(page).toHaveURL(/02-interactivity-toolkit/);
-  await expect(page.getByRole('heading', { name: 'The interactivity toolkit' })).toBeVisible();
+  await expect(page).toHaveURL(/02-close-calls/);
+  await expect(page.getByRole('heading', { name: 'Close calls' })).toBeVisible();
 });
 
 /** …and a reader who has never opened the book still starts at the beginning. */
 test('a book never opened starts at its first chapter', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
+  await page.getByRole('link', { name: /Know the Game/ }).click();
 
   await expect(page.locator('article.prose')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Getting started', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The basics', level: 1 })).toBeVisible();
 });
 
 /**
@@ -129,7 +129,7 @@ test('returning through the library restores the place, not just the chapter', a
   await expect(page.locator('article.prose')).toBeVisible();
 
   await page.evaluate(() => {
-    const heading = document.getElementById('play-to-learn');
+    const heading = document.getElementById('a-word-you-will-hear');
     window.scrollTo(0, heading.getBoundingClientRect().top + window.scrollY + 40);
   });
   const left = await page.evaluate(() => window.scrollY);
@@ -138,9 +138,9 @@ test('returning through the library restores the place, not just the chapter', a
 
   await page.getByRole('link', { name: 'Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
-  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
+  await page.getByRole('link', { name: /Know the Game/ }).click();
 
-  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect(page).toHaveURL(/02-close-calls/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(left - 60);
   expect(await page.evaluate(() => window.scrollY)).toBeLessThan(left + 60);
 });
@@ -157,7 +157,7 @@ test('cover mode shows a skippable splash before resuming', async ({ page }) => 
 
   // It continues on its own, but the reader can skip immediately.
   await page.getByRole('button', { name: 'Continue now' }).click();
-  await expect(page).toHaveURL(/02-interactivity-toolkit/);
+  await expect(page).toHaveURL(/02-close-calls/);
 });
 
 /**
@@ -209,14 +209,14 @@ test('resume follows a pane, not the page', async ({ page }) => {
     inject();
   }, PANE_CSS);
 
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   const pane = page.locator('.reader__main');
   await expect(page.locator('article.prose')).toBeVisible();
 
   // Read down to a section — by scrolling the pane, which is the only thing
   // that scrolls now.
   await pane.evaluate((el) => {
-    const heading = document.getElementById('play-a-matching-game');
+    const heading = document.getElementById('match-the-signals');
     el.scrollTop += heading.getBoundingClientRect().top - el.getBoundingClientRect().top - 40;
   });
 
@@ -229,16 +229,14 @@ test('resume follows a pane, not the page', async ({ page }) => {
   // reading of "has the reader reached the end?" shows up first: the document
   // no longer scrolls, so it is at its end permanently, and the rail marks the
   // *last* section from the moment the chapter opens.
-  await expect(page.locator('.toc__list a[aria-current="true"]')).toHaveText(
-    'Play a matching game',
-  );
+  await expect(page.locator('.toc__list a[aria-current="true"]')).toHaveText('Match the signals');
 
   // The position is written on a delay, not on every scroll frame. It is only
   // written at all if the measurement heard the pane scroll.
   await page.waitForTimeout(1200);
 
   await page.goto('/');
-  await expect(page).toHaveURL(/01-getting-started/);
+  await expect(page).toHaveURL(/01-the-basics/);
 
   // Within a line or two of where they stopped — in the pane.
   await expect.poll(() => pane.evaluate((el) => el.scrollTop)).toBeGreaterThan(left - 60);

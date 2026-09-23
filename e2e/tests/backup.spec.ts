@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const CHAPTER = '/#/guide/01-getting-started';
-const CHECKPOINT = 'I understand what a smart ebook is';
+const CHAPTER = '/#/football/01-the-basics';
+const CHECKPOINT = 'I know what the referee is there for';
 
 function checkpoint(page: import('@playwright/test').Page) {
   return page.getByText(CHECKPOINT).locator('..').getByRole('checkbox');
@@ -69,7 +69,7 @@ test('resetting progress asks first, and cancelling keeps everything', async ({ 
   const dialog = page.getByRole('alertdialog');
   await expect(dialog).toBeVisible();
   // Named, so a reader with several books knows which one they are clearing.
-  await expect(dialog).toContainText('The Smart Ebook Guide');
+  await expect(dialog).toContainText('Know the Game');
   // And told the one thing that would have made this reversible.
   await expect(dialog).toContainText('Export progress');
 
@@ -92,5 +92,5 @@ test('a book can be exported as a .smartbook package', async ({ page }) => {
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export book' }).click(),
   ]);
-  expect(download.suggestedFilename()).toBe('guide.smartbook.zip');
+  expect(download.suggestedFilename()).toBe('football.smartbook.zip');
 });

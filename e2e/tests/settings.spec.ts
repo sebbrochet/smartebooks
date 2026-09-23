@@ -11,7 +11,7 @@ test('the reading fonts are actually loaded, and from this origin', async ({ pag
     if (request.resourceType() === 'font') requests.push(request.url());
   });
 
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await page.evaluate(() => document.fonts.ready);
 
   // Loaded, not merely declared.
@@ -31,7 +31,7 @@ test('the reading fonts are actually loaded, and from this origin', async ({ pag
 });
 
 test('the reader can set their own type, and it outlives the visit', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
 
   const size = () =>
@@ -81,7 +81,7 @@ test('the reader can set their own type, and it outlives the visit', async ({ pa
 });
 
 test('the reading panel closes on Escape and hands focus back', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
 
   const toggle = page.getByRole('button', { name: /Reading/ });
@@ -112,9 +112,9 @@ test('the pre-1.0 theme key migrates to the namespaced one', async ({ page }) =>
 test('a bundled book renders its packaged cover, and others fall back', async ({ page }) => {
   await page.goto('/');
 
-  // The guide packages assets/cover.svg, so it resolves to a Blob URL…
-  const guide = page.getByRole('link', { name: /The Smart Ebook Guide/ });
-  await expect(guide.locator('img.bookcover')).toHaveAttribute('src', /^blob:/);
+  // The football book packages assets/cover.svg, so it resolves to a Blob URL…
+  const football = page.getByRole('link', { name: /Know the Game/ });
+  await expect(football.locator('img.bookcover')).toHaveAttribute('src', /^blob:/);
 
   // …while a book without artwork gets a generated title card instead.
   const chess = page.getByRole('link', { name: /Chess/ });

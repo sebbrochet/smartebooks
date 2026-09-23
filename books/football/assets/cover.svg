@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img" aria-label="Know the Game">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14532d" />
+      <stop offset="100%" stop-color="#052e16" />
+    </linearGradient>
+  </defs>
+
+  <rect width="300" height="400" fill="url(#bg)" />
+  <rect x="0" y="0" width="10" height="400" fill="#22c55e" />
+
+  <!-- A penalty area seen from above, with the spot and the arc -->
+  <g transform="translate(150 150)" fill="none" stroke="#86efac" stroke-width="3">
+    <rect x="-80" y="-60" width="160" height="120" />
+    <rect x="-40" y="-60" width="80" height="44" />
+    <rect x="-16" y="-60" width="32" height="16" />
+    <circle cx="0" cy="-6" r="3" fill="#86efac" />
+    <path d="M-28 -16a34 34 0 0 0 56 0" stroke="#facc15" />
+  </g>
+
+  <text
+    x="28"
+    y="290"
+    fill="#ffffff"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="bold"
+  >
+    Know the
+  </text>
+  <text
+    x="28"
+    y="330"
+    fill="#ffffff"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="bold"
+  >
+    Game
+  </text>
+  <text x="28" y="364" fill="#86efac" font-family="Georgia, 'Times New Roman', serif" font-size="16">
+    The laws, in three lessons
+  </text>
+</svg>

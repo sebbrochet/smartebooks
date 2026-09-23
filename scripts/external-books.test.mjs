@@ -87,7 +87,7 @@ describe('books outside this repository', () => {
   test('reports content errors in an external book too', () => {
     writeFileSync(
       join(booksDir, 'album', 'content', '02-broken.md'),
-      '::audio{id="a" src="assets/missing.mp3"}\n',
+      '![A sleeve](assets/missing.png)\n',
     );
     const { code, output } = run('lint-content.mjs', [], env());
     rmSync(join(booksDir, 'album', 'content', '02-broken.md'));
@@ -99,6 +99,6 @@ describe('books outside this repository', () => {
   test('leaves the default location alone when nothing is set', () => {
     const { code, output } = run('lint-content.mjs', [], {});
     assert.equal(code, 0, output);
-    assert.match(output, /published: chess, gamebook, guide/);
+    assert.match(output, /published: chess, football, gamebook/);
   });
 });

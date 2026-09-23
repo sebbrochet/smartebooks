@@ -6,14 +6,14 @@ import { test, expect } from '@playwright/test';
  * assertions wait for the drawing, not just the element.
  */
 test('a diagram is drawn from its mermaid source', async ({ page }) => {
-  await page.goto('/#/guide/02-interactivity-toolkit');
+  await page.goto('/#/football/02-close-calls');
 
   const diagram = page.locator('.island--mermaid');
   await expect(diagram).toBeVisible();
 
   // An actual SVG, not the source fallback shown when a diagram fails to parse.
   await expect(diagram.locator('svg')).toBeVisible({ timeout: 30_000 });
-  await expect(diagram.getByText('Build step')).toBeVisible();
+  await expect(diagram.getByText('Play on')).toBeVisible();
   await expect(diagram.locator('pre')).toHaveCount(0);
 });
 
@@ -22,7 +22,7 @@ test('a diagram redraws when the reader switches theme', async ({ page }) => {
   // to Dark is a real change. Without this the test is a coin flip: on a dark
   // machine, System and Dark resolve identically and nothing should re-render.
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/#/guide/02-interactivity-toolkit');
+  await page.goto('/#/football/02-close-calls');
 
   const svg = page.locator('.island--mermaid svg').first();
   await expect(svg).toBeVisible({ timeout: 30_000 });

@@ -36,21 +36,17 @@ test('bookshelf lists books and opens one', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 
-  await page.getByRole('link', { name: /The Smart Ebook Guide/ }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Getting started with smart ebooks' }),
-  ).toBeVisible();
+  await page.getByRole('link', { name: /Know the Game/ }).click();
+  await expect(page.getByRole('heading', { name: 'The basics' })).toBeVisible();
 });
 
 test('sidebar navigates between chapters', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
-  await expect(
-    page.getByRole('heading', { name: 'Getting started with smart ebooks' }),
-  ).toBeVisible();
+  await page.goto('/#/football/01-the-basics');
+  await expect(page.getByRole('heading', { name: 'The basics' })).toBeVisible();
 
   const sidebar = page.locator('.sidebar');
-  await sidebar.getByRole('link', { name: 'The interactivity toolkit' }).click();
-  await expect(page.getByRole('heading', { name: 'The interactivity toolkit' })).toBeVisible();
+  await sidebar.getByRole('link', { name: 'Close calls' }).click();
+  await expect(page.getByRole('heading', { name: 'Close calls' })).toBeVisible();
 });
 
 test('a book with parts groups its chapters, and one without does not', async ({ page }) => {
@@ -77,8 +73,8 @@ test('a book with parts groups its chapters, and one without does not', async ({
   await sidebar.getByRole('link', { name: /The Immortal Game/ }).click();
   await expect(page).toHaveURL(/03-a-game-from-a-file/);
 
-  // The guide declares no parts and must render exactly as it always did.
-  await page.goto('/#/guide/01-getting-started');
+  // The football book declares no parts and must render exactly as it always did.
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('.sidebar .sidebar__part')).toHaveCount(0);
   await expect(page.locator('.sidebar__list > li')).toHaveCount(3);
 });
@@ -116,38 +112,36 @@ test('only the part being read is unfolded', async ({ page }) => {
 });
 
 test('the contents rail lists the sections and jumps to one', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
   const toc = page.locator('.toc');
   await expect(toc).toBeVisible();
-  await expect(toc.getByRole('link', { name: 'Why islands?' })).toBeVisible();
+  await expect(toc.getByRole('link', { name: 'What the referee is for' })).toBeVisible();
 
   // A quiz writes its questions as `###`. They are headings in the source and
   // never headings on the page, because the island replaces its own body — so
   // listing them would offer the reader links that scroll nowhere.
-  await expect(toc.getByRole('link', { name: /What does a .token. represent/ })).toHaveCount(0);
+  await expect(toc.getByRole('link', { name: /How long is a football match/ })).toHaveCount(0);
 
-  await toc.getByRole('link', { name: 'Play a matching game' }).click();
-  await expect(page).toHaveURL(/#\/guide\/01-getting-started\?s=play-a-matching-game$/);
+  await toc.getByRole('link', { name: 'Match the signals' }).click();
+  await expect(page).toHaveURL(/#\/football\/01-the-basics\?s=match-the-signals$/);
 
   // Still in the chapter, scrolled down it — not navigated away by a bare
   // fragment colliding with the hash route.
-  await expect(
-    page.getByRole('heading', { name: 'Getting started with smart ebooks' }),
-  ).toBeAttached();
+  await expect(page.getByRole('heading', { name: 'The basics' })).toBeAttached();
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });
 
 test('a section can be linked to directly and survives a reload', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
-  const heading = page.locator('h2#play-a-matching-game');
+  const heading = page.locator('h2#match-the-signals');
   await expect(heading.locator('a.heading-anchor')).toHaveAttribute(
     'href',
-    '#/guide/01-getting-started?s=play-a-matching-game',
+    '#/football/01-the-basics?s=match-the-signals',
   );
 
-  await page.goto('/#/guide/01-getting-started?s=play-a-matching-game');
+  await page.goto('/#/football/01-the-basics?s=match-the-signals');
   await expect(heading).toBeInViewport();
 });
 
@@ -155,7 +149,7 @@ test.describe('on a narrow screen', () => {
   test.use({ viewport: { width: 420, height: 780 } });
 
   test('the header is one row, with the rest of the controls behind it', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     // It wrapped to 154px of a 780px screen: a fifth of the viewport spent on
     // controls a reader touches once a month, before a word of the book.
@@ -178,13 +172,11 @@ test.describe('on a narrow screen', () => {
   });
 
   test('the chapter list is a drawer, not a wall in front of the text', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     // The whole point: the reader meets the chapter, not forty links to other
     // chapters. The heading is on screen without scrolling past navigation.
-    await expect(
-      page.getByRole('heading', { name: 'Getting started with smart ebooks' }),
-    ).toBeInViewport();
+    await expect(page.getByRole('heading', { name: 'The basics' })).toBeInViewport();
 
     const toggle = page.getByRole('button', { name: /Contents/ });
     const sidebar = page.locator('.sidebar');
@@ -196,13 +188,13 @@ test.describe('on a narrow screen', () => {
     await expect(sidebar).toBeVisible();
 
     // Choosing a chapter both navigates and puts the text back in front.
-    await sidebar.getByRole('link', { name: 'The interactivity toolkit' }).click();
-    await expect(page).toHaveURL(/02-interactivity-toolkit/);
+    await sidebar.getByRole('link', { name: 'Close calls' }).click();
+    await expect(page).toHaveURL(/02-close-calls/);
     await expect(sidebar).toBeHidden();
   });
 
   test('escape closes the drawer and hands focus back', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     const toggle = page.getByRole('button', { name: /Contents/ });
     await toggle.click();
@@ -227,7 +219,7 @@ test.describe('on a narrow screen', () => {
    * "visible" to Playwright, which is exactly how this defect survived review.
    */
   test('a focused skip link is not painted over by the drawer', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
     await page.getByRole('button', { name: /Contents/ }).click();
     await expect(page.locator('.sidebar')).toBeVisible();
 
@@ -244,7 +236,7 @@ test.describe('on a narrow screen', () => {
   });
 
   test('the contents rail is folded away, not stacked on top of the chapter', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     const toggle = page.getByRole('button', { name: 'On this page' });
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -258,12 +250,12 @@ test.describe('on a narrow screen', () => {
     await toggle.click();
     await expect(page.locator('.toc__list')).toBeVisible();
     await expect(
-      page.locator('.toc__list').getByRole('link', { name: 'Play a matching game' }),
+      page.locator('.toc__list').getByRole('link', { name: 'Match the signals' }),
     ).toBeVisible();
   });
 
   test('search is a tap away, not folded into the drawer', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
     await expect(page.locator('article.prose')).toBeVisible();
 
     // The sidebar's search is inside the drawer at this width, so it is not the
@@ -278,7 +270,7 @@ test.describe('on a narrow screen', () => {
     await search.click();
     const input = page.getByPlaceholder('Search this book…');
     await expect(input).toBeFocused();
-    await input.pressSequentially('matching', { delay: 40 });
+    await input.pressSequentially('referee', { delay: 40 });
     await expect(page.locator('.search-overlay__list li')).not.toHaveCount(0);
   });
 });
@@ -296,7 +288,7 @@ test.describe('on a narrow screen', () => {
  * reader can start a search.
  */
 test('there is no width where search cannot be reached', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
 
   const widths = [1400, 1100, 1000, 900, 800, 760, 740, 721, 720, 719, 600, 400, 320];
@@ -325,7 +317,7 @@ test('there is no width where search cannot be reached', async ({ page }) => {
  * month, was never a fact about phones.
  */
 test('the secondary controls are behind a disclosure at every width', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
   const tools = page.locator('.reader__tools');
   await expect(tools).toBeHidden();
@@ -345,7 +337,7 @@ test('the secondary controls are behind a disclosure at every width', async ({ p
 });
 
 test('a long chapter offers a way back to the top', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
   const button = page.getByRole('button', { name: /Top/ });
   await expect(button).toBeHidden();
@@ -362,7 +354,7 @@ test('a long chapter offers a way back to the top', async ({ page }) => {
 });
 
 test('the contents rail tracks the section being read', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   const active = page.locator('.toc__list a.is-active');
 
   // Nothing is marked while the reader is still above the first section: the
@@ -373,20 +365,20 @@ test('the contents rail tracks the section being read', async ({ page }) => {
   // is not enough and should not be: a heading sitting at the bottom of the
   // screen belongs to a section the reader has not started.
   await page.evaluate(() => {
-    const el = document.getElementById('play-a-matching-game');
+    const el = document.getElementById('match-the-signals');
     window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 20);
   });
-  await expect(active).toHaveText('Play a matching game');
+  await expect(active).toHaveText('Match the signals');
   await expect(active).toHaveAttribute('aria-current', 'true');
 
   // The last section's heading can never reach the line, because the section
   // is shorter than a screen — without the bottom case it is unreachable.
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(active).toHaveText('Still on the roadmap');
+  await expect(active).toHaveText('Where the laws come from');
 });
 
 test('both rails scroll on their own instead of running off the screen', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
   // A pane taller than the viewport with no scrollport of its own has an
   // unreachable lower half — the page scroll moves the article, not the pane.
@@ -400,7 +392,7 @@ test('both rails scroll on their own instead of running off the screen', async (
 });
 
 test('search happens over the book and gives the reader their place back', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   // The `/` handler is mounted by the reader, so pressing it before the chapter
   // exists races the first render rather than testing anything.
   await expect(page.locator('article.prose')).toBeVisible();
@@ -416,27 +408,27 @@ test('search happens over the book and gives the reader their place back', async
   await expect(input).toBeFocused();
 
   // Results per keystroke — no Enter, no navigation.
-  await input.pressSequentially('matching', { delay: 40 });
+  await input.pressSequentially('referee', { delay: 40 });
   await expect(page.locator('.search-overlay__list li')).not.toHaveCount(0);
   await expect(page.locator('.search-overlay__meta')).toContainText(/matching passages?/);
 
   // The terms are marked in the results rather than left for the reader to
   // find in a wall of grey snippet.
-  await expect(page.locator('.search-overlay mark').first()).toHaveText(/matching/i);
+  await expect(page.locator('.search-overlay mark').first()).toHaveText(/referee/i);
 
   // Escape returns to the chapter *and* the place in it.
   await page.keyboard.press('Escape');
   await expect(page.locator('.search-overlay__panel')).toHaveCount(0);
-  await expect(page).toHaveURL(/01-getting-started/);
+  await expect(page).toHaveURL(/01-the-basics/);
   expect(await page.evaluate(() => window.scrollY)).toBe(before);
 });
 
 test('the keyboard alone can find a chapter and open it', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
 
   await page.keyboard.press('/');
-  await page.getByPlaceholder('Search this book…').pressSequentially('progress', { delay: 40 });
+  await page.getByPlaceholder('Search this book…').pressSequentially('ball', { delay: 40 });
 
   const options = page.locator('.search-overlay__list li');
   await expect(options.first()).toHaveAttribute('aria-selected', 'true');
@@ -452,10 +444,10 @@ test('the keyboard alone can find a chapter and open it', async ({ page }) => {
 });
 
 test('a search result opens the chapter it names', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
   await page.locator('.sidebar__search').click();
-  await page.getByPlaceholder('Search this book…').fill('matching');
+  await page.getByPlaceholder('Search this book…').fill('referee');
 
   const first = page.locator('.search-overlay__list a').first();
   await expect(first).toBeVisible();

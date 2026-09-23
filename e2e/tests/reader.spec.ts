@@ -1,19 +1,19 @@
 import { test, expect } from '@playwright/test';
 
-// Deep-link straight into the guide's first chapter.
-const CHAPTER = '/#/guide/01-getting-started';
+// Deep-link straight into the football book's first chapter.
+const CHAPTER = '/#/football/01-the-basics';
 
 test('quiz score persists across a reload', async ({ page }) => {
   await page.goto(CHAPTER);
 
   // Answer the first (single-choice) question correctly.
-  await expect(page.getByText('What does a "token" represent')).toBeVisible();
-  await page.getByText('A chunk of text (often a sub-word)').click();
+  await expect(page.getByText('How long is a football match')).toBeVisible();
+  await page.getByText('Two halves of forty-five minutes').click();
 
   // Answer the multi-select question correctly.
-  await page.getByText('Content is authored in plain Markdown').click();
-  await page.getByText('Reader progress is stored locally in the browser').click();
-  await page.getByText('Interactivity is added via directives').click();
+  await page.getByText('Both feet must stay on the ground').click();
+  await page.getByText('The ball is thrown with both hands, from behind the head').click();
+  await page.getByText('The thrower may not touch the ball again until someone else does').click();
 
   await page.getByRole('button', { name: 'Check answers' }).click();
   await expect(page.getByText('Score: 2 / 2')).toBeVisible();
@@ -26,7 +26,7 @@ test('quiz score persists across a reload', async ({ page }) => {
 test('checkpoint completion persists across a reload', async ({ page }) => {
   await page.goto(CHAPTER);
   const checkbox = page
-    .getByText('I understand what a smart ebook is')
+    .getByText('I know what the referee is there for')
     .locator('..')
     .getByRole('checkbox');
   await checkbox.check();
@@ -34,29 +34,29 @@ test('checkpoint completion persists across a reload', async ({ page }) => {
 
   await page.reload();
   await expect(
-    page.getByText('I understand what a smart ebook is').locator('..').getByRole('checkbox'),
+    page.getByText('I know what the referee is there for').locator('..').getByRole('checkbox'),
   ).toBeChecked();
 });
 
 test('an inline mark stays in its sentence and opens on request', async ({ page }) => {
-  await page.goto('/#/guide/02-interactivity-toolkit');
+  await page.goto('/#/football/02-close-calls');
 
-  const word = page.getByRole('button', { name: 'palimpsest' });
+  const word = page.getByRole('button', { name: 'advantage' });
   await expect(word).toBeVisible();
   await expect(word).toHaveAttribute('aria-expanded', 'false');
 
   // The word is *inside* the paragraph, not a block that broke out of it —
   // which is what a text directive used to compile to.
   const paragraph = page.locator('p', { has: word });
-  await expect(paragraph).toContainText('is a\ngood name'.replace('\n', ' '));
+  await expect(paragraph).toContainText("is the referee's way");
 
   // The explanation appears only when asked for, and goes away again.
-  await expect(page.getByText(/scraped clean and written on again/i)).toHaveCount(0);
+  await expect(page.getByText(/punish the team that was fouled/i)).toHaveCount(0);
   await word.click();
   await expect(word).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByText(/scraped clean and written on again/i)).toBeVisible();
+  await expect(page.getByText(/punish the team that was fouled/i)).toBeVisible();
   await word.click();
-  await expect(page.getByText(/scraped clean and written on again/i)).toHaveCount(0);
+  await expect(page.getByText(/punish the team that was fouled/i)).toHaveCount(0);
 });
 
 /**
@@ -64,7 +64,7 @@ test('an inline mark stays in its sentence and opens on request', async ({ page 
  * now every one rendered as the same undifferentiated blockquote.
  */
 test('each kind of callout is told apart, and a plain quote is left alone', async ({ page }) => {
-  await page.goto('/#/guide/02-interactivity-toolkit');
+  await page.goto('/#/football/02-close-calls');
 
   const prose = page.locator('.prose');
   // At least one of each: the chapter already carried a definition callout

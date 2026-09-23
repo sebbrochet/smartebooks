@@ -25,7 +25,7 @@ test('a reader who has opened a book can reload it with no network', async ({ pa
 
   // Read a chapter while online, so its chunks are in the cache. This is the
   // scope the spec promises: the shell, plus books the reader has opened.
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
 
   await context.setOffline(true);
@@ -34,7 +34,7 @@ test('a reader who has opened a book can reload it with no network', async ({ pa
   // Named content rather than a snapshot of the whole article. Comparing the
   // full text online and offline looked stricter and was merely flaky: islands
   // mount asynchronously, so the two captures raced the quiz rendering.
-  await expect(page.getByRole('heading', { name: 'Getting started', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The basics', level: 1 })).toBeVisible();
   await expect(page.locator('article.prose')).toContainText('Test yourself');
 
   // The sidebar too: a chapter with no way out of it is not a reader.
@@ -63,10 +63,10 @@ test('navigating to a chapter offline works, because routing is local', async ({
   page,
   context,
 }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await waitForController(page);
   await expect(page.locator('article.prose')).toBeVisible();
-  await page.goto('/#/guide/02-interactivity-toolkit');
+  await page.goto('/#/football/02-close-calls');
   await expect(page.locator('article.prose')).toBeVisible();
 
   await context.setOffline(true);
@@ -382,7 +382,7 @@ test('a reader who asks while a new version exists is offered it, not reassured'
 });
 
 test('a reader who ignores the update keeps reading the version they opened', async ({ page }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await waitForController(page);
   await expect(page.locator('article.prose')).toBeVisible();
 

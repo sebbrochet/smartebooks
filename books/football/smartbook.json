@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "minReaderSchema": 1,
+  "authorId": "sebbrochet.com",
+  "slug": "football",
+  "visibility": "public",
+  "title": "Know the Game",
+  "description": "A short course on the laws of football: what the referee is watching, what the signals mean, and how the close ones are decided.",
+  "authors": ["Smart Ebooks"],
+  "createdAt": "2026-09-23",
+  "cover": "assets/cover.svg",
+  "engine": { "min": "0.1.0" },
+  "islands": {
+    "packs": {
+      "mermaid": {}
+    }
+  },
+  "chapters": [
+    { "file": "01-the-basics.md", "order": 1 },
+    { "file": "02-close-calls.md", "order": 2 },
+    { "file": "03-fouls-and-cards.md", "order": 3 }
+  ],
+  "assets": ["assets/cover.svg"]
+}

@@ -226,7 +226,7 @@ test('a book with nothing to score is not given a scoreboard', async ({ page }) 
   // …and a book that does measure the reader still shows its zeros, because
   // there the zero is a position rather than an absence — and the denominator
   // comes from the book, so it is there on the first day (SPEC009 T12).
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await expect(dashboard).toBeVisible();
   await expect(dashboard).toContainText('points');
   await expect(dashboard.locator('.dashboard__value').first()).toContainText('/');

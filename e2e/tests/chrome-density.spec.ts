@@ -47,7 +47,7 @@ interface Metrics {
 
 async function measure(page: Page, width: number): Promise<Metrics> {
   await page.setViewportSize({ width, height: 800 });
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await page.locator('.prose').first().waitFor();
 
   const header = page.locator('.reader__header');
@@ -167,7 +167,7 @@ test('the progress dashboard is one row, at every width', async ({ page }) => {
 
   for (const width of [320, 360, 390, 420, 1280]) {
     await page.setViewportSize({ width, height: 800 });
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
     const dash = page.locator('.dashboard');
     await dash.waitFor();
 
@@ -200,7 +200,7 @@ test('the progress dashboard is one row, at every width', async ({ page }) => {
 test('the breakpoint means the same thing to the stylesheet and to the script', async ({
   page,
 }) => {
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await page.locator('.prose').first().waitFor();
 
   // Around 720 on the width axis, around 600 on the height axis, plus the
@@ -258,7 +258,7 @@ test('the breakpoint means the same thing to the stylesheet and to the script', 
  */
 test('a phone on its side still opens on the chapter', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
   await page.locator('.prose').first().waitFor();
 
   const main = (await page.locator('.reader__main').boundingBox())?.y ?? 0;
@@ -284,7 +284,7 @@ test('the way back to the shelf survives on a phone', async ({ page }) => {
   // The brand link was the only route back to the library, and an icon bar is
   // exactly where it would get lost.
   await page.setViewportSize({ width: 320, height: 800 });
-  await page.goto('/#/guide/01-getting-started');
+  await page.goto('/#/football/01-the-basics');
 
   const home = page.getByRole('link', { name: /library/i });
   await expect(home).toBeVisible();

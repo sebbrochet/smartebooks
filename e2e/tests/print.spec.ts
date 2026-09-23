@@ -15,7 +15,7 @@ test.describe('on paper', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
 
   test('the chapter prints without the furniture around it', async ({ page }) => {
-    await page.goto('/#/guide/03-tracking-progress');
+    await page.goto('/#/football/03-fouls-and-cards');
     await expect(page.locator('article.prose')).toBeVisible();
 
     // Visible on screen…
@@ -49,7 +49,7 @@ test.describe('on paper', () => {
   });
 
   test('a dark-theme reader does not print a black page', async ({ page }) => {
-    await page.goto('/#/guide/03-tracking-progress');
+    await page.goto('/#/football/03-fouls-and-cards');
     await expect(page.locator('article.prose')).toBeVisible();
 
     // Choose dark explicitly, the way a reader would.
@@ -78,7 +78,7 @@ test.describe('on paper', () => {
   });
 
   test('an external link prints its address', async ({ page }) => {
-    await page.goto('/#/guide/02-interactivity-toolkit');
+    await page.goto('/#/football/02-close-calls');
     await expect(page.locator('article.prose')).toBeVisible();
 
     const link = page.locator('.prose a[href^="http"]').first();
@@ -94,7 +94,7 @@ test.describe('on paper', () => {
 
     /*
      * The matching negative — that an in-book link does *not* print
-     * `#/guide/02-toolkit?s=islands` after itself — has no fixture: no bundled
+     * `#/football/02-close-calls?s=offside` after itself — has no fixture: no bundled
      * chapter contains a prose link to another chapter, and the heading
      * anchors are `display: none` here, which would make the assertion pass
      * for the wrong reason. The rule is scoped to `[href^='http']`, so the

@@ -12,7 +12,7 @@ test.describe('a reader whose browser asks for French', () => {
   test.use({ locale: 'fr-FR' });
 
   test('gets French chrome around a book that stays in its own language', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     await expect(page.getByRole('button', { name: 'Sommaire' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Rechercher', exact: true })).toBeVisible();
@@ -30,7 +30,7 @@ test.describe('a reader whose browser asks for French', () => {
    * panel sized around English is where that shows up first.
    */
   test('can read the reading settings without the panel bursting', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
     await page.getByRole('button', { name: 'Réglages de lecture' }).click();
 
     const panel = page.locator('.reading-settings__panel');
@@ -59,7 +59,7 @@ test.describe('a reader whose browser asks for French', () => {
    * book's prose — where the surrounding words are the author's, not ours.
    */
   test('is offered a quiz in French, inside prose that stays the author’s', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     const quiz = page.locator('.island--quiz').first();
     await expect(quiz.getByRole('button', { name: 'Vérifier les réponses' })).toBeVisible();
@@ -71,7 +71,7 @@ test.describe('a reader whose browser asks for something we do not speak', () =>
   test.use({ locale: 'de-DE' });
 
   test('is given English rather than nothing', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
 
     await expect(page.getByRole('button', { name: 'Contents' })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
@@ -87,7 +87,7 @@ test.describe('a reader whose browser asks for something we do not speak', () =>
    * looks like the setting not working at all.
    */
   test('can ask for French anyway, and gets it without reloading', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
     await page.getByRole('button', { name: 'Tools' }).click();
     await page.getByTestId('language-choice').selectOption('fr');
 
@@ -99,7 +99,7 @@ test.describe('a reader whose browser asks for something we do not speak', () =>
   });
 
   test('keeps that choice on the next visit', async ({ page }) => {
-    await page.goto('/#/guide/01-getting-started');
+    await page.goto('/#/football/01-the-basics');
     await page.getByRole('button', { name: 'Tools' }).click();
     await page.getByTestId('language-choice').selectOption('fr');
     await expect(page.getByRole('button', { name: 'Sommaire' })).toBeVisible();
