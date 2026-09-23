@@ -1,19 +1,16 @@
 # 1. A chess game, move by move
 
-Smart ebooks support **domain islands**. This chess book adds a board and a puzzle —
-powered by a separate `@smart-ebooks/islands-chess` package, **not** the core engine. Books
-that don't need chess never pay for it.
+The games in this book are not pictures. Step through them, try the positions
+yourself, and ask for a second opinion when you are not sure.
 
 ## Replay a famous miniature
 
-Step through the game with the controls under the board. This book sets `theme=blue`
-as its board default; this directive adds `pieces=unicode`, and `analysis=on` gives an
-on-demand **Stockfish** evaluation of whatever position you've navigated to.
+Step through the game with the controls under the board. At any point you can ask
+for an evaluation, and **Stockfish** will weigh up the position you are looking at.
 
-The PGN carries the annotator's `{…}` comments and `$` glyphs, and the board shows them
-as you step — so a game can be *read*, not just replayed. Comments can also carry
-**arrows and highlights** (`[%cal …]`, `[%csl …]`), which are drawn on the board and
-removed from the text.
+The annotator's notes appear as you go, so a game can be *read* and not only
+replayed. Where a note points at a square or a line of attack, the board draws it
+for you.
 
 :::chess-board{id="chess-scholars" pieces=unicode analysis=on}
 
@@ -29,11 +26,10 @@ move loses on the spot.} 4. Qxf7# {Mate: the bishop guards the queen.}
 
 ## Try a puzzle
 
-White to move and mate in one. Think first, then reveal. This puzzle uses the
-`green` board theme.
+White to move and mate in one. Think first, then reveal.
 
 :::chess-puzzle{id="chess-backrank" theme=green fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
 Ra8# — a back-rank mate.
 :::
 
-::checkpoint{id="chess-done" label="I explored the chess islands"}
+::checkpoint{id="chess-done" label="I played through a game and tried a puzzle"}

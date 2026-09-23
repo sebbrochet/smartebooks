@@ -74,7 +74,7 @@ test('a book with parts groups its chapters, and one without does not', async ({
   // so navigation across a part boundary is an ordinary next step. Part II is
   // folded away while Part I is being read, so it has to be opened first.
   await sidebar.getByRole('button', { name: 'Part II — Writing one' }).click();
-  await sidebar.getByRole('link', { name: /A game from a file/ }).click();
+  await sidebar.getByRole('link', { name: /The Immortal Game/ }).click();
   await expect(page).toHaveURL(/03-a-game-from-a-file/);
 
   // The guide declares no parts and must render exactly as it always did.
@@ -94,11 +94,11 @@ test('only the part being read is unfolded', async ({ page }) => {
   // comparison book shows 30 of its 44 links, the rest folded away.
   await expect(one).toHaveAttribute('aria-expanded', 'true');
   await expect(two).toHaveAttribute('aria-expanded', 'false');
-  await expect(sidebar.getByRole('link', { name: /A game from a file/ })).toBeHidden();
+  await expect(sidebar.getByRole('link', { name: /The Immortal Game/ })).toBeHidden();
 
   await two.click();
   await expect(two).toHaveAttribute('aria-expanded', 'true');
-  await expect(sidebar.getByRole('link', { name: /A game from a file/ })).toBeVisible();
+  await expect(sidebar.getByRole('link', { name: /The Immortal Game/ })).toBeVisible();
 
   // Closing the part you are reading is allowed — it is the reader's list —
   // and it sticks while they stay put.

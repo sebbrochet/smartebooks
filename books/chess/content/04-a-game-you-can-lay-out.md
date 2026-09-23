@@ -6,9 +6,9 @@ out that way. They interleave — a paragraph, a diagram at the critical moment,
 more prose, the score at the end — and the moves are named *inside the
 sentences*, not in a separate list.
 
-`:::chess-game` is that. It owns the game and gives you one board that holds
-still: the board sits above, the prose scrolls beneath it, and every mark in
-that prose moves the pieces without ever moving out of sight.
+This chapter is laid out that way. One game, one board that holds still: the
+board sits above, the prose scrolls beneath it, and every move named in that
+prose shifts the pieces without ever moving out of sight.
 
 :::chess-game{id="chess-scholars-game" analysis}
 
@@ -34,10 +34,9 @@ position. Nothing declares that — the diagram names a position, and this game
 happens to reach it. A diagram of a position from some other game stays a
 picture, with nothing to tap.
 
-Every mark above is a button too. Click one and the board follows it — and so
-does the score below, because they are all reading the same position from the
-same container. However far down this commentary you have read, the board is
-still there.
+Every move above is a button too. Click one and the board follows it — and so
+does the score below, because they are all reading the same game. However far
+down this commentary you have read, the board is still there.
 
 ::chess-moves{scroll=false}
 
@@ -48,16 +47,16 @@ remembering: Black never developed a piece.
 
 :::
 
-Two things follow from the container owning the board rather than the prose.
-The first is that **a game can be as long as it needs to be** — pages of
-annotation against one board, which is what a real annotated game looks like
+Two things follow from the board belonging to the game rather than to any one
+paragraph. The first is that **a game can be as long as it needs to be** — pages
+of annotation against one board, which is what a real annotated game looks like
 and what a board sitting in the middle of the text could never survive. The
 second is that a move can be *mentioned* without being displayed, so the prose
 reads like prose.
 
-The engine is the game's, not a board's: `analysis` on `:::chess-game` puts
-Stockfish under the one live board, and it evaluates whatever position the
-reader is on — including one they reached by clicking a move in a sentence, or
-by tapping a diagram.
+The evaluation belongs to the game too, rather than to any one board: Stockfish
+sits under the board that holds still, and weighs up whatever position you are
+on — including one you reached by clicking a move in a sentence, or by tapping a
+diagram.
 
 ::checkpoint{id="chess-layout-done" label="I read a game laid out as prose"}
