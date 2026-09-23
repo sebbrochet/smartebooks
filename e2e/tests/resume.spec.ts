@@ -14,6 +14,9 @@ test('returning to the site resumes the last book and chapter', async ({ page })
 test('resume returns to the place, not just to the chapter', async ({ page }) => {
   await page.goto('/#/football/01-the-basics');
   await expect(page.locator('article.prose')).toBeVisible();
+  // The chapter is still growing until its islands render, and a pixel measured
+  // before that disagrees with the one restore produces afterwards.
+  await expect(page.locator('.island--quiz:not(.island--loading)')).toBeVisible();
 
   // Read down to a section, and pause long enough for the position to be
   // written — it is deliberately not saved on every scroll frame.
@@ -127,6 +130,10 @@ test('a book never opened starts at its first chapter', async ({ page }) => {
 test('returning through the library restores the place, not just the chapter', async ({ page }) => {
   await page.goto(CHAPTER);
   await expect(page.locator('article.prose')).toBeVisible();
+  // Restore is anchor-based, so a diagram *above* the anchor moves the pixel it
+  // lands on. Measured: this one is ~730px tall and lands late, which is enough
+  // to put the restored position outside the tolerance below.
+  await expect(page.locator('.island--mermaid svg')).toBeVisible({ timeout: 30_000 });
 
   await page.evaluate(() => {
     const heading = document.getElementById('a-word-you-will-hear');
@@ -212,6 +219,7 @@ test('resume follows a pane, not the page', async ({ page }) => {
   await page.goto('/#/football/01-the-basics');
   const pane = page.locator('.reader__main');
   await expect(page.locator('article.prose')).toBeVisible();
+  await expect(page.locator('.island--quiz:not(.island--loading)')).toBeVisible();
 
   // Read down to a section — by scrolling the pane, which is the only thing
   // that scrolls now.

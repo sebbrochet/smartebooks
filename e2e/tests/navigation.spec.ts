@@ -113,6 +113,9 @@ test('only the part being read is unfolded', async ({ page }) => {
 
 test('the contents rail lists the sections and jumps to one', async ({ page }) => {
   await page.goto('/#/football/01-the-basics');
+  // Until the islands render the chapter can be shorter than the viewport, and
+  // then jumping to a section scrolls nowhere because there is nowhere to go.
+  await expect(page.locator('.island--quiz:not(.island--loading)')).toBeVisible();
 
   const toc = page.locator('.toc');
   await expect(toc).toBeVisible();

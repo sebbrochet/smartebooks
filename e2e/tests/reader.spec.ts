@@ -18,6 +18,10 @@ test('quiz score persists across a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Check answers' }).click();
   await expect(page.getByText('Score: 2 / 2')).toBeVisible();
 
+  // The write is fire-and-forget (`void saveState`), so reloading straight away
+  // races it and proves nothing. Reading it back is the point of the test.
+  await page.waitForTimeout(500);
+
   // Reload — the submitted state and score should be restored from IndexedDB.
   await page.reload();
   await expect(page.getByText('Score: 2 / 2')).toBeVisible();
