@@ -85,3 +85,80 @@ test('only one note is marked at a time', async ({ page }) => {
     'true',
   );
 });
+
+/**
+ * Watch every change to the marker rather than sampling for one.
+ *
+ * Polling looked fine and failed in a full run: the marker is moved on an
+ * animation frame, frames are throttled when the machine is busy, and a tune a
+ * few seconds long can finish between two polls — leaving the assertion
+ * looking for a state that has already been and gone. An observer cannot miss
+ * it, however late the test gets to read the result.
+ */
+async function recordMarks(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    const seen: number[] = [];
+    (window as unknown as { __seen: number[] }).__seen = seen;
+    new MutationObserver(() => {
+      const all = [...document.querySelectorAll('.abcjs-note')];
+      const index = all.findIndex((el) => el.classList.contains('is-current'));
+      if (index >= 0 && seen[seen.length - 1] !== index) seen.push(index);
+    }).observe(document.querySelector('.island--piece') as Node, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  });
+}
+
+const marksSeen = (page: import('@playwright/test').Page) =>
+  page.evaluate(() => (window as unknown as { __seen: number[] }).__seen);
+
+/**
+ * SPEC017 QN9, and the only thing here that proves the sound is real: a
+ * suspended audio context's clock does not advance, and the marker is driven by
+ * asking that clock the time. A marker that travels is a context that is running.
+ */
+test('the piece plays, and the marker follows the sound', async ({ page }) => {
+  await page.goto('/#/music/02-following-a-tune');
+  await expect(page.locator('.island--piece svg')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.abcjs-note.is-current')).toHaveCount(0);
+
+  await recordMarks(page);
+  await page.getByRole('button', { name: 'Play' }).click();
+  await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
+
+  // Playing to the end puts the control back on its own.
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible({ timeout: 30_000 });
+
+  const seen = await marksSeen(page);
+  // It started at the first note and moved on through the tune in order —
+  // which a highlight that merely appeared would not have done.
+  expect(seen[0]).toBe(0);
+  expect(seen.length).toBeGreaterThan(2);
+  expect([...seen]).toEqual([...seen].sort((a, b) => a - b));
+});
+
+test('stopping gives the reader back a quiet page', async ({ page }) => {
+  await page.goto('/#/music/02-following-a-tune');
+  await expect(page.locator('.island--piece svg')).toBeVisible({ timeout: 30_000 });
+
+  await recordMarks(page);
+  await page.getByRole('button', { name: 'Play' }).click();
+  await expect
+    .poll(async () => (await marksSeen(page)).length, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: 'Stop' }).click();
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  await expect(page.locator('.abcjs-note.is-current')).toHaveCount(0);
+});
+
+test('a figure is silent: nothing to press, nothing to hear', async ({ page }) => {
+  await page.goto('/#/music/01-the-stave');
+  await expect(page.locator('.island--music svg').first()).toBeVisible({ timeout: 30_000 });
+
+  // Chapter one is illustrations, not performances. A play control on each of
+  // them would be three invitations to listen to two bars of nothing much.
+  await expect(page.getByRole('button', { name: 'Play' })).toHaveCount(0);
+});

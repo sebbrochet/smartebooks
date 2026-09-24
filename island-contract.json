@@ -122,7 +122,8 @@
     },
     "music-piece": {
       "caption": { "type": "string" },
-      "width": { "type": "number" }
+      "width": { "type": "number" },
+      "play": { "type": "boolean" }
     },
     "note": { "nth": { "type": "number" } }
   }

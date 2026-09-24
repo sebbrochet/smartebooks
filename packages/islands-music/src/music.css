@@ -63,3 +63,27 @@
 .abcjs-note.is-current {
   fill: var(--accent);
 }
+
+.island--piece figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.music__play {
+  flex: none;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.music__play:hover,
+.music__play:focus-visible {
+  border-color: var(--accent);
+}

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { attrText, useMessages, type IslandComponentProps } from '@smart-ebooks/engine';
 import { notesOf } from './notes';
+import { canPlay, playNotes, type Playing } from './player';
 import { PieceProvider, SequenceProvider } from './musicContext';
 import './music.css';
 
@@ -19,14 +20,41 @@ const START = '';
 export default function MusicPieceIsland({ attributes, data, children }: IslandComponentProps) {
   const words = useMessages();
   const host = useRef<HTMLDivElement>(null);
+  const playing = useRef<Playing | undefined>(undefined);
   const [current, setCurrent] = useState(START);
+  const [sounding, setSounding] = useState(false);
   const abc = ((data as { abc?: string })?.abc ?? '').trim();
   const width = Number(attributes.width) || 520;
   const caption = attrText(attributes.caption).trim();
+  const wanted = attributes.play !== false;
 
   const notes = useMemo(() => (abc ? notesOf(abc) : []), [abc]);
   const positions = useMemo(() => notes.map((note) => String(note.index)), [notes]);
   const piece = useMemo(() => ({ notes }), [notes]);
+
+  const stop = useCallback(() => {
+    playing.current?.stop();
+    playing.current = undefined;
+  }, []);
+
+  // Nothing should still be making a noise after the reader has turned the page.
+  useEffect(() => stop, [stop]);
+
+  const toggle = useCallback(() => {
+    if (playing.current) {
+      stop();
+      return;
+    }
+    setSounding(true);
+    playing.current = playNotes(
+      notes,
+      (index) => setCurrent(index === undefined ? START : String(index)),
+      () => {
+        playing.current = undefined;
+        setSounding(false);
+      },
+    );
+  }, [notes, stop]);
 
   useEffect(() => {
     if (!abc) return;
@@ -78,7 +106,14 @@ export default function MusicPieceIsland({ attributes, data, children }: IslandC
         <div className="island island--music island--piece">
           <figure className="music__score">
             <div className="music__stave" ref={host} aria-hidden="true" />
-            <figcaption>{caption || words.musicFigure}</figcaption>
+            <figcaption>
+              <span>{caption || words.musicFigure}</span>
+              {wanted && canPlay() && notes.length > 0 && (
+                <button type="button" className="music__play" onClick={toggle}>
+                  {sounding ? words.musicStop : words.musicPlay}
+                </button>
+              )}
+            </figcaption>
           </figure>
           <div className="music__prose">{children}</div>
         </div>

@@ -99,6 +99,9 @@ export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinitio
       attributes: {
         caption: { type: 'string', default: '' },
         width: { type: 'number', default: bookWidth },
+        // On by default: a piece the prose walks through is the one island here
+        // that has something to play. An author who wants silence says so.
+        play: { type: 'boolean', default: true },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
