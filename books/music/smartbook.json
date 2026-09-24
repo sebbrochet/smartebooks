@@ -15,6 +15,9 @@
       "music": {}
     }
   },
-  "chapters": [{ "file": "01-the-stave.md", "order": 1 }],
+  "chapters": [
+    { "file": "01-the-stave.md", "order": 1 },
+    { "file": "02-following-a-tune.md", "order": 2 }
+  ],
   "assets": ["assets/cover.svg"]
 }

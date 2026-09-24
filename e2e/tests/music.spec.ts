@@ -33,3 +33,55 @@ test('every figure in the chapter draws, and each says what it is', async ({ pag
     await expect(figures.nth(i).locator('figcaption')).not.toBeEmpty();
   }
 });
+
+/**
+ * SPEC017 QN1. A note named in a sentence drives the score above it, through
+ * the engine's shared sequence primitive and nothing else.
+ */
+test('a note named in the prose shows where it is on the score', async ({ page }) => {
+  await page.goto('/#/music/02-following-a-tune');
+  await expect(page.locator('.island--piece svg')).toBeVisible({ timeout: 30_000 });
+
+  // Nothing is claimed before the reader asks: an unread piece should not be
+  // pointing at a note they never chose.
+  await expect(page.locator('.abcjs-note.is-current')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'E', exact: true }).click();
+  await expect(page.locator('.abcjs-note.is-current')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'E', exact: true })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+});
+
+/**
+ * The mark says *which* note, not merely that there is one. `nth` is the only
+ * way the prose can name the third D rather than the first, and a book saying
+ * "the last D" while pointing at an earlier one is wrong in a way no count of
+ * highlighted elements would catch — as the chapter was, before this test.
+ */
+test('nth picks the repeat the sentence means', async ({ page }) => {
+  await page.goto('/#/music/02-following-a-tune');
+  await expect(page.locator('.island--piece svg')).toBeVisible({ timeout: 30_000 });
+
+  const notes = page.locator('.abcjs-note');
+  const total = await notes.count();
+
+  // "The last D" in a tune whose notes run E E F G G F E D C C D E E D.
+  await page.getByRole('button', { name: 'D', exact: true }).nth(1).click();
+  await expect(notes.nth(total - 1)).toHaveClass(/is-current/);
+});
+
+test('only one note is marked at a time', async ({ page }) => {
+  await page.goto('/#/music/02-following-a-tune');
+  await expect(page.locator('.island--piece svg')).toBeVisible({ timeout: 30_000 });
+
+  await page.getByRole('button', { name: 'E', exact: true }).click();
+  await page.getByRole('button', { name: 'G', exact: true }).click();
+
+  await expect(page.locator('.abcjs-note.is-current')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'E', exact: true })).not.toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+});

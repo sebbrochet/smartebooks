@@ -25,3 +25,41 @@
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* A piece keeps its score in view while the prose about it scrolls, which is
+   the arrangement a chess game uses and for the same reason. */
+.island--piece .music__score {
+  position: sticky;
+  top: var(--ui-bar-h, 0);
+  margin: 0;
+  padding-bottom: 0.5rem;
+  background: var(--island-bg);
+  z-index: 1;
+}
+
+.island--piece .music__prose > :first-child {
+  margin-top: 0;
+}
+
+/* A note named in a sentence: part of the text, not a control bolted into it. */
+.music-note {
+  border: 0;
+  padding: 0 0.15em;
+  margin: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px dotted currentColor;
+}
+
+.music-note[aria-current='true'] {
+  background: var(--accent);
+  color: var(--island-bg);
+  border-radius: 3px;
+}
+
+/* The note the reader last pointed at, on the score itself. */
+.abcjs-note.is-current {
+  fill: var(--accent);
+}
