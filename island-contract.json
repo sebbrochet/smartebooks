@@ -23,10 +23,12 @@
       "move"
     ],
     "mermaid": ["mermaid"],
+    "music": ["music-figure"],
     "gamebook": ["choice", "restart", "journeys", "ending", "death"]
   },
   "aliases": {
     "matchingpairs": "matching-pairs",
+    "musicfigure": "music-figure",
     "chessboard": "chess-board",
     "chesspuzzle": "chess-puzzle",
     "chessdiagram": "chess-diagram",
@@ -112,6 +114,10 @@
         "values": ["auto", "default", "neutral", "dark", "forest", "base"]
       },
       "title": { "type": "string" }
+    },
+    "music-figure": {
+      "caption": { "type": "string" },
+      "width": { "type": "number" }
     }
   }
 }

@@ -164,6 +164,8 @@ export interface Messages {
   playAgain: string;
   reset: string;
   quiz: string;
+  /** Accessible name for a music example the author did not caption. */
+  musicFigure: string;
   checkAnswers: string;
   tryAgain: string;
   quizScore: (score: number, total: number) => string;
@@ -287,6 +289,7 @@ const EN: Messages = {
   playAgain: 'Play again',
   reset: 'Reset',
   quiz: 'Quiz',
+  musicFigure: 'Music example',
   checkAnswers: 'Check answers',
   tryAgain: 'Try again',
   quizScore: (score, total) => `Score: ${score} / ${total}`,
@@ -419,6 +422,7 @@ const FR: Messages = {
   playAgain: 'Rejouer',
   reset: 'Réinitialiser',
   quiz: 'Quiz',
+  musicFigure: 'Exemple musical',
   checkAnswers: 'Vérifier les réponses',
   tryAgain: 'Réessayer',
   quizScore: (score, total) => `Score\u00a0: ${score} / ${total}`,

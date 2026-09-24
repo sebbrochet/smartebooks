@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { defaultIslands } from '@smart-ebooks/engine';
 import { chessIslands } from '@smart-ebooks/islands-chess';
 import { mermaidIslands } from '@smart-ebooks/islands-mermaid';
+import { musicIslands } from '@smart-ebooks/islands-music';
 import { gamebookIslands } from '@smart-ebooks/islands-gamebook';
 import contract from '../../../island-contract.json';
 
@@ -10,6 +11,7 @@ const allIslands = () => [
   ...defaultIslands,
   ...chessIslands(),
   ...mermaidIslands(),
+  ...musicIslands(),
   ...gamebookIslands(),
 ];
 
@@ -40,6 +42,14 @@ describe('island-contract.json', () => {
     );
   });
 
+  it('lists exactly the music pack islands', () => {
+    expect([...contract.packs.music].sort()).toEqual(
+      musicIslands()
+        .map((i) => i.name)
+        .sort(),
+    );
+  });
+
   it('lists exactly the gamebook pack islands', () => {
     expect([...contract.packs.gamebook].sort()).toEqual(
       gamebookIslands()
@@ -55,11 +65,13 @@ describe('island-contract.json', () => {
 
   // Aliases are what keep already-published books working after a rename, so a
   // missing entry here means the linter would reject content that still renders.
+  //
+  // Derived from every island, not from a list of the packs that happened to
+  // have aliases when this was written: until 2026-09-24 it read the built-ins
+  // and chess, so an alias in any other pack was invisible to it.
   it('maps every alias to its canonical island', () => {
     const fromCode = Object.fromEntries(
-      [...defaultIslands, ...chessIslands()].flatMap((island) =>
-        (island.aliases ?? []).map((alias) => [alias, island.name]),
-      ),
+      allIslands().flatMap((island) => (island.aliases ?? []).map((alias) => [alias, island.name])),
     );
     expect(contract.aliases).toEqual(fromCode);
   });

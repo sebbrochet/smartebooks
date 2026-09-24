@@ -1,0 +1,19 @@
+{
+  "name": "@smart-ebooks/islands-music",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Music notation islands for Smart Ebooks — renders a fenced ABC body to engraved notation.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "peerDependencies": {
+    "@smart-ebooks/engine": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dependencies": {
+    "abcjs": "^6.7.0"
+  }
+}

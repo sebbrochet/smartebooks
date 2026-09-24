@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "minReaderSchema": 1,
+  "authorId": "sebbrochet.com",
+  "slug": "music",
+  "visibility": "public",
+  "title": "How Music Is Written Down",
+  "description": "Five minutes on reading a stave: where a note sits, how long it lasts, and why the lines are there at all.",
+  "authors": ["Smart Ebooks"],
+  "createdAt": "2026-09-24",
+  "cover": "assets/cover.svg",
+  "engine": { "min": "0.1.0" },
+  "islands": {
+    "packs": {
+      "music": {}
+    }
+  },
+  "chapters": [{ "file": "01-the-stave.md", "order": 1 }],
+  "assets": ["assets/cover.svg"]
+}

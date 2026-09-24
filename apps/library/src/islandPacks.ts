@@ -13,6 +13,11 @@ import {
   preloadMermaidIslands,
   type MermaidIslandsOptions,
 } from '@smart-ebooks/islands-mermaid';
+import {
+  musicIslands,
+  preloadMusicIslands,
+  type MusicIslandsOptions,
+} from '@smart-ebooks/islands-music';
 import { gamebookIslands } from '@smart-ebooks/islands-gamebook';
 
 /**
@@ -27,6 +32,7 @@ import { gamebookIslands } from '@smart-ebooks/islands-gamebook';
 const packs: Record<string, (options: unknown) => IslandDefinition[]> = {
   chess: (options) => chessIslands((options ?? {}) as ChessIslandsOptions),
   mermaid: (options) => mermaidIslands((options ?? {}) as MermaidIslandsOptions),
+  music: (options) => musicIslands((options ?? {}) as MusicIslandsOptions),
   gamebook: () => gamebookIslands(),
 };
 
@@ -99,6 +105,7 @@ export function resolveImportedIslands(descriptor: SmartbookDescriptor): IslandD
 const warmers: Record<string, (base: string) => Promise<void>> = {
   chess: (base) => preloadChessIslands(base),
   mermaid: () => preloadMermaidIslands(),
+  music: () => preloadMusicIslands(),
 };
 
 /**

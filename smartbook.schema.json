@@ -145,6 +145,16 @@
                 "theme": { "enum": ["auto", "default", "neutral", "dark", "forest", "base"] }
               }
             },
+            "music": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "width": {
+                  "type": "number",
+                  "description": "Default stave width in pixels. A per-directive width wins."
+                }
+              }
+            },
             "gamebook": {
               "type": "object",
               "additionalProperties": false,
