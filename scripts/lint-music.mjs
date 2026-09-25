@@ -20,7 +20,15 @@ import { BOOKS_DIR, listContentFiles, readDescriptor } from './book-sources.mjs'
 
 register('./ts-hooks.mjs', import.meta.url);
 
-const { notesOf, findNote } = await import('../packages/islands-music/src/notes.ts');
+const { notesOf, findNote, unplayableIn } = await import('../packages/islands-music/src/notes.ts');
+
+/** What each unplayable construct does to a reader, in the order it is reported. */
+const UNPLAYABLE = {
+  chord: 'a chord, which sounds as its lowest note alone',
+  tie: 'a tied note, which will sound twice instead of being held',
+  tuplet: 'a tuplet, whose notes will be given equal time instead of their own',
+  voices: 'more than one voice, which will sound one after the other instead of together',
+};
 
 /**
  * A container that holds a tune. Alias spellings are accepted because the
@@ -166,6 +174,16 @@ export function checkMusic(folder) {
       }
 
       if (block.kind !== 'piece') continue;
+
+      // Only a piece plays or carries marks. A figure engraves the same tune
+      // correctly, because drawing goes to abcjs and never through notesOf.
+      for (const kind of unplayableIn(abc)) {
+        report(
+          block.line,
+          'music-unplayable',
+          `contains ${UNPLAYABLE[kind]}; a music-piece plays what it shows, so write it as a music-figure or simplify the tune`,
+        );
+      }
 
       for (const { line, at } of block.prose) {
         for (const mark of line.matchAll(NOTE)) {

@@ -40,6 +40,8 @@ interface ParsedPitch {
   name?: string;
   pitch?: number;
   accidental?: string;
+  startTie?: unknown;
+  endTie?: unknown;
 }
 
 interface ParsedElement {
@@ -47,6 +49,7 @@ interface ParsedElement {
   rest?: unknown;
   duration?: number;
   pitches?: ParsedPitch[];
+  startTriplet?: unknown;
 }
 
 /**
@@ -147,6 +150,55 @@ export function readTune(abc: string): Tune {
 /** The notes of a tune, in playing order. Rests are not notes. */
 export function notesOf(abc: string): MusicNote[] {
   return readTune(abc).notes;
+}
+
+/**
+ * What this tune contains that {@link readTune} cannot represent.
+ *
+ * The model is one note at a time, each sounding once for its written length.
+ * Four things in ABC break that, and all four are **silent** at read time: the
+ * score draws correctly, because engraving is abcjs's job, and only the sound
+ * and the `:note[…]` marks are wrong. A linter uses this to refuse them rather
+ * than let a book ship music that plays wrongly.
+ *
+ * Shares the parser with `readTune` on purpose — a regex over ABC source would
+ * be a second implementation of "what is in this tune", and would drift.
+ */
+export function unplayableIn(abc: string): string[] {
+  const source = abc.trim();
+  if (!source) return [];
+
+  let tune;
+  try {
+    tune = abcjs.parseOnly(source)[0];
+  } catch {
+    return [];
+  }
+  if (!tune) return [];
+
+  const found = new Set<string>();
+
+  for (const line of tune.lines ?? []) {
+    // Two `V:` voices come back as two *staves within one line*, not as two
+    // voices on one staff. Counting staves across the whole tune instead would
+    // call every melody written over several systems polyphonic.
+    if ((line.staff ?? []).length > 1) found.add('voices');
+
+    for (const staff of line.staff ?? []) {
+      if ((staff.voices ?? []).length > 1) found.add('voices');
+
+      for (const voice of staff.voices ?? []) {
+        for (const element of voice as ParsedElement[]) {
+          if (element.el_type !== 'note' || element.rest) continue;
+          if (element.startTriplet !== undefined) found.add('tuplet');
+          if ((element.pitches?.length ?? 0) > 1) found.add('chord');
+          if (element.pitches?.some((pitch) => pitch.startTie !== undefined)) found.add('tie');
+        }
+      }
+    }
+  }
+
+  return [...found];
 }
 
 /** Semitones above middle C for a diatonic step, where 0 is middle C. */

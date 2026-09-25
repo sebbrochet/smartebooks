@@ -65,6 +65,61 @@ describe('lint-music', () => {
 
   after(() => rmSync(workspace, { recursive: true, force: true }));
 
+  const piece = (abc) =>
+    `# One\n\n:::music-piece{caption="A tune"}\n\n\`\`\`abc\n${abc}\n\`\`\`\n\n:::\n`;
+  const figure = (abc) =>
+    `# One\n\n:::music-figure{caption="A tune"}\n\n\`\`\`abc\n${abc}\n\`\`\`\n\n:::\n`;
+
+  const CHORD = 'X:1\nL:1/4\nK:C\n[CEG] D|';
+  const TIE = 'X:1\nL:1/4\nK:C\nC2-C2|';
+  const TRIPLET = 'X:1\nL:1/4\nK:C\n(3CDE|';
+  const VOICES = 'X:1\nL:1/4\nK:C\nV:1\nC D|\nV:2\nE F|';
+
+  test('a chord in a piece is refused: it would sound as one note', () => {
+    const { code, output } = lint(piece(CHORD));
+    assert.equal(code, 1);
+    assert.match(output, /music-unplayable.*chord/);
+  });
+
+  test('a tie in a piece is refused: it would sound twice', () => {
+    const { code, output } = lint(piece(TIE));
+    assert.equal(code, 1);
+    assert.match(output, /music-unplayable.*tied/);
+  });
+
+  test('a tuplet in a piece is refused: its notes would get equal time', () => {
+    const { code, output } = lint(piece(TRIPLET));
+    assert.equal(code, 1);
+    assert.match(output, /music-unplayable.*tuplet/);
+  });
+
+  test('a second voice in a piece is refused: the voices would follow each other', () => {
+    const { code, output } = lint(piece(VOICES));
+    assert.equal(code, 1);
+    assert.match(output, /music-unplayable.*voice/);
+  });
+
+  test('a figure may contain all of them, because a figure only draws', () => {
+    // The whole point of the rule: engraving goes to abcjs and never through
+    // notesOf, so a figure renders these correctly and must stay permissive.
+    for (const abc of [CHORD, TIE, TRIPLET, VOICES]) {
+      const { code, output } = lint(figure(abc));
+      assert.equal(code, 0, output);
+    }
+  });
+
+  test('a melody written over several lines is not polyphony', () => {
+    // The first version of this rule counted staves across the whole tune and
+    // called the bundled book's three-line melody a three-voice piece.
+    const { code, output } = lint(piece('X:1\nL:1/4\nK:C\nC D E F|\nG A B c|\nc B A G|'));
+    assert.equal(code, 0, output);
+  });
+
+  test('a slur is not a tie, and a rest is not a chord', () => {
+    const { code, output } = lint(piece('X:1\nL:1/4\nK:C\n(CD) z E|'));
+    assert.equal(code, 0, output);
+  });
+
   test('a correct piece passes', () => {
     const { code } = lint(
       `# One\n\n:::music-piece{caption="A tune"}\n\n\`\`\`abc\n${TUNE}\n\`\`\`\n\nIt climbs to :note[A].\n\n:::\n`,
