@@ -35,6 +35,7 @@ if (!process.features.typescript) {
 }
 
 const { checkGamebook } = await import('./lint-gamebook.mjs');
+const { checkMusic } = await import('./lint-music.mjs');
 
 const folders = listBookFolders();
 
@@ -46,7 +47,12 @@ const problems = folders.flatMap((folder) => {
   const broken = descriptorProblems.some((problem) => problem.severity !== 'warning');
   return broken
     ? descriptorProblems
-    : [...descriptorProblems, ...validateBookContent(folder), ...checkGamebook(folder)];
+    : [
+        ...descriptorProblems,
+        ...validateBookContent(folder),
+        ...checkGamebook(folder),
+        ...checkMusic(folder),
+      ];
 });
 
 /**
