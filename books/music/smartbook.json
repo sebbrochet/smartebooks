@@ -17,7 +17,8 @@
   },
   "chapters": [
     { "file": "01-the-stave.md", "order": 1 },
-    { "file": "02-following-a-tune.md", "order": 2 }
+    { "file": "02-following-a-tune.md", "order": 2 },
+    { "file": "03-the-shape-of-a-tune.md", "order": 3 }
   ],
-  "assets": ["assets/cover.svg"]
+  "assets": ["assets/cover.svg", "assets/twinkle.abc"]
 }

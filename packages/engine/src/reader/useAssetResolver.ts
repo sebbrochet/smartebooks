@@ -17,6 +17,8 @@ function mimeForPath(path: string): string {
       return 'image/svg+xml';
     case 'pgn':
       return 'application/x-chess-pgn';
+    case 'abc':
+      return 'text/vnd.abc';
     case 'mp3':
       return 'audio/mpeg';
     case 'ogg':

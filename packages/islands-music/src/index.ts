@@ -49,6 +49,9 @@ export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinitio
       attributes: {
         caption: { type: 'string', default: '' },
         width: { type: 'number', default: bookWidth },
+        // A tune the book ships rather than one written in the body. Only a
+        // packaged file is ever read — see `useAbcSource`.
+        src: { type: 'asset' },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -99,6 +102,7 @@ export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinitio
       attributes: {
         caption: { type: 'string', default: '' },
         width: { type: 'number', default: bookWidth },
+        src: { type: 'asset' },
         // On by default: a piece the prose walks through is the one island here
         // that has something to play. An author who wants silence says so.
         play: { type: 'boolean', default: true },

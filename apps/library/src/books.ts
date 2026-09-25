@@ -31,7 +31,13 @@ const content = import.meta.glob('../../../books/*/content/*.md', {
 // Assets travel as bytes on the book, exactly like an imported `.smartbook`:
 // resolved to Blob URLs at render and included on export. Text assets
 // round-trip through `?raw`; binaries come in as data URLs.
-const textAssets = import.meta.glob('../../../books/*/assets/*.{svg,pgn}', {
+//
+// These extension lists are the one place a new kind of asset has to be
+// declared, and nothing else will tell you: `lint:content` checks that the file
+// exists in the repository and is declared by the book, so a type missing from
+// here passes every check and is simply absent at run time. `.abc` did exactly
+// that on 2026-09-25.
+const textAssets = import.meta.glob('../../../books/*/assets/*.{svg,pgn,abc}', {
   query: '?raw',
   import: 'default',
   eager: true,

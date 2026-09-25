@@ -162,3 +162,31 @@ test('a figure is silent: nothing to press, nothing to hear', async ({ page }) =
   // them would be three invitations to listen to two bars of nothing much.
   await expect(page.getByRole('button', { name: 'Play' })).toHaveCount(0);
 });
+
+/**
+ * SPEC017 §5.1. A tune the book ships rather than one typed into the body —
+ * and the reader should not be able to tell which, which is the whole point.
+ */
+test('a piece can take its tune from a file the book ships', async ({ page }) => {
+  await page.goto('/#/music/03-the-shape-of-a-tune');
+
+  const piece = page.locator('.island--piece');
+  await expect(piece.locator('svg')).toBeVisible({ timeout: 30_000 });
+
+  await expect(piece.locator('.abcjs-note')).toHaveCount(42);
+
+  // And the prose still points into it: a file changes where the notes come
+  // from, not what the sentences can do with them.
+  await page.getByRole('button', { name: 'A', exact: true }).click();
+  await expect(piece.locator('.abcjs-note.is-current')).toHaveCount(1);
+});
+
+test('the file is read, not printed', async ({ page }) => {
+  await page.goto('/#/music/03-the-shape-of-a-tune');
+  await expect(page.locator('.island--piece svg')).toBeVisible({ timeout: 30_000 });
+
+  // The ABC is the static form. With the island alive the reader gets notes,
+  // and seeing the source as well would mean the fallback had leaked.
+  await expect(page.locator('.island--piece pre')).toHaveCount(0);
+  await expect(page.getByText('X:1')).toHaveCount(0);
+});

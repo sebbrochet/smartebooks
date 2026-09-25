@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { attrText, useMessages, type IslandComponentProps } from '@smart-ebooks/engine';
+import { useAbcSource } from './useAbcSource';
 import './music.css';
 
 /**
@@ -12,11 +13,17 @@ import './music.css';
  * `abcjs` is imported inside the effect rather than at module scope so the
  * engraver is fetched only when a figure is actually on the page.
  */
-export default function MusicFigureIsland({ attributes, data }: IslandComponentProps) {
+export default function MusicFigureIsland({
+  attributes,
+  data,
+  packagedAssets,
+}: IslandComponentProps) {
   const words = useMessages();
   const host = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
-  const abc = ((data as { abc?: string })?.abc ?? '').trim();
+  const body = ((data as { abc?: string })?.abc ?? '').trim();
+  const { source, loading } = useAbcSource(attributes, packagedAssets, body);
+  const abc = source.trim();
   const caption = attrText(attributes.caption).trim();
   const width = Number(attributes.width) || 520;
 
@@ -46,6 +53,10 @@ export default function MusicFigureIsland({ attributes, data }: IslandComponentP
       cancelled = true;
     };
   }, [abc, width]);
+
+  // A file still being read is not a broken figure, and saying so would make
+  // every packaged example flash an error on its way to working.
+  if (loading) return <figure className="island island--music" aria-busy="true" />;
 
   if (!abc || failed) {
     return (

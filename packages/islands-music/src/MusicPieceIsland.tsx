@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { attrText, useMessages, type IslandComponentProps } from '@smart-ebooks/engine';
 import { notesOf } from './notes';
 import { canPlay, playNotes, type Playing } from './player';
+import { useAbcSource } from './useAbcSource';
 import { PieceProvider, SequenceProvider } from './musicContext';
 import './music.css';
 
@@ -17,13 +18,20 @@ const START = '';
  * score itself, because *the score is chrome, not content* — it is not
  * something the author places in the flow.
  */
-export default function MusicPieceIsland({ attributes, data, children }: IslandComponentProps) {
+export default function MusicPieceIsland({
+  attributes,
+  data,
+  children,
+  packagedAssets,
+}: IslandComponentProps) {
   const words = useMessages();
   const host = useRef<HTMLDivElement>(null);
   const playing = useRef<Playing | undefined>(undefined);
   const [current, setCurrent] = useState(START);
   const [sounding, setSounding] = useState(false);
-  const abc = ((data as { abc?: string })?.abc ?? '').trim();
+  const body = ((data as { abc?: string })?.abc ?? '').trim();
+  const { source, loading } = useAbcSource(attributes, packagedAssets, body);
+  const abc = source.trim();
   const width = Number(attributes.width) || 520;
   const caption = attrText(attributes.caption).trim();
   const wanted = attributes.play !== false;
@@ -91,6 +99,9 @@ export default function MusicPieceIsland({ attributes, data, children }: IslandC
       element.classList.toggle('is-current', position === index);
     });
   }, [current, notes]);
+
+  // A file still being read is not a broken piece.
+  if (loading) return <div className="island island--music island--piece" aria-busy="true" />;
 
   if (!abc) {
     return (

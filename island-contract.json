@@ -118,11 +118,13 @@
     },
     "music-figure": {
       "caption": { "type": "string" },
-      "width": { "type": "number" }
+      "width": { "type": "number" },
+      "src": { "type": "asset" }
     },
     "music-piece": {
       "caption": { "type": "string" },
       "width": { "type": "number" },
+      "src": { "type": "asset" },
       "play": { "type": "boolean" }
     },
     "note": { "nth": { "type": "number" } }
