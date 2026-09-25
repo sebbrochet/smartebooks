@@ -36,6 +36,7 @@ if (!process.features.typescript) {
 
 const { checkGamebook } = await import('./lint-gamebook.mjs');
 const { checkMusic } = await import('./lint-music.mjs');
+const { checkShelf } = await import('./lint-shelf.mjs');
 
 const folders = listBookFolders();
 
@@ -52,6 +53,7 @@ const problems = folders.flatMap((folder) => {
         ...validateBookContent(folder),
         ...checkGamebook(folder),
         ...checkMusic(folder),
+        ...checkShelf(folder),
       ];
 });
 
