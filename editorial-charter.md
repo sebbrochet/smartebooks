@@ -7,7 +7,7 @@
 > with `island-contract.json`, precisely so that a human and an agent are held to the same rules.
 > If the two ever disagree, the contract is what the linter enforces — fix the charter.
 >
-> Last updated: 2026-08-30
+> Last updated: 2026-09-26
 
 ---
 
@@ -19,7 +19,7 @@
   here *and* a matching component in the app registry — never an ad-hoc block.
 - **Local-only mindset.** Interactive elements must work with no network and no account. Never assume a
   server or fetch remote user data.
-- **Accessible by default.** Everything usable by keyboard; every media element has a text alternative;
+- **Accessible by default.** Everything usable by keyboard; every figure has a text alternative;
   color is never the only signal.
 
 ## 2. Tone & structure
@@ -102,7 +102,7 @@ Which form a directive takes is fixed per directive, not a choice — see §4.
   (`attribute-invalid`). A few attributes are **context-bound** — read only inside, or only outside,
   a particular container — and writing one in the wrong place is `attribute-ignored`. The rule exists
   because such an attribute is otherwise accepted, spelled correctly, and read by nobody.
-- `id` is **required on any stateful directive** (quiz, flashcard, checkpoint, media, games) so its
+- `id` is **required on any stateful directive** (quiz, flashcard, checkpoint, games) so its
   progress can be persisted deterministically. Omitting one is an error (`id-missing`) and
   duplicates are an error (`id-duplicate`). Both matter for the same reason: without an id every
   quiz in the book writes to the same key, which is exactly what two quizzes sharing an id do.
@@ -174,34 +174,6 @@ Task-list syntax marks the answer(s); a blockquote after a question is its expla
 - Attributes: `label` (string).
 - Renders a checkbox the reader ticks; feeds the global progress dashboard.
 - **State:** complete flag.
-
-### `::video` — Embedded video (leaf)
-
-```markdown
-::video{id="ch1-intro-vid" src="https://youtu.be/…" title="Intro to tokens"}
-```
-
-- Attributes: `src` (**required**), `title`.
-- `src` may be a YouTube URL, an `https:` URL, or a **packaged asset** (`assets/clip.mp4`). A packaged
-  path that the book does not ship is a lint error (`asset-missing`).
-- In an imported (untrusted) book, only packaged assets, YouTube embeds and `https:` sources play.
-- **Nothing is requested until the reader presses play.** A YouTube video shows a local placeholder
-  saying where it is about to load from; the embed is created on click, from
-  `youtube-nocookie.com`. A file gets `preload="none"`. So a chapter with three videos costs the
-  reader nothing — in bytes or in who is told they opened it — until they choose one.
-- `title` is the accessible name of that play control, not decoration. Write it as the video's name.
-- Provide a caption or summary in the surrounding prose, for the non-video fallback.
-- **State:** watched flag, set when the reader presses play. (Playback position is not stored — see
-  SPEC001 L16.)
-
-### `::audio` — Embedded audio (leaf)
-
-```markdown
-::audio{id="ch2-pronunciation" src="assets/term.mp3" title="How to say it"}
-```
-
-- Attributes: `src` (**required**), `title`. Same source rules as `::video`.
-- **State:** played flag.
 
 ### `:::matching-pairs` — Match-the-pairs exercise (container)
 
@@ -373,8 +345,8 @@ A :term[palimpsest]{definition="A manuscript page scraped clean and written on a
 ```
 
 - Written in the inline form `:name[label]{…}`, which is a different thing from `::` and `:::`:
-  writing an inline directive as a block, or a block one inline, is a lint error. The other inline
-  directive is `:move` (chess pack).
+  writing an inline directive as a block, or a block one inline, is a lint error. The others are
+  `:move` (chess), `:note` (music), and `:choice` / `:ending` / `:death` / `:restart` (gamebook).
 - The bracketed label is the word as it appears in the sentence. It stays in the prose: no box, no
   block, no change to the line.
 - Attribute: `definition`. Without one the word simply renders as itself, because a term with nothing
@@ -461,10 +433,80 @@ What `npm run lint:content` checks, beyond the usual: `choice-target` (a choice 
 does not exist), `dead-end`, `duplicate-id`, `respawn-missing`, `respawn-unreachable`, `start-missing`,
 and `unreachable` as a **warning** — half-written acts are legitimately unreachable for days.
 
-### Roadmap directives (not yet available)
-`:::playground` (sandboxed runnable snippet) and `:::contribution` (reader-submitted content) are
-**planned but not implemented**. Using one today is a **lint error** that fails the build — it does
-not degrade to a placeholder. Do not write content against them.
+### Music directives — **pack: `music`**
+
+Two containers and one inline mark. The body of either container is a fenced ` ```abc ` block —
+[ABC notation](https://abcnotation.com), which is to a tune what PGN is to a game: compact, text,
+reviewable in a diff, and written by a person rather than exported by a program.
+
+````markdown
+:::music-figure{caption="A note on the bottom line, then one in the space above it"}
+
+```abc
+X:1
+K:C
+E2 F2|
+```
+
+:::
+
+:::music-piece{caption="Ode to Joy, first phrase"}
+
+```abc
+X:1
+L:1/4
+K:C
+E E F G|G F E D|
+```
+
+The phrase starts on :note[E] and climbs to :note[G] before turning back.
+
+:::
+````
+
+- `music-figure` (container): `caption`, `width`, `src`. A printed example — it draws and does
+  nothing else. This is the one a theory book uses most: a chapter on intervals is a hundred
+  two-bar examples, and almost none of them should play or remember anything.
+- `music-piece` (container): `caption`, `width`, `src`, `play`, `names`. A score the prose walks
+  through, with the notes named in that prose able to point at it. The score is chrome: the
+  container draws it, you do not place it. `play` defaults to on; the name of whichever note is
+  sounding appears beside the caption.
+- `:note[…]` (**inline**): `nth`. A note named inside a sentence, which jumps the score to it.
+- **No `id` on any of them** — the pack stores nothing for the reader.
+
+**A tune may come from a file:** `src="assets/tune.abc"`, declared in `assets` like any other. Only
+a **packaged** file is read, never a URL, because an `.abc` is read as text and engraved by the
+book's own code rather than handed to the browser to fetch. Only `.abc` is read; `.mxl` is a ZIP and
+is refused by name. A file and an inline body together is an error, because the file wins and the
+body would never be drawn.
+
+**Naming a note.** The label is the note as your sentence says it — letters or solfège, both
+understood with nothing to declare, since they cannot be confused: `C`, `Do`, `Ut`, `Ré`, `Sol`.
+Accents and case are ignored. An accidental may be a sign, ASCII or a word: `C#`, `C♯`, `Do dièse`,
+`Bb`, `Si♭`, `F natural`. A label with no accidental matches whatever is in force, so in G major
+`:note[F]` finds the F sharp the key signature put there. `nth` picks between repeats, counting from
+one: `:note[G]{nth=3}`.
+
+- `names` (`letters` | `solfege`) sets what a **piece prints** when it shows a name, overriding the
+  book's own `noteNames`. It changes nothing about what labels are accepted. It exists for the one
+  case that asked for it — a chapter teaching two systems side by side.
+- German naming (`H` for B natural, `B` for B flat) is **not** accepted in a label. It is the one
+  system that collides with another, so admitting it would make `:note[B]` ambiguous.
+
+**A piece must be playable, and a figure need not be.** A `music-piece` sounds its tune one note at
+a time, so a chord, a tied note, a tuplet or a second voice inside one is a lint error
+(`music-unplayable`): the sound would be wrong and the mark could point at the wrong notehead.
+A `music-figure` draws all four correctly and is left alone — if you want to *show* a chord, show it
+in a figure.
+
+- **Static form:** a figure emits its caption and its ABC source, the way `:::mermaid` emits its
+  diagram source. A piece emits your prose, which is what a book about a piece of music mostly is.
+- **State:** none.
+
+What `npm run lint:content` checks, beyond the usual: `music-no-tune`, `music-silent-tune` (it
+parses, but there is no note in it), `music-source-format`, `music-two-tunes`, `music-unplayable`,
+`music-note-unresolved` (a label naming no note in the tune) and `music-note-loose` (a `:note`
+outside any piece, which renders as plain text).
 
 ## 5. Authoring checklist
 
@@ -474,7 +516,7 @@ not degrade to a placeholder. Do not write content against them.
 - [ ] Any pack a directive belongs to is declared in `smartbook.json`.
 - [ ] Every `assets/…` reference exists in the book folder.
 - [ ] `visibility` is set on the book — `public` to publish, `private` to keep it off the site.
-- [ ] Media has a text alternative / caption.
+- [ ] Figures and diagrams have a caption or are explained by the surrounding prose.
 - [ ] Correct answers and explanations are provided for quizzes.
 - [ ] No directive assumes network access, a server, or a user account.
 - [ ] `npm run lint:content` passes.
