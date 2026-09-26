@@ -20,7 +20,8 @@ import { BOOKS_DIR, listContentFiles, readDescriptor } from './book-sources.mjs'
 
 register('./ts-hooks.mjs', import.meta.url);
 
-const { notesOf, findNote, unplayableIn } = await import('../packages/islands-music/src/notes.ts');
+const { notesOf, findNote, notesNamed, unplayableIn } =
+  await import('../packages/islands-music/src/notes.ts');
 
 /** What each unplayable construct does to a reader, in the order it is reported. */
 const UNPLAYABLE = {
@@ -190,7 +191,7 @@ export function checkMusic(folder) {
           const label = mark[1];
           const nth = nthOf(mark[2]);
           if (findNote(notes, label, nth) !== undefined) continue;
-          const times = notes.filter((note) => note.name === label.trim().toUpperCase()).length;
+          const times = notesNamed(notes, label).length;
           report(
             at,
             'music-note-unresolved',

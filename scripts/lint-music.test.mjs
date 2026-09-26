@@ -143,6 +143,17 @@ describe('lint-music', () => {
     assert.match(output, /music-note-unresolved.*there are only 3/);
   });
 
+  test('the count of near-misses is right for a lowercase name too', () => {
+    // ABC spells the upper octave in lower case, so the linter's own
+    // comparison (label.toUpperCase() against the name) found nothing here and
+    // dropped the count from the message entirely.
+    const { code, output } = lint(
+      `# One\n\n:::music-piece{caption="High"}\n\n\`\`\`abc\nX:1\nL:1/4\nK:C\nc c|\n\`\`\`\n\nThe :note[c]{nth=9}.\n\n:::\n`,
+    );
+    assert.equal(code, 1);
+    assert.match(output, /there are only 2/);
+  });
+
   test('a container with no tune at all is an error', () => {
     const { code, output } = lint(
       `# One\n\n:::music-figure{caption="Nothing"}\n\nJust prose.\n\n:::\n`,

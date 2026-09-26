@@ -257,15 +257,24 @@ export function lengthOf(notes: readonly MusicNote[]): number {
  * "the C at the end" in a sentence still lands somewhere sensible. `nth` picks
  * between repeats, counting from one.
  */
-export function findNote(notes: readonly MusicNote[], label: string, nth = 1): number | undefined {
+/**
+ * Every note a label names, in playing order.
+ *
+ * Exported because a caller that wants to say *how many* there are must not
+ * ask the question a second way: `lint-music.mjs` counted near-misses with its
+ * own comparison and was already wrong for lowercase ABC names.
+ */
+export function notesNamed(notes: readonly MusicNote[], label: string): MusicNote[] {
   const wanted = label.trim();
-  if (!wanted || nth < 1) return undefined;
+  if (!wanted) return [];
 
   const exact = notes.filter((note) => note.name === wanted);
-  const matches =
-    exact.length > 0
-      ? exact
-      : notes.filter((note) => note.name.toLowerCase() === wanted.toLowerCase());
+  if (exact.length > 0) return exact;
 
-  return matches[nth - 1]?.index;
+  return notes.filter((note) => note.name.toLowerCase() === wanted.toLowerCase());
+}
+
+export function findNote(notes: readonly MusicNote[], label: string, nth = 1): number | undefined {
+  if (nth < 1) return undefined;
+  return notesNamed(notes, label)[nth - 1]?.index;
 }
