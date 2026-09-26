@@ -10,8 +10,12 @@
  *
  * Found 2026-09-26 in a repertoire book whose author removed `::chess-moves`
  * because the annotations duplicated the prose. That was the right editorial
- * call and it left fifteen comments in the source that no reader could reach,
+ * call and it left fifty-one comments in the source that no reader could reach,
  * with nothing to say so.
+ *
+ * The message names deletion first on purpose. Both fixes silence the warning,
+ * but only one of them keeps a book's commentary in one place, and the other is
+ * how a reader ends up told the same thing twice.
  *
  * **Nothing here re-implements the pack.** `pgnToTree` is the reader's own
  * parser, so "is there a comment here" is answered once — and answered after
@@ -116,8 +120,9 @@ export function checkChess(folder) {
         severity: 'warning',
         message:
           `${hidden} annotation(s) in this game will never be shown: a chess-game prints comments ` +
-          `only through ::chess-moves, and this one has none. Add the score, or take the ` +
-          `annotations out of the PGN — a comment holding just a [%cal …] still draws.`,
+          `only through ::chess-moves, and this one has none. Take them out of the PGN if the ` +
+          `prose already carries them, or add ::chess-moves if it does not — a comment holding ` +
+          `just a [%cal …] still draws, so it can stay.`,
       });
     }
   }
