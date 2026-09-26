@@ -8,6 +8,8 @@
   "visibility": "public",
   "authorId": "smartebooks.sebbrochet.com",
   "edition": "2026-09-12",
+  "cover": "assets/cover.svg",
+  "assets": ["assets/cover.svg"],
   "unitDepth": 2,
   "islands": {
     "packs": {

@@ -8,13 +8,14 @@
   "description": "Famous games replayed move by move, positions to weigh up, and puzzles that tell you whether you found the move.",
   "authors": ["Smart Ebooks"],
   "createdAt": "2026-08-23",
+  "cover": "assets/cover.svg",
   "engine": { "min": "0.1.0" },
   "islands": {
     "packs": {
       "chess": { "board": { "theme": "blue" } }
     }
   },
-  "assets": ["assets/immortal.pgn"],
+  "assets": ["assets/cover.svg", "assets/immortal.pgn"],
   "parts": [
     { "id": "reading", "title": "Part I — Reading a game" },
     { "id": "writing", "title": "Part II — Writing one" }

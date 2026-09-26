@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img" aria-label="The Cellar Door">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4c0519" />
+      <stop offset="100%" stop-color="#1a0208" />
+    </linearGradient>
+  </defs>
+
+  <rect width="300" height="400" fill="url(#bg)" />
+  <rect x="0" y="0" width="10" height="400" fill="#fb7185" />
+
+  <!-- A shut door with the light already on behind it -->
+  <g transform="translate(150 125)">
+    <path d="M-42 70 L42 70 L84 104 L-84 104 Z" fill="#fbbf24" opacity="0.2" />
+
+    <rect x="-54" y="-84" width="108" height="154" fill="none" stroke="#9f1239" stroke-width="3" />
+    <rect x="-42" y="-70" width="84" height="140" fill="#2a0710" stroke="#fda4af" stroke-width="3" />
+
+    <g stroke="#9f1239" stroke-width="2">
+      <line x1="-14" y1="-70" x2="-14" y2="70" />
+      <line x1="14" y1="-70" x2="14" y2="70" />
+    </g>
+
+    <circle cx="30" cy="4" r="4" fill="#fbbf24" />
+    <line x1="-42" y1="70" x2="42" y2="70" stroke="#fbbf24" stroke-width="3" />
+  </g>
+
+  <text
+    x="28"
+    y="288"
+    fill="#ffffff"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="bold"
+  >
+    The Cellar
+  </text>
+  <text
+    x="28"
+    y="326"
+    fill="#ffffff"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="bold"
+  >
+    Door
+  </text>
+  <text x="28" y="360" fill="#fda4af" font-family="Georgia, 'Times New Roman', serif" font-size="15">
+    One way through, several ways not to
+  </text>
+</svg>
