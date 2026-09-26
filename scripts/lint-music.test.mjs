@@ -199,4 +199,70 @@ describe('lint-music', () => {
     assert.equal(code, 1);
     assert.match(output, /music-note-unresolved/, 'E is in no tune here, so the file was read');
   });
+
+  test('a bar holding more than its meter is an error, and says how much', () => {
+    const { code, output } = lint(figure('X:1\nM:4/4\nL:1/4\nK:C\nC D E F G|'));
+    assert.equal(code, 1);
+    assert.match(output, /music-bar-length.*bar 1 holds 5 quarter notes where M:4\/4 allows 4/);
+  });
+
+  test('a short bar is an error too, not only a long one', () => {
+    const { code, output } = lint(figure('X:1\nM:4/4\nL:1/4\nK:C\nC D E F|G A|'));
+    assert.equal(code, 1);
+    assert.match(output, /music-bar-length.*bar 2 holds 2 quarter notes/);
+  });
+
+  test('M:none is not a broken bar — it is a figure that wants no time signature', () => {
+    // The trap this rule is most likely to fall into: abcjs reports `M:none`
+    // and a missing `M:` identically, and answers 4/4 for both. Reading the
+    // fraction would call every unmetered figure overfull.
+    const { code, output } = lint(figure('X:1\nM:none\nL:1/4\nK:C\nC D E|'));
+    assert.equal(code, 0, output);
+  });
+
+  test('an anacrusis is correct when the last bar completes it', () => {
+    const { code, output } = lint(figure('X:1\nM:4/4\nL:1/4\nK:C\nG|c d e f|g2 z|'));
+    assert.equal(code, 0, output);
+  });
+
+  test('an anacrusis the last bar does not complete is still an error', () => {
+    const { code, output } = lint(figure('X:1\nM:4/4\nL:1/4\nK:C\nG|c d e f|g2 z2|'));
+    assert.equal(code, 1);
+    assert.match(output, /music-bar-length/);
+  });
+
+  test('a triplet fills the time it occupies, not the time it is written in', () => {
+    // `(3CCC` reports three eighths and occupies a quarter. Unscaled, every
+    // triplet in a book is reported 50% overfull.
+    const { code, output } = lint(figure('X:1\nM:4/4\nL:1/8\nK:C\n(3CCC D2 E2 F2|'));
+    assert.equal(code, 0, output);
+  });
+
+  test('a second voice does not make the top line look overfull', () => {
+    const { code, output } = lint(figure('X:1\nM:4/4\nL:1/4\nK:C\nV:1\nC D E F|\nV:2\nE F G A|'));
+    assert.equal(code, 0, output);
+  });
+
+  test('a tune declaring no meter warns, and does not fail the build', () => {
+    const { code, output } = lint(figure('X:1\nK:C\nCDEF|'));
+    assert.equal(code, 0, output);
+    assert.match(output, /warning music-meter-undeclared.*no M: and no L:/);
+    assert.match(output, /nothing checks that its bars hold their meter/);
+  });
+
+  test('a declared meter with no L: still warns about the L:', () => {
+    const { code, output } = lint(figure('X:1\nM:4/4\nK:C\nCDEFGABc|'));
+    assert.equal(code, 0, output);
+    assert.match(output, /music-meter-undeclared: declares no L:/);
+  });
+
+  test('bars are checked in a tune loaded from a file, not only in a fence', () => {
+    // A fence-only check misses every `src=` tune, and the bundled book keeps
+    // one of its seven that way.
+    const { code, output } = lint(`# One\n\n:::music-figure{src="assets/tune.abc"}\n\n:::\n`, {
+      assets: { 'assets/tune.abc': 'X:1\nM:3/4\nL:1/4\nK:C\nC D E F|' },
+    });
+    assert.equal(code, 1);
+    assert.match(output, /music-bar-length.*bar 1 holds 4 quarter notes where M:3\/4 allows 3/);
+  });
 });

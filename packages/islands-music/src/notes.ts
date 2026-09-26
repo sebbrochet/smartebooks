@@ -60,6 +60,7 @@ interface ParsedElement {
   duration?: number;
   pitches?: ParsedPitch[];
   startTriplet?: unknown;
+  tripletMultiplier?: number;
 }
 
 /**
@@ -131,6 +132,9 @@ export function readTune(abc: string): Tune {
           // A chord sounds as one event and is named by its lowest pitch, which
           // is enough for a book that points at notes rather than at voices.
           const pitch = element.pitches[0];
+          // `clef=` engraves; it does not transpose. abcjs reports the same
+          // pitch for the same letter in bass as in treble (6.7.0), so a tune
+          // that changes clef must not be corrected for here.
           const step = pitch.pitch ?? 0;
           const letter = letterOf(step);
           const accidental = pitch.accidental ? ACCIDENTAL[pitch.accidental] : undefined;
@@ -211,6 +215,98 @@ export function unplayableIn(abc: string): string[] {
   }
 
   return [...found];
+}
+
+export interface TuneBars {
+  /** A bar's worth of time as a fraction of a whole note, or `null` when nothing says. */
+  expected: number | null;
+  /** The declared meter, for saying what a bar is short or long *in*. */
+  meter: { num: number; den: number } | null;
+  /** What each bar actually holds, in the same units. */
+  bars: number[];
+  /** `M:none` — a figure that wants no time signature, not a forgotten field. */
+  unmetered: boolean;
+  declaresMeter: boolean;
+  declaresUnitLength: boolean;
+}
+
+/**
+ * What every bar holds, against what its meter says it should.
+ *
+ * Nothing else looks. abcjs parses a five-beat bar in 4/4 without complaint and
+ * `tune.warnings` is `undefined`, so the arithmetic has to be done here.
+ *
+ * **`M:none` is read from the source, not the parse tree.** There it is
+ * indistinguishable from a tune that declares no meter at all — `staff.meter`
+ * is undefined, `getMeter()` says common time and `getMeterFraction()` answers
+ * 4/4 for both — and they mean opposite things. One is a deliberate choice; the
+ * other leaves every bar unchecked and should be said out loud.
+ *
+ * A tuplet's `duration` is its *written* value, so `(3CCC` counts as three
+ * eighths rather than the quarter it occupies until it is scaled.
+ *
+ * Only the first voice of each line is summed. In polyphony each voice fills
+ * the bar on its own, so adding them together would report every accompanied
+ * tune as overfull.
+ */
+export function barsOf(abc: string): TuneBars {
+  const source = abc.trim();
+  const declaresMeter = /^M:/m.test(source);
+  const empty: TuneBars = {
+    expected: null,
+    meter: null,
+    bars: [],
+    unmetered: /^M:\s*none\s*$/im.test(source),
+    declaresMeter,
+    declaresUnitLength: /^L:/m.test(source),
+  };
+  if (!source) return empty;
+
+  let tune;
+  try {
+    tune = abcjs.parseOnly(source)[0];
+  } catch {
+    return empty;
+  }
+  if (!tune) return empty;
+
+  const fraction = (
+    tune as { getMeterFraction?: () => { num: number; den: number } }
+  ).getMeterFraction?.();
+  const counted = declaresMeter && !empty.unmetered && fraction?.den ? fraction : null;
+  const expected = counted ? counted.num / counted.den : null;
+
+  const bars: number[] = [];
+  let held = 0;
+  let sounded = false;
+  let tupletLeft = 0;
+  let tupletFactor = 1;
+
+  for (const line of tune.lines ?? []) {
+    const voice = line.staff?.[0]?.voices?.[0];
+    if (!voice) continue;
+
+    for (const element of voice as ParsedElement[]) {
+      if (element.el_type === 'bar') {
+        if (sounded) bars.push(held);
+        held = 0;
+        sounded = false;
+        continue;
+      }
+      if (element.el_type !== 'note') continue;
+
+      if (typeof element.startTriplet === 'number') {
+        tupletLeft = element.startTriplet;
+        tupletFactor = element.tripletMultiplier ?? 1;
+      }
+      held += (element.duration ?? 0) * (tupletLeft > 0 ? tupletFactor : 1);
+      if (tupletLeft > 0) tupletLeft--;
+      sounded = true;
+    }
+  }
+  if (sounded) bars.push(held);
+
+  return { ...empty, expected, meter: counted, bars };
 }
 
 /** Semitones above middle C for a diatonic step, where 0 is middle C. */

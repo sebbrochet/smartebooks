@@ -18,6 +18,8 @@ which is enough room for most singing voices without the eye losing count.
 
 ```abc
 X:1
+M:none
+L:1/8
 K:C
 E2 F2|
 ```
@@ -39,6 +41,8 @@ starts over at a pitch that sounds like the first one over again.
 
 ```abc
 X:1
+M:none
+L:1/8
 K:C
 CDEF|GABc|
 ```
@@ -63,6 +67,8 @@ still.
 
 ```abc
 X:1
+M:none
+L:1/8
 K:C
 C4|C2C2|CCCC|
 ```

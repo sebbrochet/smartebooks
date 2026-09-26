@@ -18,7 +18,7 @@ M:4/4
 L:1/4
 Q:1/4=110
 K:C
-C D E F G A B c|
+C D E F|G A B c|
 ```
 
 Press play and watch the name change. The eighth note is called :note[C] again
@@ -41,7 +41,7 @@ M:4/4
 L:1/4
 Q:1/4=110
 K:C
-C D E F G A B c|
+C D E F|G A B c|
 ```
 
 The tune has not changed — only what the notes are called. It starts on

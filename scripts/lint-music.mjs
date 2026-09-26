@@ -20,8 +20,28 @@ import { BOOKS_DIR, listContentFiles, readDescriptor } from './book-sources.mjs'
 
 register('./ts-hooks.mjs', import.meta.url);
 
-const { notesOf, findNote, notesNamed, unplayableIn } =
+const { notesOf, findNote, notesNamed, unplayableIn, barsOf } =
   await import('../packages/islands-music/src/notes.ts');
+
+/** What a bar is measured in, so a diagnostic can name it. */
+const UNIT = {
+  1: 'whole note',
+  2: 'half note',
+  4: 'quarter note',
+  8: 'eighth note',
+  16: 'sixteenth note',
+};
+
+const EPS = 1e-9;
+
+function unitOf(den) {
+  return UNIT[den] ?? `1/${den} note`;
+}
+
+/** Tuplets divide by three, so a bar's length is not always a tidy number. */
+function round(value) {
+  return Number(value.toFixed(4));
+}
 
 /** What each unplayable construct does to a reader, in the order it is reported. */
 const UNPLAYABLE = {
@@ -174,8 +194,39 @@ export function checkMusic(folder) {
         continue;
       }
 
-      if (block.kind !== 'piece') continue;
+      const { expected, meter, bars, declaresMeter, declaresUnitLength } = barsOf(abc);
 
+      if (!declaresMeter || !declaresUnitLength) {
+        const absent = [!declaresMeter && 'M:', !declaresUnitLength && 'L:'].filter(Boolean);
+        report(
+          block.line,
+          'music-meter-undeclared',
+          `declares no ${absent.join(' and no ')}, so ABC's defaults apply silently` +
+            (declaresMeter ? '' : ' and nothing checks that its bars hold their meter'),
+          'warning',
+        );
+      }
+
+      if (expected !== null && bars.length > 0) {
+        // A short first bar is correct when the last one completes it exactly.
+        const first = bars[0];
+        const last = bars[bars.length - 1];
+        const anacrusis =
+          bars.length > 1 && first < expected - EPS && Math.abs(first + last - expected) < EPS;
+
+        bars.forEach((held, index) => {
+          if (anacrusis && (index === 0 || index === bars.length - 1)) return;
+          if (Math.abs(held - expected) < EPS) return;
+          report(
+            block.line,
+            'music-bar-length',
+            `bar ${index + 1} holds ${round(held * meter.den)} ${unitOf(meter.den)}s where ` +
+              `M:${meter.num}/${meter.den} allows ${meter.num}`,
+          );
+        });
+      }
+
+      if (block.kind !== 'piece') continue;
       // Only a piece plays or carries marks. A figure engraves the same tune
       // correctly, because drawing goes to abcjs and never through notesOf.
       for (const kind of unplayableIn(abc)) {

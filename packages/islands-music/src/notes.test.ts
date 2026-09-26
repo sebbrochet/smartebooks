@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { notesOf, findNote, nameOf, readTune, frequencyOf, noteAt, lengthOf } from './notes';
+import {
+  notesOf,
+  findNote,
+  nameOf,
+  readTune,
+  frequencyOf,
+  noteAt,
+  lengthOf,
+  barsOf,
+} from './notes';
 
 const scale = 'X:1\nK:C\nCDEF|GABc|';
 const midiOf = (abc: string) => notesOf(abc).map((n) => n.midi);
@@ -268,5 +277,56 @@ describe('noteAt', () => {
   it('measures how long the tune lasts', () => {
     expect(lengthOf(notes)).toBe(1.5);
     expect(lengthOf([])).toBe(0);
+  });
+});
+
+describe('what a clef does', () => {
+  // `clef=` looks as though it ought to transpose, and a well-meant change
+  // could make it so. It engraves only: the sound and every `:note` mark stay
+  // where the letters put them.
+  it('changes the drawing, not the pitch', () => {
+    expect(midiOf('X:1\nK:C clef=bass\nCDEF|')).toEqual(midiOf('X:1\nK:C\nCDEF|'));
+  });
+});
+
+describe('barsOf', () => {
+  it('measures each bar against the declared meter', () => {
+    const { expected, bars } = barsOf('X:1\nM:4/4\nL:1/4\nK:C\nC D E F|G A|');
+    expect(expected).toBe(1);
+    expect(bars).toEqual([1, 0.5]);
+  });
+
+  // The distinction abcjs cannot make: `M:none` and a missing `M:` are
+  // identical in the parse tree and both answer 4/4, yet one is a figure that
+  // wants no time signature and the other leaves every bar unchecked.
+  it('tells M:none apart from a tune that declares no meter', () => {
+    const none = barsOf('X:1\nM:none\nL:1/4\nK:C\nC D E|');
+    const absent = barsOf('X:1\nL:1/4\nK:C\nC D E|');
+
+    expect(none.unmetered).toBe(true);
+    expect(none.declaresMeter).toBe(true);
+    expect(absent.unmetered).toBe(false);
+    expect(absent.declaresMeter).toBe(false);
+    expect(none.expected).toBeNull();
+    expect(absent.expected).toBeNull();
+  });
+
+  it('counts a tuplet as the time it occupies, not as written', () => {
+    const { bars } = barsOf('X:1\nM:4/4\nL:1/8\nK:C\n(3CCC D2 E2 F2|');
+    expect(bars).toEqual([1]);
+  });
+
+  it('follows the first voice only, because each voice fills the bar itself', () => {
+    const { bars } = barsOf('X:1\nM:4/4\nL:1/4\nK:C\nV:1\nC D E F|\nV:2\nE F G A|');
+    expect(bars).toEqual([1]);
+  });
+
+  it('reports what the meter is, so a diagnostic can name the unit', () => {
+    expect(barsOf('X:1\nM:6/8\nL:1/8\nK:C\nCDE CDE|').meter).toEqual({ num: 6, den: 8 });
+  });
+
+  it('says nothing about a tune it cannot read', () => {
+    expect(barsOf('').bars).toEqual([]);
+    expect(barsOf('').expected).toBeNull();
   });
 });

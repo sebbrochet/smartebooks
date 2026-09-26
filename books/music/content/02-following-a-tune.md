@@ -9,6 +9,8 @@ point at while you talk about it.
 
 ```abc
 X:1
+M:4/4
+L:1/4
 K:C
 EEFG|GFED|CCDE|E3D|
 ```

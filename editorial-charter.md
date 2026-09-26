@@ -503,10 +503,21 @@ in a figure.
   diagram source. A piece emits your prose, which is what a book about a piece of music mostly is.
 - **State:** none.
 
+**Declare `M:` and `L:` on every tune.** ABC has defaults and applies them silently, so a tune that
+omits them draws something — usually the right thing, by luck — and nothing checks it. With a meter
+declared, every bar is measured against it (`music-bar-length`); without one, the bars are not
+checked at all and you get a warning saying so (`music-meter-undeclared`). A short first bar is
+accepted when the last bar completes it exactly, which is how an anacrusis is written.
+
+For a figure that shows where notes sit rather than measured music, write `M:none`. It is the way to
+say *this is a picture, not a bar* — abcjs then draws no time signature, and the bar check stands
+down rather than measuring a figure against a meter it never claimed.
+
 What `npm run lint:content` checks, beyond the usual: `music-no-tune`, `music-silent-tune` (it
 parses, but there is no note in it), `music-source-format`, `music-two-tunes`, `music-unplayable`,
-`music-note-unresolved` (a label naming no note in the tune) and `music-note-loose` (a `:note`
-outside any piece, which renders as plain text).
+`music-bar-length` (a bar holding more or less than its meter), `music-meter-undeclared` (a warning:
+ABC's defaults are in force and the bars go unchecked), `music-note-unresolved` (a label naming no
+note in the tune) and `music-note-loose` (a `:note` outside any piece, which renders as plain text).
 
 ## 5. Authoring checklist
 
