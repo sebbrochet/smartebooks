@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { keepInView } from '@smart-ebooks/engine';
 import type { GameTree } from './tree';
 import { toScore } from './score';
 
@@ -30,10 +31,14 @@ export default function MoveList({ tree, path, onSelect, scroll = false }: MoveL
   const ref = useRef<HTMLDivElement>(null);
 
   // Only in `scroll` mode: the list has its own scrollport, and following the
-  // reader inside it must not drag the page around.
+  // reader inside it must not drag the page around. `scrollIntoView` scrolls
+  // every scrollable ancestor including the document, which is the fifth time
+  // that has been a bug here — it moved the whole page when a reader stepped
+  // through a game from the board.
   useEffect(() => {
-    if (!scroll) return;
-    ref.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+    if (!scroll || !ref.current) return;
+    const item = ref.current.querySelector<HTMLElement>('[aria-current="true"]');
+    if (item) keepInView(ref.current, item);
   }, [path, scroll]);
 
   return (

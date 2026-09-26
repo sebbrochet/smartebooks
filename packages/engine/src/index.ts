@@ -46,6 +46,9 @@ export {
   type ReadingPreferences,
 } from './store/platformSettings';
 export { useMediaQuery, NARROW } from './reader/useMediaQuery';
+// Exported for packs: an island with its own scrollport needs this rather than
+// `scrollIntoView`, which moves the page behind it.
+export { keepInView } from './reader/keepInView';
 export { useTheme, applyTheme, getStoredTheme, type Theme } from './reader/useTheme';
 export { searchChapters, type SearchResult } from './reader/search';
 
