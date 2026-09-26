@@ -13,10 +13,10 @@ export interface MusicIslandsOptions {
   /**
    * What this book calls its notes when it prints one (SPEC018 §5).
    *
-   * Book-wide and not an attribute on purpose: a book does not change
-   * vocabulary mid-chapter, and resolution needs no declaration at all — a
-   * reader who writes `Do` is understood either way. This is read only when a
-   * name is *shown*.
+   * The book's default; a piece may override it with `names=`, which exists
+   * for the one case that asked — a chapter teaching two systems side by side.
+   * Resolution needs no declaration either way: a reader who writes `Do` is
+   * understood whatever this says.
    */
   noteNames?: 'letters' | 'solfege';
 }
@@ -118,6 +118,8 @@ export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinitio
         // On by default: a piece the prose walks through is the one island here
         // that has something to play. An author who wants silence says so.
         play: { type: 'boolean', default: true },
+        // The book's vocabulary unless this piece says otherwise.
+        names: { type: 'string', default: noteNames },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -128,7 +130,6 @@ export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinitio
       // again as a code listing inside the container's own children.
       extract: (node) => ({
         abc: extractDirectiveCode(node, { consume: true }) ?? '',
-        noteNames,
       }),
       // No `fallback`: the container's children are the author's prose and the
       // engine keeps them. The tune itself has no static form here that the

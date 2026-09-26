@@ -125,7 +125,8 @@
       "caption": { "type": "string" },
       "width": { "type": "number" },
       "src": { "type": "asset" },
-      "play": { "type": "boolean" }
+      "play": { "type": "boolean" },
+      "names": { "type": "string" }
     },
     "note": { "nth": { "type": "number" } }
   }

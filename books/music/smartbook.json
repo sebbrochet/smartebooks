@@ -5,7 +5,7 @@
   "slug": "music",
   "visibility": "public",
   "title": "How Music Is Written Down",
-  "description": "Five minutes on reading a stave: where a note sits, how long it lasts, and why the lines are there at all.",
+  "description": "A short guide to reading a stave: where a note sits, how long it lasts, why the lines are there at all, and why the same note has several names.",
   "authors": ["Smart Ebooks"],
   "createdAt": "2026-09-24",
   "cover": "assets/cover.svg",
@@ -18,7 +18,8 @@
   "chapters": [
     { "file": "01-the-stave.md", "order": 1 },
     { "file": "02-following-a-tune.md", "order": 2 },
-    { "file": "03-the-shape-of-a-tune.md", "order": 3 }
+    { "file": "03-the-shape-of-a-tune.md", "order": 3 },
+    { "file": "04-what-the-notes-are-called.md", "order": 4 }
   ],
   "assets": ["assets/cover.svg", "assets/twinkle.abc"]
 }

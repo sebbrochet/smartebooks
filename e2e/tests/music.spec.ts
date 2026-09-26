@@ -187,6 +187,29 @@ test('a figure is silent: nothing to press, nothing to hear', async ({ page }) =
  * SPEC017 §5.1. A tune the book ships rather than one typed into the body —
  * and the reader should not be able to tell which, which is the whole point.
  */
+/**
+ * SPEC018 QP1. One chapter teaches two naming systems, which is the case that
+ * turned the book-wide setting into a per-piece one. The same seven notes, the
+ * same stave, different words.
+ */
+test('two scores in one chapter can name their notes differently', async ({ page }) => {
+  await page.goto('/#/music/04-what-the-notes-are-called');
+  const pieces = page.locator('.island--piece');
+  await expect(pieces).toHaveCount(2);
+  await expect(pieces.nth(1).locator('svg')).toBeVisible({ timeout: 30_000 });
+
+  await pieces.nth(0).getByRole('button', { name: 'C', exact: true }).first().click();
+  await expect(pieces.nth(0).locator('.music__now')).toHaveText('C');
+
+  await pieces.nth(1).getByRole('button', { name: 'Do', exact: true }).first().click();
+  await expect(pieces.nth(1).locator('.music__now')).toHaveText('Do');
+
+  // The tunes are identical, so the difference is the vocabulary and nothing
+  // else — a book cannot get this effect by writing two different tunes.
+  await expect(pieces.nth(0).locator('.abcjs-note')).toHaveCount(8);
+  await expect(pieces.nth(1).locator('.abcjs-note')).toHaveCount(8);
+});
+
 test('a piece can take its tune from a file the book ships', async ({ page }) => {
   await page.goto('/#/music/03-the-shape-of-a-tune');
 

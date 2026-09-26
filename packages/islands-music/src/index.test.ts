@@ -34,15 +34,20 @@ describe('musicIslands', () => {
   // duty to check on the pack rather than on the caller. An allow-list, so a
   // value nobody wrote still lands on a vocabulary that exists.
   it('takes noteNames only from the two it knows', () => {
-    const piece = (options?: Parameters<typeof musicIslands>[0]) =>
-      musicIslands(options).find((definition) => definition.name === 'music-piece');
-    const declared = (options?: Parameters<typeof musicIslands>[0]) =>
-      (piece(options)?.extract?.({ children: [] } as never) as { noteNames?: string })?.noteNames;
+    const names = (options?: Parameters<typeof musicIslands>[0]) =>
+      musicIslands(options).find((definition) => definition.name === 'music-piece')?.attributes
+        ?.names;
 
-    expect(declared()).toBe('letters');
-    expect(declared({ noteNames: 'solfege' })).toBe('solfege');
-    expect(declared({ noteNames: 'Solfège' } as never)).toBe('letters');
-    expect(declared({ noteNames: '__proto__' } as never)).toBe('letters');
+    expect(names()).toEqual({ type: 'string', default: 'letters' });
+    expect(names({ noteNames: 'solfege' })).toEqual({ type: 'string', default: 'solfege' });
+    expect(names({ noteNames: 'Solfège' } as never)).toEqual({
+      type: 'string',
+      default: 'letters',
+    });
+    expect(names({ noteNames: '__proto__' } as never)).toEqual({
+      type: 'string',
+      default: 'letters',
+    });
   });
 });
 

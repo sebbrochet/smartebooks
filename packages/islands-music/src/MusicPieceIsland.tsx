@@ -30,7 +30,9 @@ export default function MusicPieceIsland({
   const [current, setCurrent] = useState(START);
   const [sounding, setSounding] = useState(false);
   const body = ((data as { abc?: string })?.abc ?? '').trim();
-  const names = (data as { noteNames?: NoteNames })?.noteNames ?? 'letters';
+  // An allow-list: a directive's attributes are authored text, and an imported
+  // book's content is no more trusted than its descriptor.
+  const names: NoteNames = attributes.names === 'solfege' ? 'solfege' : 'letters';
   const { source, loading } = useAbcSource(attributes, packagedAssets, body);
   const abc = source.trim();
   const width = Number(attributes.width) || 520;
