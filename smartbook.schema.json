@@ -152,6 +152,10 @@
                 "width": {
                   "type": "number",
                   "description": "Default stave width in pixels. A per-directive width wins."
+                },
+                "noteNames": {
+                  "enum": ["letters", "solfege"],
+                  "description": "What this book calls a note when it prints one: C sharp, or Do dièse. Does not affect what :note[…] accepts — both vocabularies are always understood."
                 }
               }
             },

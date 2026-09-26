@@ -10,6 +10,15 @@ import {
 export interface MusicIslandsOptions {
   /** This book's default stave width in pixels (a per-directive attribute wins). */
   width?: number;
+  /**
+   * What this book calls its notes when it prints one (SPEC018 §5).
+   *
+   * Book-wide and not an attribute on purpose: a book does not change
+   * vocabulary mid-chapter, and resolution needs no declaration at all — a
+   * reader who writes `Do` is understood either way. This is read only when a
+   * name is *shown*.
+   */
+  noteNames?: 'letters' | 'solfege';
 }
 
 /** Wide enough for a two-bar example without the engraver spreading it thin. */
@@ -41,6 +50,9 @@ export async function preloadMusicIslands(): Promise<void> {
 export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinition[] {
   const bookWidth =
     typeof options.width === 'number' && options.width > 0 ? options.width : DEFAULT_WIDTH;
+  // An allow-list, not a cast: an imported book's descriptor is untrusted and
+  // a pack validates its own options (`islandPacks.ts`).
+  const noteNames = options.noteNames === 'solfege' ? 'solfege' : 'letters';
 
   return [
     {
@@ -114,7 +126,10 @@ export function musicIslands(options: MusicIslandsOptions = {}): IslandDefinitio
       // `consume` because the tune is the container's data, not something to
       // print twice — without it the body would render as the score *and*
       // again as a code listing inside the container's own children.
-      extract: (node) => ({ abc: extractDirectiveCode(node, { consume: true }) ?? '' }),
+      extract: (node) => ({
+        abc: extractDirectiveCode(node, { consume: true }) ?? '',
+        noteNames,
+      }),
       // No `fallback`: the container's children are the author's prose and the
       // engine keeps them. The tune itself has no static form here that the
       // prose does not already carry, and printing the source above an essay

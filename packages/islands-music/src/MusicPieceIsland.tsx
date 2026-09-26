@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { attrText, useMessages, type IslandComponentProps } from '@smart-ebooks/engine';
-import { notesOf } from './notes';
+import { notesOf, nameOf, type NoteNames } from './notes';
 import { canPlay, playNotes, type Playing } from './player';
 import { useAbcSource } from './useAbcSource';
 import { PieceProvider, SequenceProvider } from './musicContext';
@@ -30,6 +30,7 @@ export default function MusicPieceIsland({
   const [current, setCurrent] = useState(START);
   const [sounding, setSounding] = useState(false);
   const body = ((data as { abc?: string })?.abc ?? '').trim();
+  const names = (data as { noteNames?: NoteNames })?.noteNames ?? 'letters';
   const { source, loading } = useAbcSource(attributes, packagedAssets, body);
   const abc = source.trim();
   const width = Number(attributes.width) || 520;
@@ -39,6 +40,7 @@ export default function MusicPieceIsland({
   const notes = useMemo(() => (abc ? notesOf(abc) : []), [abc]);
   const positions = useMemo(() => notes.map((note) => String(note.index)), [notes]);
   const piece = useMemo(() => ({ notes }), [notes]);
+  const sounded = current ? notes[Number(current) - 1] : undefined;
 
   const stop = useCallback(() => {
     playing.current?.stop();
@@ -119,6 +121,12 @@ export default function MusicPieceIsland({
             <div className="music__stave" ref={host} aria-hidden="true" />
             <figcaption>
               <span>{caption || words.musicFigure}</span>
+              {/*
+                Deliberately not a live region: during playback this changes
+                every few hundred milliseconds, and announcing each one would
+                bury the page in speech. It is a visual aid, readable on demand.
+              */}
+              {sounded && <span className="music__now">{nameOf(sounded, names)}</span>}
               {wanted && canPlay() && notes.length > 0 && (
                 <button type="button" className="music__play" onClick={toggle}>
                   {sounding ? words.musicStop : words.musicPlay}

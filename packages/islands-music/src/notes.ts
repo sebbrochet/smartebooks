@@ -256,6 +256,40 @@ export function lengthOf(notes: readonly MusicNote[]): number {
   return last ? last.start + last.seconds : 0;
 }
 
+/** The vocabulary a book prints its note names in (SPEC018 §5). */
+export type NoteNames = 'letters' | 'solfege';
+
+/**
+ * What each step is *called*, which is the one direction that cannot be
+ * guessed: given a pitch, `C♯` and `Do♯` are both right and only the book
+ * knows which. Resolution needs no such table — the author already wrote the
+ * word — which is why this exists and `noteNames` does.
+ */
+const PRINTED: Record<NoteNames, readonly string[]> = {
+  letters: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+  solfege: ['Do', 'Ré', 'Mi', 'Fa', 'Sol', 'La', 'Si'],
+};
+
+/** No sign for a natural: a book prints `F`, not `F♮`, unless cancelling one. */
+const SIGNS: Record<string, string> = {
+  '-2': '𝄫',
+  '-1': '♭',
+  '0': '',
+  '1': '♯',
+  '2': '𝄪',
+};
+
+/**
+ * A note as the book would print it.
+ *
+ * Uses the accidental **in force**, so a piece in G major shows `F♯` for a note
+ * with nothing written beside it — which is the whole reason a reader wants to
+ * see this and the reason `name` could never supply it.
+ */
+export function nameOf(note: MusicNote, style: NoteNames = 'letters'): string {
+  return PRINTED[style][note.step] + (SIGNS[String(note.alter)] ?? '');
+}
+
 /**
  * The note a label in the prose refers to, or `undefined`.
  *

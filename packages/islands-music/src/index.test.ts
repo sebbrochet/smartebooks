@@ -29,6 +29,21 @@ describe('musicIslands', () => {
       default: DEFAULT_WIDTH,
     });
   });
+
+  // An imported book's descriptor is untrusted, and `islandPacks.ts` puts the
+  // duty to check on the pack rather than on the caller. An allow-list, so a
+  // value nobody wrote still lands on a vocabulary that exists.
+  it('takes noteNames only from the two it knows', () => {
+    const piece = (options?: Parameters<typeof musicIslands>[0]) =>
+      musicIslands(options).find((definition) => definition.name === 'music-piece');
+    const declared = (options?: Parameters<typeof musicIslands>[0]) =>
+      (piece(options)?.extract?.({ children: [] } as never) as { noteNames?: string })?.noteNames;
+
+    expect(declared()).toBe('letters');
+    expect(declared({ noteNames: 'solfege' })).toBe('solfege');
+    expect(declared({ noteNames: 'Solfège' } as never)).toBe('letters');
+    expect(declared({ noteNames: '__proto__' } as never)).toBe('letters');
+  });
 });
 
 /**

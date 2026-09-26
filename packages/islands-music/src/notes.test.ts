@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { notesOf, findNote, readTune, frequencyOf, noteAt, lengthOf } from './notes';
+import { notesOf, findNote, nameOf, readTune, frequencyOf, noteAt, lengthOf } from './notes';
 
 const scale = 'X:1\nK:C\nCDEF|GABc|';
 const midiOf = (abc: string) => notesOf(abc).map((n) => n.midi);
@@ -116,6 +116,48 @@ describe('findNote', () => {
     const tune = notesOf('X:1\nK:C\nG _B|');
     expect(findNote(tune, 'Sol')).toBe(1);
     expect(findNote(tune, 'Sib')).toBe(2);
+  });
+});
+
+describe('nameOf', () => {
+  it('prints a plain note in either vocabulary', () => {
+    const [c] = notesOf('X:1\nK:C\nC|');
+    expect(nameOf(c)).toBe('C');
+    expect(nameOf(c, 'letters')).toBe('C');
+    expect(nameOf(c, 'solfege')).toBe('Do');
+  });
+
+  it('prints the accidental as a sign, and a natural as nothing', () => {
+    const notes = notesOf('X:1\nK:C\n^C _B =C ^^C __B|');
+    expect(notes.map((note) => nameOf(note))).toEqual(['C♯', 'B♭', 'C', 'C𝄪', 'B𝄫']);
+    expect(notes.map((note) => nameOf(note, 'solfege'))).toEqual([
+      'Do♯',
+      'Si♭',
+      'Do',
+      'Do𝄪',
+      'Si𝄫',
+    ]);
+  });
+
+  // The point of showing a name at all: nothing is written beside this note,
+  // so a reader cannot see that it sounds a semitone higher than it looks.
+  it('prints the accidental the key signature put there', () => {
+    const [f] = notesOf('X:1\nK:G\nF|');
+    expect(nameOf(f)).toBe('F♯');
+    expect(nameOf(f, 'solfege')).toBe('Fa♯');
+  });
+
+  it('prints every step', () => {
+    expect(notesOf(scale).map((note) => nameOf(note, 'solfege'))).toEqual([
+      'Do',
+      'Ré',
+      'Mi',
+      'Fa',
+      'Sol',
+      'La',
+      'Si',
+      'Do',
+    ]);
   });
 });
 

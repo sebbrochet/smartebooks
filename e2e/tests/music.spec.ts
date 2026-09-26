@@ -55,6 +55,26 @@ test('a note named in the prose shows where it is on the score', async ({ page }
 });
 
 /**
+ * SPEC018 QP5. A learner watching the score needs to be told what they are
+ * looking at — the chess pack's move list makes the same argument. The name is
+ * beside the score and never on it: the stave stays engraved.
+ */
+test('the piece says which note is being shown', async ({ page }) => {
+  await page.goto('/#/music/02-following-a-tune');
+  const piece = page.locator('.island--piece');
+  await expect(piece.locator('svg')).toBeVisible({ timeout: 30_000 });
+
+  // Nothing to report before the reader has chosen a note.
+  await expect(piece.locator('.music__now')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'E', exact: true }).click();
+  await expect(piece.locator('.music__now')).toHaveText('E');
+
+  await page.getByRole('button', { name: 'G', exact: true }).click();
+  await expect(piece.locator('.music__now')).toHaveText('G');
+});
+
+/**
  * The mark says *which* note, not merely that there is one. `nth` is the only
  * way the prose can name the third D rather than the first, and a book saying
  * "the last D" while pointing at an earlier one is wrong in a way no count of

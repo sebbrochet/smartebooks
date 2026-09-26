@@ -71,6 +71,18 @@
   gap: 1rem;
 }
 
+/* The caption takes the slack, so the readout sits beside the control. */
+.island--piece figcaption > :first-child {
+  flex: 1;
+}
+
+/* Not a pill: the play control is one, and this is text rather than a target. */
+.music__now {
+  flex: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .music__play {
   flex: none;
   padding: 0.2rem 0.75rem;
