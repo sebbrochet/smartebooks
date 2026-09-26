@@ -33,16 +33,40 @@ describe('findNote', () => {
     expect(findNote(notes, 'E')).toBe(3);
   });
 
-  // ABC spells octaves with case: `c` is an octave above `C`. An author who
-  // knows that gets precision.
-  it('tells the octaves apart when the author spelled them', () => {
+  // Case used to mean octave, because matching compared ABC's own token. It no
+  // longer does: reaching the upper octave meant writing ABC syntax in a
+  // sentence. Both octaves are the same note name, and nth reaches the second.
+  it('treats both octaves of a letter as the same name', () => {
     expect(findNote(notes, 'C')).toBe(1);
-    expect(findNote(notes, 'c')).toBe(8);
+    expect(findNote(notes, 'c')).toBe(1);
+    expect(findNote(notes, 'C', 2)).toBe(8);
   });
 
-  // …and one writing prose still lands somewhere sensible.
   it('falls back to ignoring case when nothing matches exactly', () => {
     expect(findNote(notesOf('X:1\nK:C\nc d e|'), 'C')).toBe(1);
+  });
+
+  it('finds a written sharp by the name a book would print', () => {
+    const chromatic = notesOf('X:1\nK:C\nC ^C D|');
+    expect(findNote(chromatic, 'C#')).toBe(2);
+    expect(findNote(chromatic, 'C♯')).toBe(2);
+    expect(findNote(chromatic, 'C sharp')).toBe(2);
+  });
+
+  it('reads a flat without mistaking it for the letter B', () => {
+    const flats = notesOf('X:1\nK:C\nB _B|');
+    expect(findNote(flats, 'B')).toBe(1);
+    expect(findNote(flats, 'Bb')).toBe(2);
+    expect(findNote(flats, 'B♭')).toBe(2);
+  });
+
+  // The key signature is not written beside the note, so the token says `F`
+  // while the note sounds F sharp. A sentence in G major means that note.
+  it('finds a note the key signature altered', () => {
+    const inG = notesOf('X:1\nK:G\nF G|');
+    expect(findNote(inG, 'F')).toBe(1);
+    expect(findNote(inG, 'F#')).toBe(1);
+    expect(findNote(inG, 'F♮')).toBeUndefined();
   });
 
   it('picks between repeats with nth', () => {
@@ -54,6 +78,44 @@ describe('findNote', () => {
     expect(findNote(notes, 'Q')).toBeUndefined();
     expect(findNote(notes, '')).toBeUndefined();
     expect(findNote(notes, 'C', 9)).toBeUndefined();
+    expect(findNote(notes, 'C#####')).toBeUndefined();
+  });
+
+  // Fixed do: a syllable names a pitch, so Do is C whatever the key.
+  it('answers to solfège as readily as to letters', () => {
+    expect(findNote(notes, 'Do')).toBe(1);
+    expect(findNote(notes, 'Ré')).toBe(2);
+    expect(findNote(notes, 'Mi')).toBe(3);
+    expect(findNote(notes, 'Fa')).toBe(4);
+    expect(findNote(notes, 'Sol')).toBe(5);
+    expect(findNote(notes, 'La')).toBe(6);
+    expect(findNote(notes, 'Si')).toBe(7);
+  });
+
+  it('does not mind the accent or the case', () => {
+    expect(findNote(notes, 'Ré')).toBe(2);
+    expect(findNote(notes, 're')).toBe(2);
+    expect(findNote(notes, 'RE')).toBe(2);
+  });
+
+  it('accepts ut, which French still uses for the names of keys', () => {
+    expect(findNote(notes, 'Ut')).toBe(1);
+  });
+
+  it('reads a French accidental, written long or short', () => {
+    const chromatic = notesOf('X:1\nK:C\nC ^C D _D|');
+    expect(findNote(chromatic, 'Do dièse')).toBe(2);
+    expect(findNote(chromatic, 'Do#')).toBe(2);
+    expect(findNote(chromatic, 'Ré bémol')).toBe(4);
+    expect(findNote(chromatic, 'Réb')).toBe(4);
+  });
+
+  // `sol` must not be read as an `s` followed by nonsense, and `si` + `b` must
+  // still come apart into a syllable and a flat.
+  it('prefers the longest name, then reads the accidental', () => {
+    const tune = notesOf('X:1\nK:C\nG _B|');
+    expect(findNote(tune, 'Sol')).toBe(1);
+    expect(findNote(tune, 'Sib')).toBe(2);
   });
 });
 
