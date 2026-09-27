@@ -280,6 +280,32 @@ describe('noteAt', () => {
   });
 });
 
+describe('a tuplet', () => {
+  // One bar of 4/4 at crotchet=60 lasts four seconds. The triplet of quavers
+  // occupies one crotchet; three crotchets fill the rest.
+  const bar = 'X:1\nM:4/4\nL:1/8\nQ:1/4=60\nK:C\n(3CCC D2 E2 F2|';
+
+  // The drift is the defect, not the tuplet's own notes: unscaled, the three
+  // still shared their time equally and only the total was wrong, so a test
+  // that looked inside the triplet passed against the broken code.
+  it('does not push everything after it out of time', () => {
+    expect(notesOf(bar).map((n) => n.start)).toEqual([0, 1 / 3, 2 / 3, 1, 2, 3]);
+    expect(lengthOf(notesOf(bar))).toBe(4);
+  });
+
+  it('shares the time it occupies between its notes', () => {
+    expect(
+      notesOf(bar)
+        .slice(0, 3)
+        .map((n) => n.seconds),
+    ).toEqual([1 / 3, 1 / 3, 1 / 3]);
+  });
+
+  it('is measured the same way when a bar is checked', () => {
+    expect(barsOf(bar).bars).toEqual([1]);
+  });
+});
+
 describe('what a clef does', () => {
   // `clef=` looks as though it ought to transpose, and a well-meant change
   // could make it so. It engraves only: the sound and every `:note` mark stay

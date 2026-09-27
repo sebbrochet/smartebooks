@@ -46,6 +46,27 @@ const ACCIDENTAL: Record<string, number> = {
 const DEFAULT_BPM = 120;
 const DEFAULT_BEAT = 0.25;
 
+/**
+ * abcjs reports a tuplet's *written* duration and puts the correction in
+ * `tripletMultiplier`, on the one note that carries `startTriplet`. Both the
+ * player and the bar check need the same answer, and when only one of them had
+ * it they disagreed by exactly the amount a reader could hear.
+ */
+function tupletScale() {
+  let left = 0;
+  let factor = 1;
+
+  return (element: ParsedElement): number => {
+    if (typeof element.startTriplet === 'number') {
+      left = element.startTriplet;
+      factor = element.tripletMultiplier ?? 1;
+    }
+    const scale = left > 0 ? factor : 1;
+    if (left > 0) left--;
+    return (element.duration ?? 0) * scale;
+  };
+}
+
 interface ParsedPitch {
   name?: string;
   pitch?: number;
@@ -95,6 +116,7 @@ export function readTune(abc: string): Tune {
 
   const notes: MusicNote[] = [];
   let elapsed = 0;
+  const durationOf = tupletScale();
   let keySignature: Record<string, number> = {};
   // An accidental written in a bar holds until the bar line. That is notation's
   // rule rather than abcjs's: the parser reports what is written, so carrying
@@ -122,7 +144,7 @@ export function readTune(abc: string): Tune {
           }
           if (element.el_type !== 'note') continue;
 
-          const seconds = (element.duration ?? 0) * secondsPerWhole;
+          const seconds = durationOf(element) * secondsPerWhole;
 
           if (element.rest || !element.pitches?.length) {
             elapsed += seconds;
@@ -172,10 +194,14 @@ export function notesOf(abc: string): MusicNote[] {
  * What this tune contains that {@link readTune} cannot represent.
  *
  * The model is one note at a time, each sounding once for its written length.
- * Four things in ABC break that, and all four are **silent** at read time: the
+ * Three things in ABC break that, and all three are **silent** at read time: the
  * score draws correctly, because engraving is abcjs's job, and only the sound
  * and the `:note[…]` marks are wrong. A linter uses this to refuse them rather
  * than let a book ship music that plays wrongly.
+ *
+ * A tuplet was a fourth until its notes were given the time they occupy rather
+ * than the time they are written in. It fits the model: still one note at a
+ * time, each for as long as it actually sounds.
  *
  * Shares the parser with `readTune` on purpose — a regex over ABC source would
  * be a second implementation of "what is in this tune", and would drift.
@@ -206,7 +232,6 @@ export function unplayableIn(abc: string): string[] {
       for (const voice of staff.voices ?? []) {
         for (const element of voice as ParsedElement[]) {
           if (element.el_type !== 'note' || element.rest) continue;
-          if (element.startTriplet !== undefined) found.add('tuplet');
           if ((element.pitches?.length ?? 0) > 1) found.add('chord');
           if (element.pitches?.some((pitch) => pitch.startTie !== undefined)) found.add('tie');
         }
@@ -279,8 +304,7 @@ export function barsOf(abc: string): TuneBars {
   const bars: number[] = [];
   let held = 0;
   let sounded = false;
-  let tupletLeft = 0;
-  let tupletFactor = 1;
+  const durationOf = tupletScale();
 
   for (const line of tune.lines ?? []) {
     const voice = line.staff?.[0]?.voices?.[0];
@@ -295,12 +319,7 @@ export function barsOf(abc: string): TuneBars {
       }
       if (element.el_type !== 'note') continue;
 
-      if (typeof element.startTriplet === 'number') {
-        tupletLeft = element.startTriplet;
-        tupletFactor = element.tripletMultiplier ?? 1;
-      }
-      held += (element.duration ?? 0) * (tupletLeft > 0 ? tupletFactor : 1);
-      if (tupletLeft > 0) tupletLeft--;
+      held += durationOf(element);
       sounded = true;
     }
   }

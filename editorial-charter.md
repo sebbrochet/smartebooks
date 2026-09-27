@@ -494,10 +494,15 @@ one: `:note[G]{nth=3}`.
   system that collides with another, so admitting it would make `:note[B]` ambiguous.
 
 **A piece must be playable, and a figure need not be.** A `music-piece` sounds its tune one note at
-a time, so a chord, a tied note, a tuplet or a second voice inside one is a lint error
+a time, so a chord, a tied note or a second voice inside one is a lint error
 (`music-unplayable`): the sound would be wrong and the mark could point at the wrong notehead.
-A `music-figure` draws all four correctly and is left alone — if you want to *show* a chord, show it
+A `music-figure` draws all three correctly and is left alone — if you want to *show* a chord, show it
 in a figure.
+
+A **tuplet is allowed in a piece**. It was refused until its notes were given the time they occupy
+rather than the time they are written in; a triplet used to run half a beat long and leave every
+note after it late for the rest of the tune. That is fixed, and a tuplet fits the model — still one
+note at a time, each for as long as it actually sounds.
 
 - **Static form:** a figure emits its caption and its ABC source, the way `:::mermaid` emits its
   diagram source. A piece emits your prose, which is what a book about a piece of music mostly is.

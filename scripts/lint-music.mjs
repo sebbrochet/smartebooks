@@ -47,7 +47,6 @@ function round(value) {
 const UNPLAYABLE = {
   chord: 'a chord, which sounds as its lowest note alone',
   tie: 'a tied note, which will sound twice instead of being held',
-  tuplet: 'a tuplet, whose notes will be given equal time instead of their own',
   voices: 'more than one voice, which will sound one after the other instead of together',
 };
 

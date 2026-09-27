@@ -87,10 +87,12 @@ describe('lint-music', () => {
     assert.match(output, /music-unplayable.*tied/);
   });
 
-  test('a tuplet in a piece is refused: its notes would get equal time', () => {
+  test('a tuplet in a piece is allowed: it plays in the time it occupies', () => {
+    // It was refused while `readTune` gave a tuplet its *written* length, which
+    // ran the group 50% long and left everything after it late for the rest of
+    // the piece. With that fixed there is nothing left to refuse.
     const { code, output } = lint(piece(TRIPLET));
-    assert.equal(code, 1);
-    assert.match(output, /music-unplayable.*tuplet/);
+    assert.equal(code, 0, output);
   });
 
   test('a second voice in a piece is refused: the voices would follow each other', () => {
@@ -107,7 +109,6 @@ describe('lint-music', () => {
       assert.equal(code, 0, output);
     }
   });
-
   test('a melody written over several lines is not polyphony', () => {
     // The first version of this rule counted staves across the whole tune and
     // called the bundled book's three-line melody a three-voice piece.
