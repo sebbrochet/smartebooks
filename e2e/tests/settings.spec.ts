@@ -109,14 +109,27 @@ test('the pre-1.0 theme key migrates to the namespaced one', async ({ page }) =>
   expect(legacy).toBeNull();
 });
 
-test('a bundled book renders its packaged cover, and others fall back', async ({ page }) => {
+test('every bundled book renders its packaged cover', async ({ page }) => {
   await page.goto('/');
 
-  // The football book packages assets/cover.svg, so it resolves to a Blob URL…
-  const football = page.getByRole('link', { name: /Know the Game/ });
-  await expect(football.locator('img.bookcover')).toHaveAttribute('src', /^blob:/);
+  const items = page.locator('main li');
+  const covers = page.locator('main li img.bookcover');
+  // The shelf resolves every cover to a Blob URL before it paints, which is
+  // slow enough on a loaded machine to outlast the default timeout.
+  await expect(items).not.toHaveCount(0, { timeout: 20_000 });
+  // Counted rather than named, so adding a book to the shelf without artwork
+  // fails here instead of quietly showing a title card.
+  await expect(covers).toHaveCount(await items.count());
 
-  // …while a book without artwork gets a generated title card instead.
-  const chess = page.getByRole('link', { name: /Chess/ });
-  await expect(chess.locator('.bookcover--generated')).toBeVisible();
+  // Packaged bytes resolve to a Blob URL, which is what gives an SVG cover its
+  // MIME type; a plain path would render as a broken image.
+  const sources = await covers.evaluateAll((images) =>
+    images.map((image) => (image as HTMLImageElement).getAttribute('src')),
+  );
+  for (const src of sources) expect(src).toMatch(/^blob:/);
+
+  // The generated title card is for an imported book with no artwork. Both
+  // branches are covered in BookCover.test.tsx; what matters here is that no
+  // bundled book is relying on it.
+  await expect(page.locator('.bookcover--generated')).toHaveCount(0);
 });

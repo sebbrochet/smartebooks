@@ -29,11 +29,17 @@ Anything describing the *file* is a smartbook; anything describing the *app* is 
 ## Commands
 
 ```powershell
+npm run verify            # what CI runs: validate + e2e + offline. Run this before pushing.
 npm run validate          # typecheck + lint + lint:content + format + unit & script tests
 npm run lint:content      # books only — descriptors, directives, ids, attributes, assets
 npm run test:scripts      # node --test for scripts/*.mjs (they are not run by vitest)
 $env:E2E_PORT='5400'; npx playwright test   # default 5173 is sometimes reserved on Windows
 ```
+
+**A green `validate` does not mean CI is green.** It is only CI's first job; `e2e` and `offline`
+are two more, and `build` waits on all three. A change to a *book* can break an e2e test that
+asserted something about that book's content — which is how giving every bundled book a cover broke
+a test asserting one of them had none. `npm run verify` is the whole gate.
 
 ## How work is expected to be done here
 

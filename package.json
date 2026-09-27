@@ -29,7 +29,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:offline": "npm run build && playwright test --config playwright.offline.config.ts",
-    "validate": "npm run typecheck && npm run lint && npm run lint:content && npm run check:games && npm run format:check && npm run test && npm run test:scripts"
+    "validate": "npm run typecheck && npm run lint && npm run lint:content && npm run check:games && npm run format:check && npm run test && npm run test:scripts",
+    "verify": "npm run validate && npm run test:e2e && npm run test:e2e:offline"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
