@@ -113,6 +113,17 @@ test('a puzzle with a solution marks the answer instead of asking you to', async
   await playMove(page, board, 'b1', 'b8');
   await expect(state).toHaveText('Solved');
   await expect(puzzle.getByText(/only defender of the back rank/)).toBeVisible();
+
+  // A solved puzzle can be played again, like a quiz can be retried. The board
+  // has to accept moves afterwards — putting the position back is not enough.
+  await puzzle.getByRole('button', { name: 'Play again' }).click();
+  await expect(state).toHaveText('Your move.');
+  await expect(puzzle.getByText(/only defender of the back rank/)).toHaveCount(0);
+
+  await playMove(page, board, 'b2', 'b7');
+  await expect(state).toHaveText(/Not that one/);
+  await playMove(page, board, 'b2', 'b8');
+  await expect(state).toHaveText(/Right/);
 });
 
 test('a board can take its game from a packaged PGN file', async ({ page }) => {

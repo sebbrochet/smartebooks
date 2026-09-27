@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
-import { attrText, usePersistentState, type IslandComponentProps } from '@smart-ebooks/engine';
+import {
+  attrText,
+  useMessages,
+  usePersistentState,
+  type IslandComponentProps,
+} from '@smart-ebooks/engine';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
 import { play, playSan, positionFrom, sameMove, solutionMoves } from './puzzle';
 import 'chessground/assets/chessground.base.css';
@@ -29,6 +34,7 @@ type Verdict = 'unanswered' | 'right' | 'wrong';
  * move, which is how a puzzle book prints it.
  */
 export default function ChessPuzzleIsland({ attributes, id, data }: IslandComponentProps) {
+  const words = useMessages();
   const {
     fen: start,
     solution,
@@ -86,6 +92,22 @@ export default function ChessPuzzleIsland({ attributes, id, data }: IslandCompon
     }
   };
 
+  /**
+   * Back to the question. `attempt` is bumped for the same reason a refused
+   * move bumps it: the board has to be rebuilt or it keeps the dests it was
+   * left with, and a puzzle offering to be played again would not accept a
+   * move.
+   */
+  function restart() {
+    setStep(0);
+    setFen(start ?? '');
+    setVerdict('unanswered');
+    setRevealed(false);
+    setShowHint(false);
+    setState({ solved: false });
+    setAttempt((count) => count + 1);
+  }
+
   useEffect(() => {
     if (!boardRef.current || !fen) return;
     const solved = state.solved;
@@ -99,6 +121,12 @@ export default function ChessPuzzleIsland({ attributes, id, data }: IslandCompon
       coordinates: true,
       fen,
       orientation: side,
+      // Chessground reads only the placement out of `fen`, and defaults
+      // `turnColor` to white. Leaving it unset made every Black-to-move puzzle
+      // dead on arrival: `isMovable` wants `turnColor === piece.color` as well
+      // as `movable.color === piece.color`, so the board rendered, reported
+      // itself manipulable, carried the right dests — and refused every move.
+      turnColor: position?.turn,
       ...(playable
         ? {
             movable: {
@@ -149,6 +177,11 @@ export default function ChessPuzzleIsland({ attributes, id, data }: IslandCompon
         {(!interactive || done) && (
           <button type="button" onClick={() => setRevealed((value) => !value)}>
             {revealed ? 'Hide solution' : 'Reveal solution'}
+          </button>
+        )}
+        {interactive && (done || step > 0) && (
+          <button type="button" className="chesspuzzle__restart" onClick={restart}>
+            {done ? words.playAgain : words.reset}
           </button>
         )}
         {interactive ? (
