@@ -685,6 +685,60 @@ test('the coordinates line up with the squares they name', async ({ page }) => {
 });
 
 /**
+ * A label a piece can sit on top of is not a label.
+ *
+ * Inside the board there is nowhere safe. Centred, a number is exactly where
+ * the piece is; in the corner it is where the rooks, knights and kings are, and
+ * a 40px square has no corner a piece does not reach. Contrast was tried first
+ * and only made the hidden ones legible where they showed.
+ *
+ * So they sit outside the grid, the way a printed diagram sets them: numbers
+ * down the left margin, letters along the bottom. That is what this asserts —
+ * not a colour, a *position*, because being outside is the thing that makes
+ * them unobscurable.
+ */
+test('the coordinates sit outside the board, where no piece can cover them', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+  await page.locator('.chess-diagram .chessboard-island__board cg-board').waitFor();
+  await boardsHaveSettled(page);
+
+  const boards = await page.locator('.chessboard-island__board').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const box = node.getBoundingClientRect();
+      const strip = (selector: string) => {
+        const el = node.querySelector(selector)!.getBoundingClientRect();
+        return { left: el.left, right: el.right, top: el.top, bottom: el.bottom };
+      };
+      const ranks = strip('coords.ranks');
+      const files = strip('coords.files');
+      return {
+        // The rank numbers clear the board's left edge entirely…
+        ranksOverlap: +(ranks.right - box.left).toFixed(1),
+        // …and the file letters clear its bottom edge.
+        filesOverlap: +(box.bottom - files.top).toFixed(1),
+        // One ink, because out here nothing alternates underneath them.
+        inks: [
+          ...new Set(
+            [...node.querySelectorAll('coords coord')].map((c) => getComputedStyle(c).color),
+          ),
+        ],
+        labels: node.querySelectorAll('coords coord').length,
+      };
+    }),
+  );
+
+  expect(boards.length, 'boards found').toBeGreaterThanOrEqual(3);
+
+  for (const board of boards) {
+    expect(board.labels, 'labels on the board').toBe(16);
+    expect(board.ranksOverlap, 'the rank numbers reach into the board').toBeLessThanOrEqual(0);
+    expect(board.filesOverlap, 'the file letters reach into the board').toBeLessThanOrEqual(0);
+    expect(board.inks, 'the coordinates should all be one colour').toHaveLength(1);
+  }
+});
+
+/**
  * The same board, at the pixel ratio a phone actually has.
  *
  * Chessground snaps its box to a whole number of **device** pixels per square

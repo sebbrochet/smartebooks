@@ -27,36 +27,76 @@
   width: 320px;
   height: auto;
   aspect-ratio: 1;
-  max-width: 100%;
+  /* Room for the coordinates, which sit outside the grid — see below. */
+  margin-left: 18px;
+  margin-bottom: 16px;
+  max-width: calc(100% - 18px);
 }
 
 /*
- * **Chessground's coordinate offsets are written for lichess's layout, not for
- * a board that is its own wrapper.** Its stylesheet ships `left: 24px` on the
- * files and `top: -20px` on the ranks — offsets that assume a padded shell
- * around the board. Here the strips are sized to the board itself
- * (`width: 100%` / `height: 100%`), so the letters ran 24px past the h-file,
- * putting `h` outside the board entirely.
+ * **The coordinates sit outside the board, not on it.**
  *
- * The ranks need both lines or neither. `top: -20px` is half of a pair: it
- * cancels most of the `translateY(39%)` that Chessground uses to *approximate*
- * centring a number in its rank. Resetting the offset alone leaves each number
- * 39% of a square low — measured at 0.89 of a square from the rank's top edge,
- * against 0.39 before. So the approximation goes too, and the number is
- * centred by layout instead: 0.50, exactly.
+ * Chessground puts them inside, and its offsets are written for lichess's
+ * padded shell (`left: 24px` on the files, `top: -20px` on the ranks), which
+ * against a board that *is* its own wrapper printed `h` past the edge.
+ *
+ * Aligning them was not enough, and nor was moving them into the corners: a
+ * board's corners are exactly where the rooks, knights and kings are, so half
+ * the labels still had a piece over them. The squares are 40px; there is no
+ * corner a piece does not reach.
+ *
+ * So they go outside, the way a printed diagram sets them — numbers down the
+ * left margin, letters along the bottom. Nothing can cover a label that is not
+ * on a square, the alternating ink stops mattering, and the two margins above
+ * reserve the space so a board still sits on its own in the prose.
  */
-.cg-wrap coords.files {
-  left: 0;
+.cg-wrap coords {
+  opacity: 0.75;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/*
+ * Chessground alternates the ink to contrast with the square underneath. Out
+ * here there is no square underneath, so one colour — the reader's own text
+ * colour, which follows the light and dark themes without naming either.
+ *
+ * Both strips are named on both orientations to out-weigh the library's
+ * `.orientation-white .ranks :nth-child(odd)`, whose pseudo-class counts for
+ * as much as a class: three to its three, and two element names to its none.
+ */
+.cg-wrap.orientation-white coords.ranks coord,
+.cg-wrap.orientation-white coords.files coord,
+.cg-wrap.orientation-black coords.ranks coord,
+.cg-wrap.orientation-black coords.files coord {
+  color: inherit;
 }
 
 .cg-wrap coords.ranks {
   top: 0;
+  left: -18px;
+  width: 14px;
 }
 
 .cg-wrap coords.ranks coord {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  /* Chessground *approximates* centring with this; flexbox is exact. */
   transform: none;
+}
+
+.cg-wrap coords.files {
+  left: 0;
+  bottom: -16px;
+  height: 14px;
+}
+
+.cg-wrap coords.files coord {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chessboard-island__controls {
