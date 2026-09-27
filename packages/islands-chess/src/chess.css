@@ -30,6 +30,35 @@
   max-width: 100%;
 }
 
+/*
+ * **Chessground's coordinate offsets are written for lichess's layout, not for
+ * a board that is its own wrapper.** Its stylesheet ships `left: 24px` on the
+ * files and `top: -20px` on the ranks — offsets that assume a padded shell
+ * around the board. Here the strips are sized to the board itself
+ * (`width: 100%` / `height: 100%`), so the letters ran 24px past the h-file,
+ * putting `h` outside the board entirely.
+ *
+ * The ranks need both lines or neither. `top: -20px` is half of a pair: it
+ * cancels most of the `translateY(39%)` that Chessground uses to *approximate*
+ * centring a number in its rank. Resetting the offset alone leaves each number
+ * 39% of a square low — measured at 0.89 of a square from the rank's top edge,
+ * against 0.39 before. So the approximation goes too, and the number is
+ * centred by layout instead: 0.50, exactly.
+ */
+.cg-wrap coords.files {
+  left: 0;
+}
+
+.cg-wrap coords.ranks {
+  top: 0;
+}
+
+.cg-wrap coords.ranks coord {
+  display: flex;
+  align-items: center;
+  transform: none;
+}
+
 .chessboard-island__controls {
   display: flex;
   align-items: center;

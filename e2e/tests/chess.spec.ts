@@ -594,6 +594,97 @@ test('every board on the page is square, at every phone shape', async ({ page })
 });
 
 /**
+ * The letters and numbers have to sit on the squares they name.
+ *
+ * Chessground's stylesheet positions its coordinate strips for lichess's own
+ * padded shell: `left: 24px` on the files, `top: -20px` on the ranks. Against a
+ * board that *is* its own wrapper those are not nudges, they are errors — the
+ * letters ran two-thirds of a square right, putting `h` outside the board, and
+ * the numbers sat high in their ranks.
+ *
+ * The board itself was square and the pieces were on their squares the whole
+ * time, so every geometry test above passed. Only the labels were wrong, which
+ * is the kind of thing a reader notices immediately and a suite never does.
+ *
+ * Measured as a fraction of a square from the board's own edge, so it holds at
+ * any size: the centre of `a` belongs at 0.5, `b` at 1.5, and so on. Before the
+ * fix `a` measured 1.10 and rank 8 measured 0.39.
+ */
+test('the coordinates line up with the squares they name', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/#/chess/04-a-game-you-can-lay-out');
+  await page.locator('.chess-diagram .chessboard-island__board cg-board').waitFor();
+  await boardsHaveSettled(page);
+
+  const boards = await page.locator('.chessboard-island__board').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const box = node.getBoundingClientRect();
+      const square = box.width / 8;
+      const black = node.classList.contains('orientation-black');
+      const read = (selector: string, axis: 'x' | 'y') =>
+        [...node.querySelectorAll(`${selector} coord`)].map((coord) => {
+          const c = coord.getBoundingClientRect();
+          const centre =
+            axis === 'y' ? (c.top + c.bottom) / 2 - box.top : (c.left + c.right) / 2 - box.left;
+          return { label: coord.textContent ?? '', at: centre / square };
+        });
+      const strip = (selector: string) => {
+        const el = node.querySelector(selector)?.getBoundingClientRect();
+        return el
+          ? {
+              l: el.left - box.left,
+              r: el.right - box.left,
+              t: el.top - box.top,
+              b: el.bottom - box.top,
+            }
+          : null;
+      };
+      return {
+        black,
+        width: box.width,
+        ranks: read('coords.ranks', 'y'),
+        files: read('coords.files', 'x'),
+        ranksStrip: strip('coords.ranks'),
+        filesStrip: strip('coords.files'),
+      };
+    }),
+  );
+
+  expect(boards.length, 'boards found').toBeGreaterThanOrEqual(3);
+
+  for (const board of boards) {
+    const side = board.black ? 'from Black' : 'from White';
+    expect(board.ranks.length, `ranks ${side}`).toBe(8);
+    expect(board.files.length, `files ${side}`).toBe(8);
+
+    // The strip that ran past the h-file: it must stay within the board.
+    expect(board.filesStrip!.l, `files strip starts before the board ${side}`).toBeGreaterThan(-1);
+    expect(
+      board.filesStrip!.r - board.width,
+      `files strip runs past the h-file ${side}`,
+    ).toBeLessThan(1);
+
+    for (const { label, at } of board.files) {
+      const file = 'abcdefgh'.indexOf(label);
+      const expected = (board.black ? 7 - file : file) + 0.5;
+      expect(
+        Math.abs(at - expected),
+        `file ${label} sits at ${at.toFixed(2)} ${side}`,
+      ).toBeLessThan(0.1);
+    }
+
+    for (const { label, at } of board.ranks) {
+      const rank = Number(label) - 1;
+      const expected = (board.black ? rank : 7 - rank) + 0.5;
+      expect(
+        Math.abs(at - expected),
+        `rank ${label} sits at ${at.toFixed(2)} ${side}`,
+      ).toBeLessThan(0.1);
+    }
+  }
+});
+
+/**
  * The same board, at the pixel ratio a phone actually has.
  *
  * Chessground snaps its box to a whole number of **device** pixels per square
