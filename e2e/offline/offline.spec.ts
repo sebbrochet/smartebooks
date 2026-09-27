@@ -171,6 +171,67 @@ test.afterEach(() => {
   removed.clear();
 });
 
+/**
+ * The half a reader actually meets: offered an update, they take it, and they
+ * are on the new build afterwards.
+ *
+ * Everything else about this path was asserted by *reading* the generated
+ * worker — that it contains one `skipWaiting`, reachable only by message. That
+ * proves the worker will not jump the queue. It cannot prove the queue moves.
+ *
+ * It matters because the failure is invisible from inside the app: the strip
+ * appears, the button responds, and the reader stays exactly where they were,
+ * on a build that will keep telling them an update is ready. The only way out
+ * is a hard reload, which is not something a reader should have to know.
+ */
+test('a reader who is offered an update is on the new build after taking it', async ({ page }) => {
+  await page.goto('/');
+  await waitForController(page);
+  await expect(page.locator('.app-update')).toHaveCount(0);
+
+  const version = deployNewVersion();
+
+  // A reader does not press anything to be offered this: the browser rechecks
+  // `sw.js` on navigation, finds different bytes, and installs behind the one
+  // still running. Reloading here is that moment, not a workaround.
+  await page.reload();
+
+  const strip = page.locator('.app-update');
+  await expect(strip).toBeVisible();
+  await expect(strip).toContainText('A new version of Smart Ebooks is ready.');
+
+  // Still the old build until asked — the promise the previous tests guard.
+  expect(await page.evaluate(() => caches.keys())).not.toEqual([`smart-ebooks-${version}`]);
+
+  await strip.getByRole('button', { name: 'Reload to update' }).click();
+
+  /*
+   * Polled through a destroyed context for the same reason as the recovery
+   * test below: taking the update reloads the page, so an evaluate in flight
+   * dies with "Execution context was destroyed". That error is the reload.
+   */
+  const cacheNames = async () => {
+    try {
+      return await page.evaluate(() => caches.keys());
+    } catch {
+      return null;
+    }
+  };
+  await expect.poll(cacheNames, { timeout: 30_000 }).toEqual([`smart-ebooks-${version}`]);
+
+  // Nothing left waiting, so the strip has nothing to say and does not come
+  // back — the shape of the bug this is here for.
+  await expect(page.locator('.app-update')).toHaveCount(0);
+  expect(
+    await page.evaluate(async () =>
+      Boolean((await navigator.serviceWorker.getRegistration())?.waiting),
+    ),
+  ).toBe(false);
+
+  // And the reader is looking at a working page rather than a blank one.
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+});
+
 /*
  * A deployment that *removes* a chunk, which is the half of the update path the
  * tests above do not reach.
