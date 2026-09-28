@@ -49,8 +49,17 @@
  * left margin, letters along the bottom. Nothing can cover a label that is not
  * on a square, the alternating ink stops mattering, and the two margins above
  * reserve the space so a board still sits on its own in the prose.
+ *
+ * **Every selector below names both classes on the wrapper**, which is not
+ * decoration. Chessground's rules are `.chessboard-island__board.cg-wrap coords.ranks` — the same
+ * weight as ours — so with equal specificity the winner is whichever
+ * stylesheet the page injected last, and each island imports its CSS through
+ * its own lazily-loaded chunk. Measured: on one chapter `chess.css` landed
+ * before `chessground.base.css` and the board kept the library's placement,
+ * while on another it landed after and took ours. The coordinates were right
+ * or wrong depending on which island the reader met first.
  */
-.cg-wrap coords {
+.chessboard-island__board.cg-wrap coords {
   opacity: 0.75;
   font-size: 10px;
   font-weight: 600;
@@ -63,22 +72,22 @@
  *
  * Both strips are named on both orientations to out-weigh the library's
  * `.orientation-white .ranks :nth-child(odd)`, whose pseudo-class counts for
- * as much as a class: three to its three, and two element names to its none.
+ * as much as a class.
  */
-.cg-wrap.orientation-white coords.ranks coord,
-.cg-wrap.orientation-white coords.files coord,
-.cg-wrap.orientation-black coords.ranks coord,
-.cg-wrap.orientation-black coords.files coord {
+.chessboard-island__board.cg-wrap.orientation-white coords.ranks coord,
+.chessboard-island__board.cg-wrap.orientation-white coords.files coord,
+.chessboard-island__board.cg-wrap.orientation-black coords.ranks coord,
+.chessboard-island__board.cg-wrap.orientation-black coords.files coord {
   color: inherit;
 }
 
-.cg-wrap coords.ranks {
+.chessboard-island__board.cg-wrap coords.ranks {
   top: 0;
   left: -18px;
   width: 14px;
 }
 
-.cg-wrap coords.ranks coord {
+.chessboard-island__board.cg-wrap coords.ranks coord {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -87,13 +96,13 @@
   transform: none;
 }
 
-.cg-wrap coords.files {
+.chessboard-island__board.cg-wrap coords.files {
   left: 0;
   bottom: -16px;
   height: 14px;
 }
 
-.cg-wrap coords.files coord {
+.chessboard-island__board.cg-wrap coords.files coord {
   display: flex;
   align-items: center;
   justify-content: center;

@@ -699,42 +699,86 @@ test('the coordinates line up with the squares they name', async ({ page }) => {
  */
 test('the coordinates sit outside the board, where no piece can cover them', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto('/#/chess/04-a-game-you-can-lay-out');
-  await page.locator('.chess-diagram .chessboard-island__board cg-board').waitFor();
-  await boardsHaveSettled(page);
 
-  const boards = await page.locator('.chessboard-island__board').evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const box = node.getBoundingClientRect();
-      const strip = (selector: string) => {
-        const el = node.querySelector(selector)!.getBoundingClientRect();
-        return { left: el.left, right: el.right, top: el.top, bottom: el.bottom };
-      };
-      const ranks = strip('coords.ranks');
-      const files = strip('coords.files');
-      return {
-        // The rank numbers clear the board's left edge entirely…
-        ranksOverlap: +(ranks.right - box.left).toFixed(1),
-        // …and the file letters clear its bottom edge.
-        filesOverlap: +(box.bottom - files.top).toFixed(1),
-        // One ink, because out here nothing alternates underneath them.
-        inks: [
-          ...new Set(
-            [...node.querySelectorAll('coords coord')].map((c) => getComputedStyle(c).color),
-          ),
-        ],
-        labels: node.querySelectorAll('coords coord').length,
-      };
-    }),
-  );
+  /*
+   * Two chapters, because the first version of this checked one — and the
+   * override it was guarding had the *same* weight as Chessground's, so which
+   * one won came down to which stylesheet the page injected last. Each island
+   * ships its CSS in its own lazy chunk, so that order changes with the mix of
+   * islands on the page: the chapter this test opened took our placement while
+   * a chapter whose first board was a puzzle kept the library's. One page is
+   * not a sample.
+   */
+  const kinds = new Set<string>();
+  const measured: {
+    kind: string;
+    ranksOverlap: number;
+    filesOverlap: number;
+    inks: string[];
+    labels: number;
+  }[] = [];
 
-  expect(boards.length, 'boards found').toBeGreaterThanOrEqual(3);
+  for (const chapter of ['04-a-game-you-can-lay-out', '01-chess-basics']) {
+    await page.goto(`/#/chess/${chapter}`);
+    /*
+     * A full document load, not just a hash change. The order these stylesheets
+     * arrive in is decided by which island chunk loads first, and routing
+     * inside the app does not re-inject anything — so visiting a second chapter
+     * inherits the order the first one established, and a chapter that breaks
+     * on its own would pass here. Reloading makes each one answer for itself.
+     */
+    await page.reload();
+    await page.locator('.chessboard-island__board cg-board').first().waitFor();
+    await boardsHaveSettled(page);
 
-  for (const board of boards) {
-    expect(board.labels, 'labels on the board').toBe(16);
-    expect(board.ranksOverlap, 'the rank numbers reach into the board').toBeLessThanOrEqual(0);
-    expect(board.filesOverlap, 'the file letters reach into the board').toBeLessThanOrEqual(0);
-    expect(board.inks, 'the coordinates should all be one colour').toHaveLength(1);
+    const boards = await page.locator('.chessboard-island__board').evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const box = node.getBoundingClientRect();
+        const strip = (selector: string) => {
+          const el = node.querySelector(selector)!.getBoundingClientRect();
+          return { left: el.left, right: el.right, top: el.top, bottom: el.bottom };
+        };
+        const ranks = strip('coords.ranks');
+        const files = strip('coords.files');
+        return {
+          kind: node.closest('[data-testid="chess-puzzle"]')
+            ? 'puzzle'
+            : node.closest('.chess-diagram')
+              ? 'diagram'
+              : 'board',
+          // The rank numbers clear the board's left edge entirely…
+          ranksOverlap: +(ranks.right - box.left).toFixed(1),
+          // …and the file letters clear its bottom edge.
+          filesOverlap: +(box.bottom - files.top).toFixed(1),
+          // One ink, because out here nothing alternates underneath them.
+          inks: [
+            ...new Set(
+              [...node.querySelectorAll('coords coord')].map((c) => getComputedStyle(c).color),
+            ),
+          ],
+          labels: node.querySelectorAll('coords coord').length,
+        };
+      }),
+    );
+
+    expect(boards.length, `boards on ${chapter}`).toBeGreaterThan(0);
+    for (const board of boards) kinds.add(board.kind);
+    measured.push(...boards);
+  }
+
+  // A puzzle is the one that regressed, so it has to be among these.
+  expect([...kinds].sort(), 'kinds of board measured').toContain('puzzle');
+  expect(measured.length, 'boards measured').toBeGreaterThanOrEqual(4);
+
+  for (const board of measured) {
+    expect(board.labels, `labels on the ${board.kind}`).toBe(16);
+    expect(board.ranksOverlap, `the rank numbers reach into the ${board.kind}`).toBeLessThanOrEqual(
+      0,
+    );
+    expect(board.filesOverlap, `the file letters reach into the ${board.kind}`).toBeLessThanOrEqual(
+      0,
+    );
+    expect(board.inks, `the ${board.kind}'s coordinates should all be one colour`).toHaveLength(1);
   }
 });
 
