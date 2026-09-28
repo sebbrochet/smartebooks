@@ -12,7 +12,7 @@ The annotator's notes appear as you go, so a game can be *read* and not only
 replayed. Where a note points at a square or a line of attack, the board draws it
 for you.
 
-:::chess-board{id="chess-scholars" pieces=unicode analysis=on}
+:::chess-board{id="chess-scholars" analysis=on}
 
 ```pgn
 {Scholar's Mate: the four-move trap every beginner meets once, from either side.}
@@ -28,7 +28,7 @@ move loses on the spot.} 4. Qxf7# {Mate: the bishop guards the queen.}
 
 White to move and mate in one. Think first, then reveal.
 
-:::chess-puzzle{id="chess-backrank" theme=green fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
+:::chess-puzzle{id="chess-backrank" fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1"}
 Ra8# — a back-rank mate.
 :::
 

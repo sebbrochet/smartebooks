@@ -11,7 +11,7 @@ This is Légal's Mate, from 1750 — a queen sacrifice that still catches people
 Click any move to jump the board to it, or focus the board and use the arrow keys.
 Sidelines are indented under the move they replace, and are clickable too.
 
-:::chess-board{id="chess-legal" moves=on pieces=unicode}
+:::chess-board{id="chess-legal" moves=on}
 
 ```pgn
 {Légal's Mate, Paris 1750. White gives up the queen and mates with the minor pieces.}
