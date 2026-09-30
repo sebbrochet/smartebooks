@@ -90,6 +90,32 @@ describe('check-games', () => {
     assert.match(result.output, /01-chapter\.md:3: error a: illegal move "Qxf7#"/);
   });
 
+  // The island drops a value it cannot read, exactly as it drops an unknown
+  // arrow colour — so the author states an evaluation and the book shows
+  // nothing, with no error anywhere.
+  test('an evaluation the island cannot read is reported with its line', () => {
+    const result = check(
+      '# One\n\n:::chess-board{id="a"}\n\n```pgn\n1. e4 {[%eval winning]} e5\n```\n\n:::\n',
+    );
+    assert.match(result.output, /01-chapter\.md:6: warning a: \[%eval winning\] is not an/);
+  });
+
+  // A warning, not an error: an evaluation is an annotation, and a book whose
+  // chapters all read correctly should not fail to build over one.
+  test('an unreadable evaluation does not fail the build', () => {
+    const result = check(
+      '# One\n\n:::chess-board{id="a"}\n\n```pgn\n1. e4 {[%eval winning]} e5\n```\n\n:::\n',
+    );
+    assert.equal(result.code, 0, result.output);
+  });
+
+  test('every form the island does read is accepted in silence', () => {
+    const pgn = '1. e4 {[%eval 0.54]} e5 {[%eval -1.3]} 2. Nf3 {[%eval #5]} Nc6 {[%eval #-3]}';
+    const result = check(`# One\n\n:::chess-board{id="a"}\n\n\`\`\`pgn\n${pgn}\n\`\`\`\n\n:::\n`);
+    assert.equal(result.code, 0, result.output);
+    assert.doesNotMatch(result.output, /is not an evaluation/);
+  });
+
   // The failure mode that looks like success: the island renders a board that
   // is stuck at the starting position, and nothing else in the build notices.
   test('a game with no playable move is reported', () => {

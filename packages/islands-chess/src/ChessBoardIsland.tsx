@@ -10,6 +10,7 @@ import {
 import { mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
 import { moveLabel } from './score';
 import MoveList from './MoveList';
+import { describeEvaluation, formatEvaluation } from './evaluation';
 import { useGame } from './gameContext';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
 import 'chessground/assets/chessground.base.css';
@@ -108,6 +109,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
   const fen = node?.fen ?? tree.fen;
   const shapes = node?.shapes ?? tree.shapes;
   const comment = node?.comment ?? (path === '' ? tree.comment : undefined);
+  const evaluation = node?.evaluation ?? (path === '' ? tree.evaluation : undefined);
 
   // `auto` is read from the starting position, not the current one: resolving
   // it per move would spin the board round every time Black plays.
@@ -231,6 +233,14 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
         that name it still work.
       */}
       {movesMode !== 'off' && <MoveList tree={tree} path={path} onSelect={setStored} scroll />}
+      {movesMode === 'off' && evaluation && (
+        // Only with the list off, for the same reason the comment is: the list
+        // already prints an evaluation against every move it has one for.
+        <p className="chessboard-island__eval" data-testid="chess-eval">
+          <strong>{formatEvaluation(evaluation)}</strong>
+          <span className="chessboard-island__eval-note"> {describeEvaluation(evaluation)}</span>
+        </p>
+      )}
       {movesMode === 'off' && comment && (
         // `role="status"` because stepping through a game changes this text
         // without moving focus — a screen-reader user would otherwise never

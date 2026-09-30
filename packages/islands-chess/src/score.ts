@@ -1,6 +1,6 @@
 import type { GameNode, GameTree } from './tree';
 import { allNodes } from './tree';
-import { extractShapes } from './shapes';
+import { extractAnnotations } from './shapes';
 
 /**
  * The game score, grouped the way chess is written down (SPEC008 G2.1/G2.2).
@@ -32,6 +32,8 @@ export interface ScoreMove {
   number: string;
   /** SAN with any annotation glyph attached: `Qh5?!`. */
   san: string;
+  /** Stored `[%eval]` for the position after this move, White-relative. */
+  evaluation?: string;
 }
 
 export interface ScoreBlock {
@@ -157,7 +159,12 @@ function lineSegments(nodes: GameNode[], depth: number): ScoreSegment[] {
   let siblings = nodes;
   while (siblings.length > 0) {
     const node = siblings[0];
-    moves.push({ path: node.path, number: node.number, san: `${node.san}${node.nag ?? ''}` });
+    moves.push({
+      path: node.path,
+      number: node.number,
+      san: `${node.san}${node.nag ?? ''}`,
+      ...(node.evaluation !== undefined ? { evaluation: node.evaluation } : {}),
+    });
 
     if (node.comment) {
       blocks.push({ moves, comment: node.comment });
@@ -197,8 +204,11 @@ const collapse = (value: string) => value.replace(/\s+/g, ' ').trim();
 
 /**
  * The same grouping as {@link toScore}, taken straight from the PGN text so it
- * costs no parser. Shape tags are stripped from the comments, exactly as the
- * board strips them, or an export would print `[%cal Gd1h5]` mid-sentence.
+ * costs no parser. Annotation tags are stripped from the comments, exactly as
+ * the board strips them, or an export would print `[%cal Gd1h5]` mid-sentence.
+ *
+ * The two strippers are one function on purpose — `annotationParity.test.ts`
+ * exists because they used to be able to disagree about what a reader sees.
  *
  * Sidelines need no special handling: they are parenthesised in the source and
  * stay parenthesised in the output, which is how a book prints them.
@@ -211,7 +221,7 @@ export function pgnScoreText(pgn: string): { intro?: string; blocks: TextBlock[]
 
   for (const match of body.matchAll(COMMENT)) {
     const moves = collapse(body.slice(cursor, match.index));
-    const comment = extractShapes(match[1]).text;
+    const comment = extractAnnotations(match[1]).text;
     cursor = (match.index ?? 0) + match[0].length;
 
     if (!moves) {

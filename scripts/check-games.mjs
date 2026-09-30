@@ -40,7 +40,30 @@ import { labelsOf, normalise, positionKey, positionsOf } from './chess-labels.mj
  * `\s*` between the directive and its fence: a container directive's body is
  * block content, so a formatter is free to put a blank line before the fence.
  */
-const WITH_PGN = /:::chess-(?:board|game)\{id="([^"]+)"[^}]*\}\s*```pgn\r?\n([\s\S]*?)\r?\n```/g;
+const WITH_PGN = /:::chess-(?:board|game)\{id="([^"]+)"[^}]*\}\s*```pgn\r?\n([\s\S]*?)\r?\n```/dg;
+
+/** Any `[%name value]` tag, so `[%evaluation 5]` is not read as an evaluation. */
+const EVAL_TAG = /\[%(\w+)([^\]]*)\]/dg;
+
+/** What the reader's parser accepts: `0.54`, `-1.3`, `#5`, `#-3`. */
+const EVAL_VALUE = /^(?:#-?\d+|[+-]?\d+\.\d+|[+-]?\d+)$/;
+
+/**
+ * `[%eval]` tags the island will drop, with their offset inside the PGN.
+ *
+ * Dropped silently at runtime, like an unknown arrow colour — so the author
+ * states an evaluation, sees no error, and the book shows nothing.
+ */
+function badEvaluations(pgn) {
+  const found = [];
+  for (const match of pgn.matchAll(EVAL_TAG)) {
+    if (match[1].toLowerCase() !== 'eval') continue;
+    const value = match[2].trim();
+    if (EVAL_VALUE.test(value)) continue;
+    found.push({ value, index: match.indices[0][0] });
+  }
+  return found;
+}
 
 /**
  * Every chess island that *ought* to hold a game inline.
@@ -170,6 +193,18 @@ for (const folder of folders) {
         if (Number.isFinite(declared) && declared !== count) {
           console.warn(
             `${where}:${line}: warning ${id}: replayed ${count} plies, PGN declares ${declared}.`,
+          );
+        }
+
+        // A warning rather than an error: an evaluation is an annotation, not a
+        // sentence that has stopped working, and exporters write forms nobody
+        // here has seen. Silent at runtime either way, which is the point.
+        const pgnStart = match.indices[2][0];
+        for (const { value, index } of badEvaluations(pgn)) {
+          console.warn(
+            `${where}:${lineAt(markdown, pgnStart + index)}: warning ${id}: ` +
+              `[%eval ${value}] is not an evaluation, so it will not be shown. ` +
+              `Write a number like 0.54 or -1.3, or a mate like #5.`,
           );
         }
       } catch (error) {

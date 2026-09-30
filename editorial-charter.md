@@ -257,6 +257,20 @@ Ra8# — a back-rank mate.
 - Comments may carry board drawings in PGN's own syntax: `[%cal Gd1h5]` for an arrow, `[%csl Rf7]`
   for a highlighted square, colours `G`/`R`/`Y`/`B`. They are drawn on the board and removed from the
   text the reader sees. `chess-diagram` takes the same tokens in its `shapes` attribute.
+- A comment may also carry the **evaluation** of the position after its move, in the same syntax:
+  `[%eval 0.54]`, `[%eval -1.3]`, or `[%eval #5]` for a forced mate. It is shown beside the move in
+  the score, and under the board when the score is off.
+  - **The number is always from White's point of view**, whoever just moved: a positive value means
+    White is better, `#-3` means Black mates in three. This is what Lichess and every exporter write,
+    so a downloaded game needs no adjusting.
+  - Write the precision you mean. `0.5` and `0.54` are both kept as written and not rounded.
+  - There is no engine. An evaluation is something the book states, so it is as reliable — and as
+    reviewable in a diff — as any other thing the book states.
+  - A move with no `[%eval]` shows none, and does **not** inherit the previous one. Leaving gaps is
+    normal: a sideline commonly carries no evaluations in a game whose main line does.
+- **Any other `[%…]` tag is removed** rather than shown. Exported PGN is full of them — `[%clk]`,
+  `[%ts]`, `[%cst]` — and a reader should never be shown machine text mid-sentence. So a game pasted
+  straight out of Lichess reads correctly without being cleaned up first.
 - **State:** current position per board; solved flag per puzzle.
 
 #### `:::chess-game` — a game you lay out yourself

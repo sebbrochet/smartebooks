@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { keepInView } from '@smart-ebooks/engine';
 import type { GameTree } from './tree';
 import { toScore } from './score';
+import { describeEvaluation, formatEvaluation } from './evaluation';
 
 export interface MoveListProps {
   /** The parsed game. */
@@ -82,18 +83,27 @@ export default function MoveList({ tree, path, onSelect, scroll = false }: MoveL
               <div key={blockIndex}>
                 <p className="chess-moves__line">
                   {block.moves.map((move) => (
-                    <button
-                      key={move.path}
-                      type="button"
-                      className="chess-moves__move"
-                      // `aria-current` rather than a disabled or pressed
-                      // button: the move you are on is still a place you can
-                      // navigate to.
-                      aria-current={move.path === path ? 'true' : undefined}
-                      onClick={() => onSelect(move.path)}
-                    >
-                      {move.number} {move.san}
-                    </button>
+                    <span key={move.path} className="chess-moves__entry">
+                      <button
+                        type="button"
+                        className="chess-moves__move"
+                        // `aria-current` rather than a disabled or pressed
+                        // button: the move you are on is still a place you can
+                        // navigate to.
+                        aria-current={move.path === path ? 'true' : undefined}
+                        onClick={() => onSelect(move.path)}
+                      >
+                        {move.number} {move.san}
+                      </button>
+                      {move.evaluation && (
+                        <span
+                          className="chess-moves__eval"
+                          title={describeEvaluation(move.evaluation)}
+                        >
+                          {formatEvaluation(move.evaluation)}
+                        </span>
+                      )}
+                    </span>
                   ))}
                 </p>
                 {block.comment && (

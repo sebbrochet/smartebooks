@@ -34,7 +34,7 @@ export {
   type Orientation,
   type PieceSet,
 } from './boardOptions';
-export { extractShapes, parseShapes, type MoveShape } from './shapes';
+export { extractAnnotations, parseShapes, type MoveShape } from './shapes';
 export { play, playSan, positionFrom, sameMove, solutionMoves } from './puzzle';
 export { useGame, useSequence, type ChessGame } from './gameContext';
 export {

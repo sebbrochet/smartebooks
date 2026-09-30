@@ -2,7 +2,7 @@ import { parsePgn, startingPosition, type PgnNodeData, type ChildNode } from 'ch
 import { makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import type { Position } from 'chessops/chess';
-import { extractShapes, type MoveShape } from './shapes';
+import { extractAnnotations, type MoveShape } from './shapes';
 
 /**
  * A PGN read as the **tree** it actually is (SPEC008 G3.1).
@@ -56,6 +56,13 @@ export interface GameNode {
   fen: string;
   /** The annotator's note on the position after this move. */
   comment?: string;
+  /**
+   * Stored `[%eval]` for the position after this move, **White-relative**:
+   * `0.54` favours White, `-1.3` Black, `#5` is White mating in five.
+   * Absent where the annotator gave none — sidelines commonly carry none in a
+   * game whose main line does.
+   */
+  evaluation?: string;
   /** A note introducing this line, written before its first move. */
   startingComment?: string;
   /** Arrows and highlights for the position after this move. */
@@ -72,6 +79,8 @@ export interface GameTree {
   fen: string;
   /** A comment written before the first move: the game's introduction. */
   comment?: string;
+  /** Stored `[%eval]` for the starting position. */
+  evaluation?: string;
   /** Shapes drawn on the starting position. */
   shapes: MoveShape[];
   /** First moves. More than one means the game opens with a sideline. */
@@ -80,18 +89,28 @@ export interface GameTree {
 
 const EMPTY: GameTree = { fen: '', comment: undefined, shapes: [], children: [] };
 
-/** Join a node's comments (PGN allows several) and split the shapes out. */
-function annotate(comments: string[] | undefined): { text?: string; shapes: MoveShape[] } {
+/** Join a node's comments (PGN allows several) and split the annotations out. */
+function annotate(comments: string[] | undefined): {
+  text?: string;
+  shapes: MoveShape[];
+  evaluation?: string;
+} {
   const shapes: MoveShape[] = [];
   const parts: string[] = [];
+  let evaluation: string | undefined;
 
   for (const comment of comments ?? []) {
-    const split = extractShapes(comment);
+    const split = extractAnnotations(comment);
     shapes.push(...split.shapes);
+    evaluation ??= split.evaluation;
     if (split.text) parts.push(split.text);
   }
 
-  return { text: parts.length > 0 ? parts.join(' ') : undefined, shapes };
+  return {
+    text: parts.length > 0 ? parts.join(' ') : undefined,
+    shapes,
+    ...(evaluation !== undefined ? { evaluation } : {}),
+  };
 }
 
 /**
@@ -113,6 +132,7 @@ export function pgnToTree(pgn: string): GameTree {
     return {
       fen: makeFen(root.toSetup()),
       comment: opening.text,
+      ...(opening.evaluation !== undefined ? { evaluation: opening.evaluation } : {}),
       shapes: opening.shapes,
       children: branches(game.moves.children, root, ''),
     };
@@ -149,6 +169,7 @@ function branches(
       nag: child.data.nags?.map((nag) => NAGS[nag] ?? '').join('') || undefined,
       fen: makeFen(after.toSetup()),
       comment: annotated.text,
+      ...(annotated.evaluation !== undefined ? { evaluation: annotated.evaluation } : {}),
       startingComment: annotate(child.data.startingComments).text,
       shapes: annotated.shapes,
       children: branches(child.children, after, path),

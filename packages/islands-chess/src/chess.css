@@ -149,6 +149,18 @@
   padding-left: 0.75rem;
 }
 
+/* A stored evaluation for the position on the board. */
+.chessboard-island__eval {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chessboard-island__eval-note {
+  color: var(--muted, #666);
+  font-size: 0.85rem;
+}
+
 /*
  * The game score: runs of moves broken by commentary, the way chess books set
  * it. Moves are inline buttons so a line wraps like the text it is.
@@ -188,6 +200,21 @@
   border-color: var(--border, #ccc);
   background: var(--surface-2, rgba(127, 127, 127, 0.18));
   font-weight: 600;
+}
+
+/*
+ * A move and its stored evaluation travel together, so a line wrapping never
+ * leaves the number stranded at the start of the next one.
+ */
+.chess-moves__entry {
+  white-space: nowrap;
+  margin-right: 0.15rem;
+}
+
+.chess-moves__eval {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted, #666);
 }
 
 .chess-moves__comment {
