@@ -320,6 +320,72 @@
   }
 }
 
+/*
+ * The board and whatever stands beside it. `width: 100%` is load-bearing: the
+ * board's `max-width` is a percentage, and a shrink-to-fit parent gives it
+ * nothing definite to resolve against — the failure this repo has already had
+ * twice, in both axes, is a box that collapses to zero.
+ */
+.chessboard-island__stage {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+}
+
+.chessboard-island__stage .chessboard-island__board {
+  /* 18px of rank coordinates, plus the bar and its gap. */
+  max-width: calc(100% - 38px);
+}
+
+/*
+ * The evaluation, as White's share of a column beside the board.
+ *
+ * `column-reverse` so the fill grows from the bottom, which is where White is
+ * — until the board is flipped, when the two colours swap rather than the box
+ * rotating. Bottom-aligned with the board rather than the row: the board
+ * reserves 16px under itself for the file coordinates.
+ */
+.chess-eval-bar {
+  width: 14px;
+  flex: none;
+  margin-bottom: 16px;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  background: var(--eval-black, #333);
+}
+
+.chess-eval-bar__white {
+  width: 100%;
+  background: var(--eval-white, #e8e8e8);
+  transition: height 0.25s ease;
+}
+
+.chess-eval-bar.is-flipped {
+  background: var(--eval-white, #e8e8e8);
+}
+
+.chess-eval-bar.is-flipped .chess-eval-bar__white {
+  background: var(--eval-black, #333);
+}
+
+/*
+ * No assessment is not the same as an assessment of zero, and it cannot be
+ * drawn as an empty bar either — an empty bar already means mate for Black.
+ */
+.chess-eval-bar.is-unknown,
+.chess-eval-bar.is-unknown.is-flipped {
+  background: var(--surface-2, rgba(127, 127, 127, 0.25));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-eval-bar__white {
+    transition: none;
+  }
+}
+
 .chessboard-island.is-solved .chessboard-island__board {
   outline: 2px solid var(--correct, #2e7d32);
 }

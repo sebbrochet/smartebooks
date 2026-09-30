@@ -7,7 +7,12 @@ import { GameProvider, SequenceProvider } from './gameContext';
 import { pgnToTree } from './tree';
 import { DEFAULT_BOARD_OPTIONS } from './boardOptions';
 
-const game = { tree: pgnToTree('1. e4 e5 2. Bc4'), board: DEFAULT_BOARD_OPTIONS, shapes: true };
+const game = {
+  tree: pgnToTree('1. e4 e5 2. Bc4'),
+  board: DEFAULT_BOARD_OPTIONS,
+  shapes: true,
+  evalBar: false,
+};
 
 let host: HTMLDivElement;
 let root: Root;

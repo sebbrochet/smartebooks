@@ -228,7 +228,7 @@ Ra8# — a back-rank mate.
 ````
 
 - `chess-board` (container, body is a fenced ` ```pgn ` block): `theme`, `pieces`, `orientation`,
-  `shapes`, `moves`, `pgn`.
+  `shapes`, `moves`, `pgn`, `evalBar`.
   - `moves` is `off` (default) | `on` | `scroll` — show the whole game score, every move clickable.
     `scroll` caps its height, which a long game needs.
   - `pgn` names a **packaged** `.pgn` file and wins over the body. Declare it in `assets` like any
@@ -263,6 +263,10 @@ Ra8# — a back-rank mate.
     reviewable in a diff — as any other thing the book states.
   - A move with no `[%eval]` shows none, and does **not** inherit the previous one. Leaving gaps is
     normal: a sideline commonly carries no evaluations in a game whose main line does.
+  - `evalBar` draws the evaluation as a bar beside the board. It is **off by default**, and it draws
+    nothing at all unless the game states an evaluation somewhere — a bar that is permanently level
+    would be making a claim the book never made. A position the annotator skipped is greyed rather
+    than guessed, because an empty bar already means mate for Black.
 - **Any other `[%…]` tag is removed** rather than shown. Exported PGN is full of them — `[%clk]`,
   `[%ts]`, `[%cst]` — and a reader should never be shown machine text mid-sentence. So a game pasted
   straight out of Lichess reads correctly without being cleaned up first.
@@ -313,7 +317,7 @@ but prose and `:move` marks is valid.
 must already be in the game, and renders as the words you typed if it is not. Without a PGN there is
 no game: every mark becomes plain text and every board and score inside says so.
 
-- `chess-game` (container): `pgn`, `shapes`, plus `theme` / `pieces` / `orientation`. It
+- `chess-game` (container): `pgn`, `shapes`, `evalBar`, plus `theme` / `pieces` / `orientation`. It
   owns the game, the position and the board. The fenced ` ```pgn ` block is configuration, not
   content: it is consumed, not printed.
 - `::chess-board{at="…"}` **inside** a game is a **diagram**: a position pinned where you put it,

@@ -28,3 +28,25 @@ export function describeEvaluation(value: string): string {
   if (!Number.isFinite(pawns) || pawns === 0) return 'Level';
   return pawns > 0 ? 'White is better' : 'Black is better';
 }
+
+/**
+ * How much of an evaluation bar belongs to White, as a percentage.
+ *
+ * A **sigmoid**, not a linear scale: the difference between +0.2 and +0.6 is
+ * most of what a reader can act on, while everything past about +5 is the same
+ * news. A linear mapping spends most of its travel on distinctions nobody needs
+ * and crushes the ones they do.
+ *
+ * Clamped to 1–99 so a winning side is never a blank bar, and a forced mate
+ * pins to the end by sign. The shape is taken from an existing implementation
+ * rather than invented.
+ */
+export function evaluationPercent(value: string): number {
+  if (value.startsWith('#')) return value.startsWith('#-') ? 0 : 100;
+
+  const pawns = Number(value);
+  if (!Number.isFinite(pawns)) return 50;
+
+  const scaled = 50 + 50 * (2 / (1 + Math.exp(-0.5 * pawns)) - 1);
+  return Math.max(1, Math.min(99, scaled));
+}

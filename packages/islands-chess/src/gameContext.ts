@@ -24,6 +24,8 @@ export interface ChessGame {
   board: BoardOptions;
   /** Draw the annotator's arrows, unless the author turned them off. */
   shapes: boolean;
+  /** Show the evaluation bar: the author asked for it *and* the game has evals. */
+  evalBar: boolean;
 }
 
 const GameContext = createContext<ChessGame | undefined>(undefined);

@@ -5,6 +5,7 @@ import { orientationFor } from './boardOptions';
 import { findByLabel, moveLabel } from './score';
 import { nodeAt, parentPath } from './tree';
 import { useGame, useSequence } from './gameContext';
+import EvalBar from './EvalBar';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
 import 'chessground/assets/chessground.cburnett.css';
@@ -133,29 +134,33 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
 
   return (
     <div className="island chessboard-island">
-      <div
-        className={`chessboard-island__board cg-wrap cg-theme--${game.board.theme} cg-pieces--${game.board.pieces}`}
-        ref={boardRef}
-        /*
-         * **C15 said a diagram is not a control, and G9.3 reverses that.** The
-         * argument was sound while a diagram only ever displayed: giving a
-         * picture focus buys a keyboard user a stop on the way to nothing. It
-         * stops being sound the moment tapping it *does* something — it is now
-         * how a reader gets from a moment printed in the prose to the board they
-         * can move pieces on, and a control reachable only by mouse is the
-         * regression C15 was written to prevent.
-         */
-        tabIndex={0}
-        role={pinned ? 'button' : 'group'}
-        aria-current={pinned && sequence.current === pinned ? 'true' : undefined}
-        aria-label={
-          pinned
-            ? `Chess diagram: ${moveLabel(node)} — show this position on the board`
-            : 'Chess board — arrow keys step through the game'
-        }
-        onClick={pinned ? () => go(pinned) : undefined}
-        onKeyDown={onKeyDown}
-      />
+      <div className="chessboard-island__stage">
+        {/* Only the live board: a pinned diagram is a figure, not a readout. */}
+        {game.evalBar && !pinned && <EvalBar evaluation={node?.evaluation} orientation={side} />}
+        <div
+          className={`chessboard-island__board cg-wrap cg-theme--${game.board.theme} cg-pieces--${game.board.pieces}`}
+          ref={boardRef}
+          /*
+           * **C15 said a diagram is not a control, and G9.3 reverses that.** The
+           * argument was sound while a diagram only ever displayed: giving a
+           * picture focus buys a keyboard user a stop on the way to nothing. It
+           * stops being sound the moment tapping it *does* something — it is now
+           * how a reader gets from a moment printed in the prose to the board they
+           * can move pieces on, and a control reachable only by mouse is the
+           * regression C15 was written to prevent.
+           */
+          tabIndex={0}
+          role={pinned ? 'button' : 'group'}
+          aria-current={pinned && sequence.current === pinned ? 'true' : undefined}
+          aria-label={
+            pinned
+              ? `Chess diagram: ${moveLabel(node)} — show this position on the board`
+              : 'Chess board — arrow keys step through the game'
+          }
+          onClick={pinned ? () => go(pinned) : undefined}
+          onKeyDown={onKeyDown}
+        />
+      </div>
       {!pinned && (
         <div className="chessboard-island__controls">
           <div className="chessboard-island__buttons" role="group" aria-label="Move navigation">

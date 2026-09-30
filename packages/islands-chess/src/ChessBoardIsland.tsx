@@ -7,9 +7,10 @@ import {
   usePersistentState,
   type IslandComponentProps,
 } from '@smart-ebooks/engine';
-import { mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
+import { mainlinePath, nodeAt, parentPath, pgnToTree, hasEvaluations } from './tree';
 import { moveLabel } from './score';
 import MoveList from './MoveList';
+import EvalBar from './EvalBar';
 import { describeEvaluation, formatEvaluation } from './evaluation';
 import { useGame } from './gameContext';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
@@ -86,6 +87,9 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
   const loading = assetUrl !== '' && fromFile === null;
   const source = assetUrl ? (fromFile ?? '') : body;
   const tree = useMemo(() => pgnToTree(source), [source]);
+  // Asked of the game, not of the current move: a bar that appeared and vanished
+  // as the reader stepped past an unassessed position would be worse than none.
+  const barOn = attrFlag(attributes.evalBar) && hasEvaluations(tree);
   const [stored, setStored] = usePersistentState<string | number>(`chessply:${id}`, '');
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
@@ -167,14 +171,17 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
 
   return (
     <div className="island chessboard-island">
-      <div
-        className={`chessboard-island__board cg-wrap cg-theme--${theme} cg-pieces--${pieces}`}
-        ref={boardRef}
-        tabIndex={0}
-        role="group"
-        aria-label="Chess board — arrow keys step through the game"
-        onKeyDown={onKeyDown}
-      />
+      <div className="chessboard-island__stage">
+        {barOn && <EvalBar evaluation={evaluation} orientation={side} />}
+        <div
+          className={`chessboard-island__board cg-wrap cg-theme--${theme} cg-pieces--${pieces}`}
+          ref={boardRef}
+          tabIndex={0}
+          role="group"
+          aria-label="Chess board — arrow keys step through the game"
+          onKeyDown={onKeyDown}
+        />
+      </div>
       <div className="chessboard-island__controls">
         <div className="chessboard-island__buttons" role="group" aria-label="Move navigation">
           <button

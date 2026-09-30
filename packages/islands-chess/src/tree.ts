@@ -203,6 +203,18 @@ export function allNodes(tree: GameTree): GameNode[] {
   return out;
 }
 
+/**
+ * Whether this game states an evaluation anywhere.
+ *
+ * What `evalBar` is conditional on: a book of 1910 opening lines carries none,
+ * and a bar that is permanently level is furniture that says something untrue.
+ * Asked of the whole tree, not the main line — an annotator may assess only the
+ * sidelines they thought worth arguing about.
+ */
+export function hasEvaluations(tree: GameTree): boolean {
+  return tree.evaluation !== undefined || allNodes(tree).some((node) => node.evaluation);
+}
+
 /** The node at `path`, or `undefined` — including for the starting position. */
 export function nodeAt(tree: GameTree, path: string): GameNode | undefined {
   if (!path) return undefined;

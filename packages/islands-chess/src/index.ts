@@ -179,6 +179,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       // dispatcher does with it.
       attributes: containerOwns({
         ...boardAttributes,
+        // Off by default: most games carry no `[%eval]` at all, and a bar that
+        // is permanently level is furniture making a claim nobody made.
+        evalBar: { type: 'boolean', default: false },
         // On by default: the arrows are already in the PGN, and silently
         // dropping an annotator's work is the worse failure.
         shapes: { type: 'boolean', default: true },
@@ -364,6 +367,9 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         ...boardAttributes,
         shapes: { type: 'boolean', default: true },
         pgn: { type: 'asset' },
+        // Belongs to the game rather than to a board, for the same reason the
+        // board does: a game has one live board.
+        evalBar: { type: 'boolean', default: false },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>

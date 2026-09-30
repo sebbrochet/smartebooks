@@ -56,8 +56,9 @@
         "ignoredInside": "chess-game"
       },
       "analysis": {
-        "removed": "there is no engine — write the evaluation into the PGN as [%eval 0.54] and it is shown against the move"
+        "removed": "the engine is gone. Write the evaluation into the PGN instead, as [%eval 0.54], and it is shown against the move"
       },
+      "evalBar": { "type": "boolean", "ignoredInside": "chess-game" },
       "shapes": { "type": "boolean", "ignoredInside": "chess-game" },
       "moves": {
         "type": "enum",
@@ -89,8 +90,9 @@
       "orientation": { "type": "enum", "values": ["white", "black", "auto"] },
       "shapes": { "type": "boolean" },
       "pgn": { "type": "asset" },
+      "evalBar": { "type": "boolean" },
       "analysis": {
-        "removed": "there is no engine — write the evaluation into the PGN as [%eval 0.54] and it is shown against the move"
+        "removed": "the engine is gone. Write the evaluation into the PGN instead, as [%eval 0.54], and it is shown against the move"
       }
     },
     "chess-moves": { "scroll": { "type": "boolean" } },

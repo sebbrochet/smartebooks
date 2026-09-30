@@ -5,7 +5,7 @@ import {
   usePersistentState,
   type IslandComponentProps,
 } from '@smart-ebooks/engine';
-import { mainline, mainlinePath, nodeAt, pgnToTree } from './tree';
+import { hasEvaluations, mainline, mainlinePath, nodeAt, pgnToTree } from './tree';
 import { DEFAULT_BOARD_OPTIONS, type BoardOptions } from './boardOptions';
 import { GameProvider, SequenceProvider } from './gameContext';
 import ChessBoardInGame from './ChessBoardInGame';
@@ -73,7 +73,8 @@ export default function ChessGameIsland({
   // sideline must stay inside it (SPEC001 P2.10b — `positions` is the active
   // line, recomputed as the reader branches).
   const positions = useMemo(() => lineThrough(tree, current), [tree, current]);
-  const game = useMemo(() => ({ tree, board, shapes }), [tree, board, shapes]);
+  const evalBar = attrFlag(attributes.evalBar) && hasEvaluations(tree);
+  const game = useMemo(() => ({ tree, board, shapes, evalBar }), [tree, board, shapes, evalBar]);
 
   return (
     <GameProvider value={game}>

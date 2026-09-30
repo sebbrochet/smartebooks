@@ -7,13 +7,15 @@ yourself, and see what the annotator made of each one.
 
 Step through the game with the controls under the board. Where the annotator has
 assessed a position, the assessment appears with it — `+0.35` means White stands
-a little better, and the number is always from White's point of view.
+a little better, and the number is always from White's point of view. The bar
+beside the board says the same thing at a glance, and greys out for a position
+nobody assessed.
 
 The annotator's notes appear as you go, so a game can be *read* and not only
 replayed. Where a note points at a square or a line of attack, the board draws it
 for you.
 
-:::chess-board{id="chess-scholars" moves="on"}
+:::chess-board{id="chess-scholars" moves="on" evalBar="on"}
 
 ```pgn
 {Scholar's Mate: the four-move trap every beginner meets once, from either side.}

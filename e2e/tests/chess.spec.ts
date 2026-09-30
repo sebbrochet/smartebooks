@@ -158,6 +158,39 @@ test('an evaluation stored in the PGN is shown against its move', async ({ page 
   await expect(list).not.toContainText('[%eval');
 });
 
+test('the evaluation bar follows the position, and greys out where there is none', async ({
+  page,
+}) => {
+  await page.goto('/#/chess/01-chess-basics');
+
+  const bar = page.getByTestId('chess-eval-bar');
+  const fill = bar.locator('.chess-eval-bar__white');
+  await expect(bar).toBeVisible({ timeout: 20_000 });
+
+  // The starting position carries no evaluation, so the bar makes no claim.
+  await expect(bar).toHaveClass(/is-unknown/);
+  await expect(fill).toHaveCount(0);
+
+  // 1. e4 is +0.20: White has a little more than half.
+  const next = page.getByRole('button', { name: 'Next move' });
+  await next.click();
+  await expect(bar).not.toHaveClass(/is-unknown/);
+  expect(Number(await fill.getAttribute('data-percent'))).toBeGreaterThan(50);
+
+  // 3. Qh5?! is White's own mistake, so it must swing the other way. This is
+  // the assertion that a side-to-move scale would fail.
+  await page.getByTestId('chess-move-list').getByRole('button', { name: '3. Qh5' }).click();
+  expect(Number(await fill.getAttribute('data-percent'))).toBeLessThan(50);
+});
+
+test('a board whose game states no evaluation shows no bar at all', async ({ page }) => {
+  // Chapter 3's game comes from a packaged PGN with no `[%eval]` in it, so the
+  // bar would be permanently level — a claim the book never made.
+  await page.goto('/#/chess/03-a-game-from-a-file');
+  await expect(page.locator('.chessboard-island__board').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('chess-eval-bar')).toHaveCount(0);
+});
+
 test('a diagram is a position with a caption and nothing to click', async ({ page }) => {
   await page.goto('/#/chess/02-reading-an-annotated-game');
 

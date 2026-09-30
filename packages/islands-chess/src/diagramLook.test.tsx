@@ -38,7 +38,7 @@ function diagram(boardAttrs: Record<string, string> = {}) {
 
 function inGame(child: ReactNode, board: BoardOptions) {
   return (
-    <GameProvider value={{ tree: pgnToTree('1. e4 e5'), board, shapes: true }}>
+    <GameProvider value={{ tree: pgnToTree('1. e4 e5'), board, shapes: true, evalBar: false }}>
       <SequenceProvider positions={[]} current="" onGo={() => {}}>
         {child}
       </SequenceProvider>
@@ -96,8 +96,13 @@ describe('a diagram takes its look from the nearest thing that chose one', () =>
       ),
     );
 
+    // A descendant selector, not a child one: the live board gained a wrapper
+    // when the evaluation bar moved in beside it, and `>` silently matched
+    // nothing rather than failing on the thing it was checking. `.chess-diagram`
+    // is a `<figure>`, so `.chessboard-island` already names the live board on
+    // its own.
     expect(look('.chess-diagram .chessboard-island__board')).toEqual(
-      look('.island.chessboard-island > .chessboard-island__board'),
+      look('.island.chessboard-island .chessboard-island__board'),
     );
   });
 
