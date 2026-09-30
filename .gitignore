@@ -5,9 +5,6 @@ node_modules/
 dist/
 site/
 
-# Generated engine assets (copied from the stockfish package)
-apps/library/public/stockfish/
-
 # Test artifacts
 coverage/
 test-results/

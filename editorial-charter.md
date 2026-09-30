@@ -211,9 +211,9 @@ flowchart LR
 ### Chess directives — **pack: `chess`**
 
 ````markdown
-:::chess-board{id="ch1-game" pieces="unicode" analysis="on" moves="on"}
+:::chess-board{id="ch1-game" pieces="unicode" moves="on"}
 ```pgn
-{Scholar's Mate.} 1. e4 e5 2. Bc4 {Eyeing f7. [%cal Gc4f7]} Nc6 3. Qh5?! Nf6?? 4. Qxf7#
+{Scholar's Mate.} 1. e4 e5 2. Bc4 {Eyeing f7. [%cal Gc4f7] [%eval 0.25]} Nc6 3. Qh5?! Nf6?? 4. Qxf7#
 ```
 :::
 
@@ -225,12 +225,10 @@ flowchart LR
 :::chess-puzzle{id="ch1-puzzle" fen="6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1" solution="Ra8#"}
 Ra8# — a back-rank mate.
 :::
-
-::chess-analysis{id="ch1-eval" fen="…" eval="+0.20" best="a6"}
 ````
 
 - `chess-board` (container, body is a fenced ` ```pgn ` block): `theme`, `pieces`, `orientation`,
-  `analysis`, `shapes`, `moves`, `pgn`.
+  `shapes`, `moves`, `pgn`.
   - `moves` is `off` (default) | `on` | `scroll` — show the whole game score, every move clickable.
     `scroll` caps its height, which a long game needs.
   - `pgn` names a **packaged** `.pgn` file and wins over the body. Declare it in `assets` like any
@@ -248,9 +246,6 @@ Ra8# — a back-rank mate.
     **plays** the move on the board and the island marks it, playing the opponent's replies. Without
     one it stays "reveal the answer and tick the box yourself".
   - Move numbers in a solution are tolerated and ignored. Write the moves the way you would in prose.
-- `chess-analysis` (leaf): `fen` (**required**), `depth`, `eval`, `best` — evaluation of one position,
-  with no board. `eval` and `best` state *your* assessment; they are shown before any engine runs, and
-  they are the only part that survives an export. The engine never starts until the reader clicks.
 - `theme` is one of `brown` | `blue` | `green` | `grey`; `pieces` is `cburnett` | `unicode`;
   `orientation` is `white` | `black` | `auto` (the default — the side to move). A book can set its own
   defaults in `smartbook.json`.
@@ -276,7 +271,7 @@ Ra8# — a back-rank mate.
 #### `:::chess-game` — a game you lay out yourself
 
 ````markdown
-:::chess-game{id="ch4-scholars" pieces="unicode" analysis}
+:::chess-game{id="ch4-scholars" pieces="unicode"}
 
 ```pgn
 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6?? 4. Qxf7# {Scholar's mate.}
@@ -318,11 +313,9 @@ but prose and `:move` marks is valid.
 must already be in the game, and renders as the words you typed if it is not. Without a PGN there is
 no game: every mark becomes plain text and every board and score inside says so.
 
-- `chess-game` (container): `pgn`, `shapes`, `analysis`, plus `theme` / `pieces` / `orientation`. It
+- `chess-game` (container): `pgn`, `shapes`, plus `theme` / `pieces` / `orientation`. It
   owns the game, the position and the board. The fenced ` ```pgn ` block is configuration, not
   content: it is consumed, not printed.
-  - `analysis` offers Stockfish under the game's board, bound to wherever the reader is. It belongs
-    to the game rather than to a board because a game has one board.
 - `::chess-board{at="…"}` **inside** a game is a **diagram**: a position pinned where you put it,
   with no controls, which is what a printed diagram is. Its value is a move written as you would
   write it in prose: `at="4. Qxf7#"`. It takes no PGN and no `id` — the container holds the game.

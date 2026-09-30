@@ -10,10 +10,10 @@ This chapter is laid out that way. One game, one board that holds still: the
 board sits above, the prose scrolls beneath it, and every move named in that
 prose shifts the pieces without ever moving out of sight.
 
-:::chess-game{id="chess-scholars-game" analysis}
+:::chess-game{id="chess-scholars-game"}
 
 ```pgn
-1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6?? {Developing, and losing. [%cal Rh5f7][%csl Rf7]}
+1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6?? {Developing, and losing. [%cal Rh5f7][%csl Rf7] [%eval #1]}
 (3... g6 {The move. The queen is chased and Black is fine.} 4. Qf3 Nf6)
 4. Qxf7# {Scholar's mate.}
 ```
@@ -54,9 +54,8 @@ and what a board sitting in the middle of the text could never survive. The
 second is that a move can be *mentioned* without being displayed, so the prose
 reads like prose.
 
-The evaluation belongs to the game too, rather than to any one board: Stockfish
-sits under the board that holds still, and weighs up whatever position you are
-on — including one you reached by clicking a move in a sentence, or by tapping a
-diagram.
+An evaluation belongs to the game too, rather than to any one board: it is
+written beside the move in the PGN, so it travels with the game into an export,
+onto paper, and onto a device that has never been online.
 
 ::checkpoint{id="chess-layout-done" label="I read a game laid out as prose"}

@@ -76,17 +76,3 @@ describe('chess-diagram fallback', () => {
     expect(run('chess-diagram', { caption: 'White to move.' })).toBeUndefined();
   });
 });
-
-describe('chess-analysis fallback', () => {
-  // An engine cannot run in an export, so only a *stated* evaluation can
-  // appear. With none there is nothing honest to say.
-  it('emits the annotator’s evaluation when there is one', () => {
-    const out = text(run('chess-analysis', undefined, { eval: '+0.20', best: 'a6' }));
-    expect(out).toContain('+0.20');
-    expect(out).toContain('a6');
-  });
-
-  it('emits nothing when the evaluation was left to the engine', () => {
-    expect(run('chess-analysis', undefined, { fen: 'whatever' })).toBeUndefined();
-  });
-});

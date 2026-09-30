@@ -41,7 +41,6 @@ export default function ChessGameIsland({
   const body = parsed.pgn ?? '';
   const board = parsed.board ?? DEFAULT_BOARD_OPTIONS;
   const shapes = attrFlag(attributes.shapes, true);
-  const analysis = attrFlag(attributes.analysis);
 
   // Same rule as a standalone board: only a *packaged* file is read, never a
   // URL an imported book chose.
@@ -89,7 +88,7 @@ export default function ChessGameIsland({
          */}
         <div className="chess-game ui-scroll-pane" data-testid="chess-game">
           <div className="chess-game__board">
-            <ChessBoardInGame analysis={analysis} />
+            <ChessBoardInGame />
           </div>
           <div className="chess-game__prose ui-scroll-pane" data-testid="chess-game-prose">
             {children as ReactNode}

@@ -20,13 +20,13 @@ describe('checkDirectives', () => {
 
   test('accepts a pack island when the book declares the pack', () => {
     const descriptor = book({ packs: { chess: {} } });
-    assert.deepEqual(checkDirectives(descriptor, file('::chess-analysis{fen="8/8"}')), []);
+    assert.deepEqual(checkDirectives(descriptor, file('::chess-diagram{fen="8/8"}')), []);
   });
 
   // The failure this prevents: a grey "Unknown interactive block" in a
   // published book, found by a reader rather than by the build.
   test('rejects a pack island the book did not declare, and names the pack', () => {
-    const problems = checkDirectives(book(), file('::chess-analysis{fen="8/8"}'));
+    const problems = checkDirectives(book(), file('::chess-diagram{fen="8/8"}'));
     assert.deepEqual(rules(problems), ['directive-unknown']);
     assert.match(problems[0].message, /needs the "chess" island pack/);
   });
@@ -92,7 +92,7 @@ describe('checkDirectives', () => {
   test('says nothing about an island that saves nothing', () => {
     assert.deepEqual(checkDirectives(book(), file('A :term[palimpsest] page.')), []);
     assert.deepEqual(
-      checkDirectives(book({ packs: { chess: {} } }), file('::chess-analysis{fen="8/8"}')),
+      checkDirectives(book({ packs: { chess: {} } }), file('::chess-diagram{fen="8/8"}')),
       [],
     );
   });
@@ -328,12 +328,12 @@ describe('checkDirectives', () => {
 
   test('accepts a bare boolean flag', () => {
     const descriptor = book({ packs: { chess: {} } });
-    assert.deepEqual(checkDirectives(descriptor, file('::chess-board{id="b" analysis}')), []);
+    assert.deepEqual(checkDirectives(descriptor, file('::chess-board{id="b" shapes}')), []);
   });
 
   test('rejects a boolean it cannot read', () => {
     const descriptor = book({ packs: { chess: {} } });
-    const problems = checkDirectives(descriptor, file('::chess-board{id="b" analysis="maybe"}'));
+    const problems = checkDirectives(descriptor, file('::chess-board{id="b" shapes="maybe"}'));
     assert.deepEqual(rules(problems), ['attribute-invalid']);
   });
 
@@ -342,6 +342,41 @@ describe('checkDirectives', () => {
       checkDirectives(book(), file('::checkpoint{id="c" label="Done" data-x="y"}')),
       [],
     );
+  });
+});
+
+/**
+ * Withdrawing an attribute is the one change the linter cannot notice by
+ * itself: `checkAttributes` walks the contract rather than the author's text,
+ * so deleting an entry outright leaves every book that still writes it with a
+ * dead attribute, no error and no runtime symptom. The contract therefore keeps
+ * the entry, marked, and this is what reports it.
+ */
+describe('an attribute the platform has withdrawn', () => {
+  const chess = book({ packs: { chess: {} } });
+
+  test('is an error, and says what to write instead', () => {
+    const problems = checkDirectives(chess, file('::chess-board{id="b" analysis="on"}'));
+    assert.deepEqual(rules(problems), ['attribute-removed']);
+    assert.match(problems[0].message, /"analysis" is no longer read by ":::chess-board"/);
+    assert.match(problems[0].message, /\[%eval 0\.54\]/);
+  });
+
+  test('is reported on a container that had it too', () => {
+    const markdown = ':::chess-game{id="g" analysis}\n\n```pgn\n1. e4 e5\n```\n\n:::';
+    assert.deepEqual(rules(checkDirectives(chess, file(markdown))), ['attribute-removed']);
+  });
+
+  // It has no type any more, so the value cannot be wrong — only the attribute
+  // is. Reporting both would tell the author to fix a spelling they are about
+  // to delete.
+  test('is reported once, whatever value the author gave it', () => {
+    const problems = checkDirectives(chess, file('::chess-board{id="b" analysis="maybe"}'));
+    assert.deepEqual(rules(problems), ['attribute-removed']);
+  });
+
+  test('says nothing when the book does not use it', () => {
+    assert.deepEqual(checkDirectives(chess, file('::chess-board{id="b" shapes="off"}')), []);
   });
 });
 

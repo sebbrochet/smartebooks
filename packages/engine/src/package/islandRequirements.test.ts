@@ -72,10 +72,10 @@ describe('exportBookToZip', () => {
 
   it('preserves pack options alongside the derived requirements', () => {
     const book = makeChessBook('::chess-board{id="b"}\n');
-    book.descriptor.islands = { packs: { chess: { engine: 'stockfish' } } };
+    book.descriptor.islands = { packs: { chess: { board: { theme: 'blue' } } } };
     const entries = unzipSync(exportBookToZip(book));
     const descriptor = JSON.parse(strFromU8(entries['smartbook.json']));
-    expect(descriptor.islands.packs).toEqual({ chess: { engine: 'stockfish' } });
+    expect(descriptor.islands.packs).toEqual({ chess: { board: { theme: 'blue' } } });
     expect(descriptor.islands.required).toEqual(['chess-board']);
   });
 });

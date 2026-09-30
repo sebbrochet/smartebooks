@@ -151,10 +151,12 @@ test('an imported book pulls down the code its islands need, before it is opened
     .poll(() => asked.some((url) => /ChessBoardIsland/.test(url)), { timeout: 10_000 })
     .toBe(true);
 
-  // …and the engine, which is 7 MB and therefore a deliberate per-book choice
-  // rather than something every reader pays for. Asserted on the request, not
-  // the response: this is about it being asked for, not about waiting for it.
-  expect(asked.some((url) => /stockfish-18-lite-single\.(js|wasm)/.test(url))).toBe(true);
+  // …and the rest of the pack, which is the point: "I have this book" and "I
+  // can read this book" are different statements, and warming closes the gap
+  // while the reader is demonstrably online. Asserted on the request, not the
+  // response: this is about it being asked for, not about waiting for it.
+  expect(asked.some((url) => /ChessGameIsland/.test(url))).toBe(true);
+  expect(asked.some((url) => /ChessPuzzleIsland/.test(url))).toBe(true);
 
   // Still on the shelf. Nothing was opened to make any of that happen.
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();

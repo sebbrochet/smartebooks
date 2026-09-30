@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import { orientationFor } from './boardOptions';
@@ -11,15 +11,9 @@ import 'chessground/assets/chessground.cburnett.css';
 import './chess.css';
 import './themes.css';
 
-// Same lazy import the standalone board uses, so a game with no `analysis`
-// anywhere in it never pulls the Stockfish client.
-const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
-
 export interface GameBoardProps {
   /** Pin to one position, by the same move label `:move[…]` takes. */
   at?: string;
-  /** Offer the engine under this board. */
-  analysis?: boolean;
 }
 
 /**
@@ -38,10 +32,7 @@ export interface GameBoardProps {
  * container renders one of these itself, as the fixed board above its prose,
  * and it has no directive to read attributes from. The dispatcher adapts.
  */
-export default function ChessBoardInGame({
-  at = '',
-  analysis: analysisOn = false,
-}: GameBoardProps) {
+export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
   const game = useGame();
   const sequence = useSequence();
 
@@ -199,13 +190,6 @@ export default function ChessBoardInGame({
         </div>
       )}
       {pinned && <p className="chess-diagram__caption">{moveLabel(node)}</p>}
-      {analysisOn && fen && (
-        <div className="chessboard-island__analysis">
-          <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
-            <PositionAnalysis fen={fen} />
-          </Suspense>
-        </div>
-      )}
     </div>
   );
 }

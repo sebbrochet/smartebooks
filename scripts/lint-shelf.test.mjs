@@ -91,8 +91,8 @@ describe('directivesAsText — what must not be swept up', () => {
   });
 
   test('the words are not the rule: jargon in prose is not this check\u2019s business', () => {
-    // "engine" is Stockfish here and the platform elsewhere, and no lint rule
-    // can tell those apart. This one does not try.
+    // "engine" meant a chess engine in one sentence and the platform in
+    // another, and no lint rule can tell those apart. This one does not try.
     assert.deepEqual(tokens('The engine evaluates the position, island by island.\n'), []);
   });
 });

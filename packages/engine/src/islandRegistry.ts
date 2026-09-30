@@ -79,8 +79,9 @@ export interface IslandDefinition {
    * The body is therefore also the static form, which is why such an island
    * needs no `fallback`. Two rules come with it:
    *
-   * - **Render children lazily, never hide them with CSS.** A concealed
-   *   `chess-analysis` would still boot a 7 MB engine nobody asked for.
+   * - **Render children lazily, never hide them with CSS.** A concealed island
+   *   still runs: it would mount, fetch whatever it fetches and start whatever
+   *   it starts, for a reader who never sees it.
    * - **Consume any configuration block** (`extractDirectiveCode(node, {
    *   consume: true })`), or the reader sees the raw PGN or JSON above the
    *   island that was configured by it.

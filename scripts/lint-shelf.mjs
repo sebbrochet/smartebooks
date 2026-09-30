@@ -9,9 +9,9 @@
  * URL and `chess-file-done` is in their saved progress, so renaming either costs
  * a reader their place to fix a word only this repository sees), and the same
  * word is jargon or not depending on the sentence — "engine" stayed where it
- * meant Stockfish and went where it meant the platform. A rule that cannot tell
- * those apart gets switched off. A token like `:::quiz{` cannot mean anything
- * else, so this one has no judgement in it at all.
+ * meant a chess engine and went where it meant the platform. A rule that cannot
+ * tell those apart gets switched off. A token like `:::quiz{` cannot mean
+ * anything else, so this one has no judgement in it at all.
  *
  * Scope is SPEC016 QB4: **only books this repository ships**. A book kept in its
  * own repository is nobody's shop window, and it reaches `lint:content` through

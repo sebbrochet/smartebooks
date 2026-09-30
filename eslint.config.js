@@ -14,8 +14,6 @@ export default tseslint.config(
       '**/test-results',
       '**/playwright-report',
       '**/scripts/**',
-      // Generated Stockfish engine assets copied in by scripts/copy-stockfish.mjs
-      '**/public/stockfish/**',
     ],
   },
   js.configs.recommended,

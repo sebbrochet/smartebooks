@@ -140,16 +140,22 @@ test('a board can take its game from a packaged PGN file', async ({ page }) => {
   await expect(page.getByTestId('chess-move')).toHaveText('23. Be7#');
 });
 
-test('stockfish analysis of the current board position', async ({ page }) => {
+test('an evaluation stored in the PGN is shown against its move', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
-  // Navigate a move so we analyze a live position, then ask the engine.
-  await page.getByRole('button', { name: 'Next move' }).click();
-  // Scoped to the board: the chapter also has a puzzle board, and an unscoped
-  // locator matches both.
-  const board = page.locator('.chessboard-island');
-  await board.getByRole('button', { name: /Analyze with Stockfish/ }).click();
-  // The 7 MB WASM engine loads then searches — give it room on a loaded machine.
-  await expect(board.getByTestId('chess-eval')).toBeVisible({ timeout: 90_000 });
+
+  const list = page.getByTestId('chess-move-list');
+  await expect(list).toBeVisible({ timeout: 20_000 });
+
+  // White-relative, which is the half of this that a one-sided fixture cannot
+  // prove: 3. Qh5?! is *White's* mistake, so the number has to go negative.
+  await expect(list.getByText('+0.20', { exact: true }).first()).toBeVisible();
+  await expect(list.getByText('-0.35', { exact: true })).toBeVisible();
+
+  // A forced mate is not a number.
+  await expect(list.getByText('#1', { exact: true })).toBeVisible();
+
+  // And the machine text never reaches the page.
+  await expect(list).not.toContainText('[%eval');
 });
 
 test('a diagram is a position with a caption and nothing to click', async ({ page }) => {
@@ -197,25 +203,11 @@ test('the annotator drew on the board, and the tags are not in the prose', async
   await expect(board.locator('svg.cg-shapes g *')).toHaveCount(0);
 });
 
-test("an annotator's evaluation is shown before any engine runs", async ({ page }) => {
-  await page.goto('/#/chess/02-reading-an-annotated-game');
-
-  const analysis = page.locator('.island--chess-analysis');
-  await expect(analysis.getByTestId('chess-stated-eval')).toContainText('+0.20');
-  await expect(analysis.getByTestId('chess-stated-eval')).toContainText('a6');
-
-  // With a stated evaluation the engine checks an answer rather than producing
-  // one, and the button says so.
-  await expect(analysis.getByRole('button')).toHaveText(/Check with Stockfish/);
-});
-
-test('standalone analysis island evaluates its own position, and only on request', async ({
-  page,
-}) => {
-  // SPEC008 C9 claimed an imported book "silently starts" a WASM worker. It
-  // does not, and this is the check that says so: nothing runs until the reader
-  // clicks. What is genuinely missing is a *declaration* a reader could see
-  // before importing the book, which is SPEC001 P2.5's job, not the pack's.
+test('the chess pack starts no worker at all', async ({ page }) => {
+  // SPEC008 C9 asked for a *declaration* that a book starts a WASM worker, on
+  // the grounds that an imported book should not run one unannounced. The
+  // engine is gone, so the honest version of that promise is this: reading a
+  // chess chapter starts no worker, whatever the reader does on the page.
   await page.addInitScript(() => {
     const Original = window.Worker;
     Object.defineProperty(window, '__workersStarted', { value: 0, writable: true });
@@ -227,20 +219,17 @@ test('standalone analysis island evaluates its own position, and only on request
     };
   });
 
-  await page.goto('/#/chess/02-reading-an-annotated-game');
+  await page.goto('/#/chess/01-chess-basics');
+  await expect(page.getByTestId('chess-move-list')).toBeVisible({ timeout: 20_000 });
 
-  // `::chess-analysis` has no board to navigate — it evaluates the FEN it was
-  // given. Covered because an island that ships undemonstrated and untested is
-  // how this one sat unused for a release.
-  const analysis = page.locator('.island--chess-analysis');
-  await expect(analysis.getByTestId('chess-stated-eval')).toBeVisible();
-  const started = () =>
-    page.evaluate(() => (window as unknown as { __workersStarted: number }).__workersStarted);
-  expect(await started()).toBe(0);
+  const next = page.getByRole('button', { name: 'Next move' });
+  await next.click();
+  await next.click();
 
-  await analysis.getByRole('button', { name: /with Stockfish/ }).click();
-  await expect(analysis.getByTestId('chess-eval')).toBeVisible({ timeout: 90_000 });
-  expect(await started()).toBeGreaterThan(0);
+  const started = await page.evaluate(
+    () => (window as unknown as { __workersStarted: number }).__workersStarted,
+  );
+  expect(started).toBe(0);
 });
 
 test('the move list shows the whole game and drives the board', async ({ page }) => {
@@ -1037,21 +1026,13 @@ test('a pinned board stays where it was put', async ({ page }) => {
   await expect(pinned.locator('.chess-diagram__caption')).toHaveText('4. Qxf7#');
 });
 
-// A board inside a game is still a board. The first cut of the container form
-// dropped `analysis` — silently, because it stayed a declared attribute of
-// `chess-board`, so the directive lint-passed and did nothing.
-test('a board inside a game still offers the engine, and follows the reader', async ({ page }) => {
+test('a board inside a game follows the reader', async ({ page }) => {
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 
   const live = page.getByRole('group', { name: /Chess board/ });
-  const analysis = page.locator('.chessboard-island__analysis');
 
-  // Exactly one board opted in, and it is the live one — not the pinned diagram.
-  await expect(analysis).toHaveCount(1);
-  await expect(analysis.getByRole('button', { name: /Stockfish/ })).toBeVisible();
-
-  // The engine is bound to the position the container publishes, so a move
-  // named in the prose changes what would be analysed.
+  // The board is bound to the position the container publishes, so a move named
+  // in the prose changes what it shows.
   await page.locator('.chess-move', { hasText: '2. Bc4' }).first().click();
   await expect(page.getByTestId('chess-move')).toHaveText('2. Bc4');
   await expect(live).toBeVisible();

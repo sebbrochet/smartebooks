@@ -67,44 +67,31 @@ export interface ChessIslandsOptions {
  * Fetch everything this pack loads on demand, so a book that uses it works
  * with no network afterwards.
  *
- * The components are `lazy`, which is what keeps Chessground and a 7 MB engine
- * off the wire for readers who open neither. The cost is that "I have this
- * book" and "I can read this book" are different statements: the text of an
- * imported package is in IndexedDB the moment it lands, while the code that
- * draws a board is still a request waiting to happen. A reader who imported a
- * chess book at home and opened it on a train met the second half of that.
+ * The components are `lazy`, which is what keeps Chessground off the wire for
+ * readers who open no board. The cost is that "I have this book" and "I can
+ * read this book" are different statements: the text of an imported package is
+ * in IndexedDB the moment it lands, while the code that draws a board is still
+ * a request waiting to happen. A reader who imported a chess book at home and
+ * opened it on a train met the second half of that.
  *
  * The service worker caches what it sees fetched, so simply *asking* for these
  * modules is enough — this function does not need their exports and ignores
  * them.
- *
- * The engine is included because the reader asked for it: it is the difference
- * between a board and a board that can answer a question. It is also 7 MB, so
- * this is deliberately a per-book decision made by the descriptor declaring the
- * pack, not a default paid by every reader.
  */
-export async function preloadChessIslands(base = '/'): Promise<void> {
+export async function preloadChessIslands(): Promise<void> {
   await Promise.all([
     import('./ChessBoardIsland'),
     import('./ChessPuzzleIsland'),
     import('./ChessDiagramIsland'),
     import('./ChessGameIsland'),
     import('./ChessMovesIsland'),
-    import('./StockfishAnalysisIsland'),
-    // Not a module: the engine is a worker script plus its WebAssembly, both
-    // fetched by URL at run time. `no-store` would defeat the point — the
-    // service worker's copy is exactly what is wanted here.
-    ...[
-      `${base}stockfish/stockfish-18-lite-single.js`,
-      `${base}stockfish/stockfish-18-lite-single.wasm`,
-    ].map((url) => fetch(url).catch(() => undefined)),
   ]);
 }
 
 /**
- * Builds the chess islands for one book. Components are lazy so Chessground /
- * chessops / Stockfish only ship with books that use them, and the extractors
- * stay dependency-light (raw body + attributes) since they run at parse time.
+ * Builds the chess islands for one book. Components are lazy so Chessground and
+ * chessops only ship with books that use them, and the extractors stay
+ * dependency-light (raw body + attributes) since they run at parse time.
  *
  * Board defaults are captured here rather than in module state, so two books
  * can use different themes. Each directive's options are resolved and validated
@@ -153,7 +140,6 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
    */
   const IN_GAME_BOARD_ATTRIBUTES: Record<keyof GameBoardProps, true> = {
     at: true,
-    analysis: true,
   };
 
   /**
@@ -193,7 +179,6 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       // dispatcher does with it.
       attributes: containerOwns({
         ...boardAttributes,
-        analysis: { type: 'boolean', default: false },
         // On by default: the arrows are already in the PGN, and silently
         // dropping an annotator's work is the worse failure.
         shapes: { type: 'boolean', default: true },
@@ -369,42 +354,6 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       },
     },
     {
-      // Stockfish (WASM) analysis of a position. `fen` comes straight from the
-      // directive attributes, so no extractor is needed.
-      name: 'chess-analysis',
-      aliases: ['chessanalysis'],
-      attributes: {
-        fen: { type: 'string', required: true },
-        depth: { type: 'number', default: 14, min: 1, max: 30 },
-        // The annotator's own assessment. Unlike the engine's, it survives
-        // export, print and a reader with no JavaScript.
-        eval: { type: 'string', default: '' },
-        best: { type: 'string', default: '' },
-      },
-      component: lazy(
-        (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
-          import('./StockfishAnalysisIsland'),
-      ),
-      // Only a *stated* evaluation can appear in an export — running an engine
-      // at build time is a different feature. With none, there is nothing
-      // honest to say, so nothing is emitted.
-      fallback: (_node, _data, ctx) => {
-        const stated = typeof ctx.attributes.eval === 'string' ? ctx.attributes.eval : '';
-        if (!stated) return undefined;
-        const best = typeof ctx.attributes.best === 'string' ? ctx.attributes.best : '';
-        return [
-          {
-            type: 'paragraph',
-            children: [
-              { type: 'text', value: 'Evaluation: ' },
-              { type: 'strong', children: [{ type: 'text', value: stated }] },
-              ...(best ? [{ type: 'text' as const, value: ` · best ${best}` }] : []),
-            ],
-          },
-        ];
-      },
-    },
-    {
       // One game, several islands. The container owns the game and the
       // position; the boards, the score and the prose inside it follow
       // (SPEC001 §4.1, SPEC008 G4).
@@ -415,10 +364,6 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         ...boardAttributes,
         shapes: { type: 'boolean', default: true },
         pgn: { type: 'asset' },
-        // The engine under the game's own board. It moved here from the child
-        // board when the container started providing one (SPEC008 G9.2): a
-        // game has one live board, so `analysis` is a property of the game.
-        analysis: { type: 'boolean', default: false },
       },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>

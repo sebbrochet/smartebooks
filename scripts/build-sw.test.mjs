@@ -48,7 +48,7 @@ const SITE = {
   'assets/chess-ccc.js': 'chess',
   'assets/chess-ccc.css': '.board{}',
   'assets/index-aaa.js.map': '{"version":3}',
-  'stockfish/engine.wasm': 'several megabytes, pretend',
+  'fonts/inter-cyrillic.woff2': 'a subset no English reader needs',
   '.vite/manifest.json': JSON.stringify(MANIFEST),
 };
 
@@ -58,7 +58,7 @@ test('lists every emitted file, with forward slashes and no source maps', () => 
     const files = listBuiltFiles(dir);
 
     assert.ok(files.includes('index.html'));
-    assert.ok(files.includes('stockfish/engine.wasm'));
+    assert.ok(files.includes('fonts/inter-cyrillic.woff2'));
     // A source map is for whoever debugs the site, and is often larger than the
     // code it describes.
     assert.ok(!files.some((file) => file.endsWith('.map')));
@@ -93,9 +93,11 @@ test('the shell is the entry and what it imports statically', () => {
 
 /**
  * The measurement that produced this rule: precaching all 95 emitted files came
- * to 11.4 MB, pulling the Stockfish engine and every font subset onto the wire
+ * to 11.4 MB, pulling a WASM chess engine and every font subset onto the wire
  * for a reader who opens neither. `main.tsx` had deliberately arranged for an
- * English reader to fetch one 47 kB font file and no more.
+ * English reader to fetch one 47 kB font file and no more. The engine has since
+ * been removed, but the font half of that measurement still holds and the rule
+ * is what keeps the next heavy pack out of the shell.
  */
 test('leaves lazily-loaded packs and their assets for the reader who opens them', () => {
   const files = shellFiles(MANIFEST);

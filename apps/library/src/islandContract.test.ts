@@ -16,6 +16,21 @@ const allIslands = () => [
 ];
 
 /**
+ * Drop the attributes the contract keeps only to report them.
+ *
+ * A withdrawn attribute is absent from the code by definition, so comparing it
+ * against the registries would make the marker itself a drift. See SPEC008
+ * §4.21 for why the entry cannot simply be deleted.
+ */
+const withoutRemoved = (attributes: Record<string, Record<string, Record<string, unknown>>>) =>
+  Object.fromEntries(
+    Object.entries(attributes).map(([island, specs]) => [
+      island,
+      Object.fromEntries(Object.entries(specs).filter(([, spec]) => !spec.removed)),
+    ]),
+  );
+
+/**
  * `island-contract.json` is what the content linter validates books against.
  * The linter runs in plain Node and cannot import the engine's TypeScript, so
  * the contract is a committed artefact — and these tests are what stop it
@@ -145,6 +160,27 @@ describe('island-contract.json', () => {
         ]),
     );
 
-    expect(contract.attributes).toEqual(fromCode);
+    expect(withoutRemoved(contract.attributes)).toEqual(fromCode);
+  });
+
+  // A `removed` entry is the one kind of drift that is deliberate: the island
+  // no longer declares the attribute, and the contract keeps it so the linter
+  // can tell a book that still writes it. That only holds while the code really
+  // has dropped it — a marked attribute the island still reads would turn a
+  // working book into an error for no reason.
+  it('marks an attribute removed only once the island has stopped declaring it', () => {
+    const declared = new Map(
+      allIslands().map((island) => [island.name, Object.keys(island.attributes ?? {})]),
+    );
+
+    const stillDeclared = Object.entries(
+      contract.attributes as Record<string, Record<string, Record<string, unknown>>>,
+    ).flatMap(([island, specs]) =>
+      Object.entries(specs)
+        .filter(([name, spec]) => spec.removed && declared.get(island)?.includes(name))
+        .map(([name]) => `${island}.${name}`),
+    );
+
+    expect(stillDeclared).toEqual([]);
   });
 });

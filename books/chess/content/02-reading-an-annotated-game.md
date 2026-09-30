@@ -44,11 +44,12 @@ Scholar's Mate, from chapter 1: the bishop guards the queen, and the king has no
 ## An assessment, without a game
 
 Sometimes the point is the *assessment* rather than the moves — here, the Ruy Lopez
-after 3.Bb5. The annotator's own verdict is stated up front, so you have an answer
-before any engine runs, and still have one on paper.
+after 3.Bb5. A diagram states the position; the prose states the verdict. Both are
+text, so both survive an export, a printout, and a device that has never been online.
 
-::chess-analysis{id="chess-ruy-lopez" fen="r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3" eval="+0.20" best="a6" depth=16}
-
-Stockfish runs **in your browser**. Nothing about the position is sent anywhere.
+:::chess-diagram{id="chess-ruy-lopez" fen="r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3" shapes="Gb5c6"}
+The Ruy Lopez after 3.Bb5. White is a shade better — around **+0.20** — and Black's
+usual reply is 3...a6, putting the question to the bishop at once.
+:::
 
 ::checkpoint{id="chess-annotated-done" label="I read an annotated game"}

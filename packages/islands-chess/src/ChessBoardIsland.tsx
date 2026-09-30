@@ -19,9 +19,6 @@ import 'chessground/assets/chessground.cburnett.css';
 import './chess.css';
 import './themes.css';
 
-// Loaded only when a board opts into analysis, so the Stockfish client stays
-// out of the board chunk for books that never use it.
-const PositionAnalysis = lazy(() => import('./PositionAnalysis'));
 const ChessBoardInGame = lazy(() => import('./ChessBoardInGame'));
 
 /**
@@ -41,10 +38,7 @@ export default function ChessBoardIsland(props: IslandComponentProps) {
   if (game) {
     return (
       <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
-        <ChessBoardInGame
-          at={attrText(props.attributes.at)}
-          analysis={attrFlag(props.attributes.analysis)}
-        />
+        <ChessBoardInGame at={attrText(props.attributes.at)} />
       </Suspense>
     );
   }
@@ -55,8 +49,8 @@ export default function ChessBoardIsland(props: IslandComponentProps) {
  * Displays a chess game from PGN with move navigation. Read-only board
  * (Chessground); the position is persisted per book. Visual options
  * (`theme`, `pieces`, `orientation`) are resolved and validated at parse time.
- * With `analysis=on`, an on-demand Stockfish evaluation of the current position
- * is offered below the board; with `moves`, the whole score is shown.
+ * An evaluation stored in the PGN is shown for the current position; with
+ * `moves`, the whole score is shown and carries the evaluations instead.
  *
  * The game comes from the directive body, or from a packaged `.pgn` file named
  * by the `pgn` attribute, which wins when both are present.
@@ -65,7 +59,6 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
   const parsed = (data as { pgn?: string; board?: BoardOptions }) ?? {};
   const body = parsed.pgn ?? '';
   const { theme, pieces, orientation } = parsed.board ?? DEFAULT_BOARD_OPTIONS;
-  const analysisOn = attrFlag(attributes.analysis);
   const shapesOn = attrFlag(attributes.shapes, true);
   const movesMode = attrText(attributes.moves, 'off');
 
@@ -250,13 +243,6 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
         <p className="chessboard-island__comment" role="status" data-testid="chess-comment">
           {comment}
         </p>
-      )}
-      {analysisOn && fen && (
-        <div className="chessboard-island__analysis">
-          <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
-            <PositionAnalysis fen={fen} />
-          </Suspense>
-        </div>
       )}
     </div>
   );

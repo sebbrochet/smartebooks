@@ -51,7 +51,7 @@ All reader state is **local-only** (IndexedDB via `idb-keyval`, with `localStora
 packages/engine/          @smart-ebooks/engine — the ONE reusable core
   src/ markdown/ islands/ store/ reader/ content/ package/ Reader.tsx index.ts
 packages/islands-chess/   @smart-ebooks/islands-chess — optional domain islands
-  src/ ChessBoardIsland ChessPuzzleIsland StockfishAnalysisIsland
+  src/ ChessBoardIsland ChessPuzzleIsland ChessGameIsland ChessDiagramIsland
 packages/islands-mermaid/ @smart-ebooks/islands-mermaid — diagram island
 books/<slug>/             a book = data only: smartbook.json + content/*.md + assets/
 apps/library/             @smart-ebooks/library — the bookshelf platform

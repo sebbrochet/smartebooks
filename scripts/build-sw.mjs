@@ -44,10 +44,11 @@ export function listBuiltFiles(dir, root = dir) {
  * chunk, and the chunks and stylesheets it imports *statically*.
  *
  * **Not everything in `dist`.** The first draft precached all 95 emitted files,
- * 11.4 MB, which would have downloaded the Stockfish engine and every font
+ * 11.4 MB, which would have downloaded a WASM chess engine and every font
  * subset to a reader who opens neither — undoing the arrangement `main.tsx`
  * describes, where an English reader fetches one 47 kB font file and the other
- * subsets cost disk in `dist` and nothing on the wire.
+ * subsets cost disk in `dist` and nothing on the wire. The engine has gone; the
+ * rule is what keeps the next heavy pack out of the shell.
  *
  * Dynamic imports are deliberately left out. They are the island packs and the
  * per-book chunks, and they are exactly the things a reader should pay for when

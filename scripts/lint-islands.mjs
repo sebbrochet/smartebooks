@@ -126,6 +126,10 @@ function checkAttributes(island, attributes) {
   for (const [name, spec] of Object.entries(specs)) {
     const raw = attributes[name];
 
+    // A withdrawn attribute has no type to check and cannot be required. It is
+    // reported by `attribute-removed` instead, which says what to write now.
+    if (spec.removed) continue;
+
     if (raw === undefined) {
       if (spec.required) problems.push(`"${name}" is required`);
       continue;
@@ -290,6 +294,21 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
       // said nothing (SPEC001 P1.2, 2026-09-01).
       for (const [attribute, spec] of Object.entries(CONTRACT.attributes?.[name] ?? {})) {
         if (attributes[attribute] === undefined) continue;
+
+        // An attribute the platform used to read and no longer does. Withdrawing
+        // one is otherwise completely silent: `checkAttributes` walks the
+        // contract rather than the author's text, so deleting the entry outright
+        // means nobody is ever told (SPEC008 §4.21). The entry stays, marked, and
+        // carries what to write instead.
+        if (spec.removed) {
+          report(
+            'error',
+            'attribute-removed',
+            `"${attribute}" is no longer read by "${spell(name)}" — ${spec.removed}.`,
+            path,
+            line,
+          );
+        }
 
         if (spec.ignoredInside && canonicalAncestors.includes(spec.ignoredInside)) {
           report(

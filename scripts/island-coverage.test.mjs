@@ -8,8 +8,8 @@
  * eyeball after a change, and one no genre has yet asked for.
  *
  * This test exists because two islands had already slipped through: `mermaid`,
- * added the same day, and `chess-analysis`, which the chess book only ever used
- * as a *board attribute* (`analysis=on`) and never as a directive of its own.
+ * added the same day, and a standalone analysis island, which the chess book
+ * only ever used as a *board attribute* and never as a directive of its own.
  * Both were found by an ad-hoc script — which is precisely how the next one
  * would have been missed.
  */

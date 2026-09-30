@@ -103,7 +103,7 @@ export function resolveImportedIslands(descriptor: SmartbookDescriptor): IslandD
  * — already on the device before any book is.
  */
 const warmers: Record<string, (base: string) => Promise<void>> = {
-  chess: (base) => preloadChessIslands(base),
+  chess: () => preloadChessIslands(),
   mermaid: () => preloadMermaidIslands(),
   music: () => preloadMusicIslands(),
 };

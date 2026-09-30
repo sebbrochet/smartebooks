@@ -5,7 +5,7 @@
 #   1. check  : `npm run validate` — typecheck, lint, content lint, format,
 #               unit tests and the plain-Node script tests (fast feedback).
 #   2. e2e    : Playwright drives the real app — reading, quizzes, import/export,
-#               resume, and the Stockfish (WASM) chess analysis island.
+#               resume, and the chess islands.
 #   3. offline: Playwright drives a *built* site with the network cut, which is
 #               the only way to exercise the service worker (it is deliberately
 #               not registered in development).
