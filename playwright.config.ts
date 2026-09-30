@@ -9,18 +9,26 @@ export default defineConfig({
   testDir: './e2e/tests',
   timeout: 60_000,
   retries: 2,
-  // Run serially. The comment here once justified this by the weight of a WASM
-  // chess engine, which no longer ships — but the measurement stands on its own:
-  // two parallel contexts starve each other badly enough that *unrelated* tests
-  // fail with "element not found" through their retries. Measured on one
-  // moderately loaded machine: 2 workers took 2.3m and failed three tests;
-  // 1 worker took 1.0m and passed. Parallelism was buying nothing, because the
-  // contention it created cost more than it saved.
+  // Run serially — but the reason is now weaker than it was, and the old
+  // measurement no longer reproduces.
   //
-  // This makes the suite more robust, not reliable: on a busy machine it still
-  // fails intermittently, and individual specs that pass alone can take an
-  // order of magnitude longer than usual. Treat a lone failure as suspect and
-  // re-run the spec on its own before believing it.
+  // It once read: 2 workers took 2.3m and failed three tests, 1 worker took
+  // 1.0m and passed, so parallelism bought nothing. That was measured with a
+  // 7 MB WASM chess engine in the suite, which no longer ships. Re-measured
+  // 2026-09-30 on one loaded laptop, same commit, one sample each:
+  // **1 worker 6.9m, 139 passed + 3 flaky; 2 workers 5.4m, 140 passed +
+  // 2 flaky. Neither run failed a test.**
+  //
+  // So the claim that parallelism costs more than it saves is no longer
+  // supported. It stays at 1 anyway, because both measurements were taken on a
+  // developer machine under load and CI runs on a dedicated runner — flipping a
+  // CI setting on a laptop sample is exactly how the superseded comment above
+  // came to be wrong. Raising it wants a measurement from CI itself.
+  //
+  // Serial makes the suite more robust, not reliable: on a busy machine it
+  // still fails intermittently, and individual specs that pass alone can take
+  // an order of magnitude longer than usual. Treat a lone failure as suspect
+  // and re-run the spec on its own before believing it.
   workers: 1,
   use: {
     baseURL: `http://localhost:${port}`,

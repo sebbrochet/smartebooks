@@ -386,6 +386,17 @@
   }
 }
 
+/*
+ * The bar does not print. It is a picture of a number the score already prints
+ * beside the move, and on paper it is a solid block of ink saying nothing the
+ * page does not say in text.
+ */
+@media print {
+  .chess-eval-bar {
+    display: none;
+  }
+}
+
 .chessboard-island.is-solved .chessboard-island__board {
   outline: 2px solid var(--correct, #2e7d32);
 }

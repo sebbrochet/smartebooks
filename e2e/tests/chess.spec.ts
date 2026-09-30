@@ -163,9 +163,14 @@ test('the evaluation bar follows the position, and greys out where there is none
 }) => {
   await page.goto('/#/chess/01-chess-basics');
 
+  // Wait for the island, then assert the bar. Folding the two together makes a
+  // slow chunk load look like a missing feature — which is how this test went
+  // flaky under parallel workers, failing on its own first line.
+  await expect(page.locator('.chessboard-island__board').first()).toBeVisible({ timeout: 30_000 });
+
   const bar = page.getByTestId('chess-eval-bar');
   const fill = bar.locator('.chess-eval-bar__white');
-  await expect(bar).toBeVisible({ timeout: 20_000 });
+  await expect(bar).toBeVisible();
 
   // The starting position carries no evaluation, so the bar makes no claim.
   await expect(bar).toHaveClass(/is-unknown/);

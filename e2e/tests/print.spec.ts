@@ -103,6 +103,26 @@ test.describe('on paper', () => {
   });
 
   /**
+   * SPEC008 E5. The bar is the one part of a board that says nothing new on
+   * paper: the score prints the same evaluation beside the move, in text.
+   */
+  test('the evaluation bar does not print', async ({ page }) => {
+    await page.goto('/#/chess/01-chess-basics');
+
+    const bar = page.getByTestId('chess-eval-bar');
+    await expect(bar).toBeVisible({ timeout: 20_000 });
+
+    await page.emulateMedia({ media: 'print' });
+    await expect(bar).toBeHidden();
+
+    // The number itself survives, which is what makes hiding the bar a
+    // simplification rather than a loss.
+    const list = page.getByTestId('chess-move-list');
+    await expect(list).toBeVisible();
+    await expect(list.getByText('+0.20', { exact: true }).first()).toBeVisible();
+  });
+
+  /**
    * SPEC009 V14 / SPEC008 G9.1. A pane that scrolls on screen must print whole.
    *
    * T8 hid what cannot be operated on paper and never asked what had been
