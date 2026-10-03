@@ -53,6 +53,13 @@ if (!process.features.typescript) {
 register('./ts-hooks.mjs', import.meta.url);
 const { stripComments } = await import('../packages/engine/src/package/stripComments.ts');
 
+const COMMENT_OPENER = /<!--/g;
+
+/** Reported per book, because a stripper that quietly did nothing read as success (TASK014). */
+function openerCount(markdown) {
+  return (markdown.match(COMMENT_OPENER) ?? []).length;
+}
+
 function packageBook(folder) {
   const problems = validateBook(folder);
   if (problems.length > 0) {
@@ -70,10 +77,11 @@ function packageBook(folder) {
   // Everything below reads the *compiled* content, so what is validated is what
   // ships. `stripComments` replaces a comment with blank space rather than
   // deleting its line, so every diagnostic still points at the author's file.
-  const contentFiles = contentPaths.map((path) => ({
-    path,
-    markdown: stripComments(readFileSync(join(BOOKS_DIR, folder, path), 'utf8')),
-  }));
+  const contentFiles = contentPaths.map((path) => {
+    const source = readFileSync(join(BOOKS_DIR, folder, path), 'utf8');
+    const markdown = stripComments(source);
+    return { path, markdown, stripped: openerCount(source) - openerCount(markdown) };
+  });
 
   // Package a book with broken islands and the problem only appears on the
   // recipient's screen, where nobody can fix it. The descriptor pass above is
@@ -116,8 +124,10 @@ function packageBook(folder) {
   writeFileSync(out, zipped);
 
   const kb = (zipped.length / 1024).toFixed(1);
+  const stripped = contentFiles.reduce((total, file) => total + file.stripped, 0);
   console.log(
-    `${descriptor.slug}.smartbook  ${Object.keys(files).length} files, ${kb} kB  [${descriptor.visibility}]`,
+    `${descriptor.slug}.smartbook  ${Object.keys(files).length} files, ${kb} kB  ` +
+      `[${descriptor.visibility}]  ${stripped} comment(s) stripped`,
   );
   return out;
 }

@@ -69,3 +69,59 @@ describe('stripComments', () => {
     expect(stripped[5]).toBe('Line six.');
   });
 });
+
+/*
+ * A book written on Windows is the common case, not the edge case, and every
+ * test above joins with '\n' — so the branches that handle an *opening* `<!--`
+ * and a fence marker were unreachable from this file. Both broke on CRLF and
+ * neither was noticed: `.` does not match `\r`, and `$` without the `m` flag
+ * anchors at the end of the string rather than the line (TASK014).
+ */
+describe('stripComments, on CRLF', () => {
+  const crlf = (lines: string[]) => lines.join('\r\n');
+
+  it('removes a comment on its own line', () => {
+    expect(stripComments(crlf(['Before.', '<!-- a note -->', 'After.']))).toBe(
+      crlf(['Before.', '', 'After.']),
+    );
+  });
+
+  // The reported defect: the opening line matched nothing, so comment mode was
+  // never entered and the whole comment was copied into the package.
+  it('removes a comment spanning several lines', () => {
+    const source = crlf(['Before.', '<!-- a note', '   continued -->', 'After.']);
+    expect(stripComments(source)).toBe(crlf(['Before.', '', '', 'After.']));
+  });
+
+  /*
+   * The worse half, and the one no report mentioned: with the fence undetected,
+   * this comment was deleted. That is content loss, not a leak.
+   */
+  it('keeps a comment inside a fenced block', () => {
+    const source = crlf(['Text.', '```html', '<!-- the subject -->', '```', 'End.']);
+    expect(stripComments(source)).toBe(source);
+  });
+
+  it('keeps a comment inside an inline code span', () => {
+    const source = crlf(['Use `<!-- more -->` to split.', 'Done.']);
+    expect(stripComments(source)).toBe(source);
+  });
+
+  // A blanked line must keep its own terminator, or the package gets a file
+  // with mixed endings that the author never wrote. Three lines, not two: a
+  // two-line comment never reaches the branch that swallows a whole line.
+  it('leaves no lone line feed behind', () => {
+    const source = crlf(['Before.', '<!-- a note', '   that runs on', '   and ends -->', 'After.']);
+    expect(stripComments(source)).not.toMatch(/(?<!\r)\n/);
+  });
+
+  it('removes a comment spanning more than two lines', () => {
+    const source = crlf(['Before.', '<!-- a note', '   that runs on', '   and ends -->', 'After.']);
+    expect(stripComments(source)).toBe(crlf(['Before.', '', '', '', 'After.']));
+  });
+
+  it('keeps every line where it was', () => {
+    const source = crlf(['# Title', '', '<!-- REQ: a', '     AND b -->', '', 'Line six.']);
+    expect(stripComments(source).split('\r\n')).toHaveLength(6);
+  });
+});

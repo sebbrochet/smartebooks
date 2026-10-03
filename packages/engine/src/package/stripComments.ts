@@ -52,21 +52,27 @@ export function stripComments(markdown: string): string {
   let fence: string | undefined;
   let inComment = false;
 
-  for (const line of markdown.split('\n')) {
+  for (const raw of markdown.split('\n')) {
+    // Peeled so every pattern below can anchor with `$` without knowing about
+    // CRLF, and re-attached so a blanked line keeps the ending it was written
+    // with. Both patterns silently failed on `\r` before (TASK014).
+    const eol = raw.endsWith('\r') ? '\r' : '';
+    const line = eol ? raw.slice(0, -1) : raw;
+
     if (inComment) {
       const end = line.indexOf('-->');
       if (end === -1) {
-        out.push('');
+        out.push(eol);
         continue;
       }
       const rest = stripLine(line.slice(end + 3));
       inComment = rest.unterminated;
-      out.push(rest.text);
+      out.push(rest.text + eol);
       continue;
     }
 
     if (fence !== undefined) {
-      out.push(line);
+      out.push(line + eol);
       if (closesFence(line, fence)) fence = undefined;
       continue;
     }
@@ -74,7 +80,7 @@ export function stripComments(markdown: string): string {
     const opening = FENCE.exec(line);
     if (opening) {
       fence = opening[1];
-      out.push(line);
+      out.push(line + eol);
       continue;
     }
 
@@ -83,7 +89,7 @@ export function stripComments(markdown: string): string {
     // A comment-only line becomes blank rather than disappearing: an HTML
     // comment interrupts a paragraph, so removing the line outright would weld
     // the paragraphs either side of it into one.
-    out.push(text);
+    out.push(text + eol);
   }
 
   return out.join('\n');
