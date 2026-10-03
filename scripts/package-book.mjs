@@ -9,10 +9,16 @@
  * circular: the only way to export was to run the site and click a button.
  *
  * Because a book is now pure data, packaging is a file copy into a zip — no
- * engine, no bundler, no rendering.
+ * engine, no bundler, no rendering. The one exception is the content itself,
+ * which is **compiled rather than copied**: an author's HTML comments are
+ * stripped, because the Markdown in a package is an artefact and the Markdown
+ * in their repository is the source (SPEC003 E1.6).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { register } from 'node:module';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { zipSync, strToU8 } from 'fflate';
 import {
   BOOKS_DIR,
@@ -25,6 +31,27 @@ import {
   validateBook,
 } from './book-sources.mjs';
 import { checkDirectives, usedIslands } from './lint-islands.mjs';
+
+/*
+ * The stripper is the engine's, imported rather than ported, so the two
+ * packagers cannot disagree about what a comment is. It is TypeScript, and
+ * older Node has to be asked to strip types — so this asks itself rather than
+ * the caller, because the callers that matter are not npm: a book kept in its
+ * own repository runs this file through `spawnSync(process.execPath, [script])`
+ * and would pass no flag.
+ */
+if (!process.features.typescript) {
+  const flags = ['--disable-warning=ExperimentalWarning', '--experimental-strip-types'];
+  const again = spawnSync(
+    process.execPath,
+    [...flags, fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    { stdio: 'inherit' },
+  );
+  process.exit(again.status ?? 1);
+}
+
+register('./ts-hooks.mjs', import.meta.url);
+const { stripComments } = await import('../packages/engine/src/package/stripComments.ts');
 
 function packageBook(folder) {
   const problems = validateBook(folder);
@@ -40,9 +67,12 @@ function packageBook(folder) {
   const descriptor = readDescriptor(folder);
   const contentPaths = listContentFiles(folder);
   const assetPaths = listBookFiles(folder, 'assets');
+  // Everything below reads the *compiled* content, so what is validated is what
+  // ships. `stripComments` replaces a comment with blank space rather than
+  // deleting its line, so every diagnostic still points at the author's file.
   const contentFiles = contentPaths.map((path) => ({
     path,
-    markdown: readFileSync(join(BOOKS_DIR, folder, path), 'utf8'),
+    markdown: stripComments(readFileSync(join(BOOKS_DIR, folder, path), 'utf8')),
   }));
 
   // Package a book with broken islands and the problem only appears on the
@@ -72,7 +102,10 @@ function packageBook(folder) {
 
   const files = { 'smartbook.json': strToU8(`${JSON.stringify(packaged, null, 2)}\n`) };
 
-  for (const relPath of [...contentPaths, ...assetPaths]) {
+  for (const { path, markdown } of contentFiles) {
+    files[path] = strToU8(markdown);
+  }
+  for (const relPath of assetPaths) {
     files[relPath] = new Uint8Array(readFileSync(join(BOOKS_DIR, folder, relPath)));
   }
 

@@ -2,6 +2,7 @@ import { zipSync, strToU8 } from 'fflate';
 import type { Book } from '../types';
 import type { SmartbookChapterEntry } from './spec';
 import { deriveRequiredIslands } from './islandRequirements';
+import { stripComments } from './stripComments';
 
 /**
  * Package a book as a `.smartbook` zip: `smartbook.json` + content, plus any
@@ -14,6 +15,10 @@ import { deriveRequiredIslands } from './islandRequirements';
  *
  * It is also rewritten with the islands the content uses, so a reader can warn
  * about missing packs before rendering (SPEC001 P2.1).
+ *
+ * The content itself is **compiled, not copied**: an author's HTML comments are
+ * stripped, because the Markdown in a package is an artefact and the Markdown
+ * in their repository is the source (SPEC003 E1.6).
  */
 export function exportBookToZip(book: Book): Uint8Array {
   const chapters: SmartbookChapterEntry[] = book.chapters.map((chapter) => ({
@@ -36,7 +41,7 @@ export function exportBookToZip(book: Book): Uint8Array {
     'smartbook.json': strToU8(`${JSON.stringify(descriptor, null, 2)}\n`),
   };
   for (const chapter of book.chapters) {
-    files[`content/${chapter.slug}.md`] = strToU8(chapter.markdown);
+    files[`content/${chapter.slug}.md`] = strToU8(stripComments(chapter.markdown));
   }
   if (book.assets) {
     for (const [path, bytes] of Object.entries(book.assets)) {

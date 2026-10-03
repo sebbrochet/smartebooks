@@ -67,6 +67,24 @@ describe('exportBookToZip', () => {
     expect(strFromU8(files['content/01-first.md'])).toContain('Hello one.');
   });
 
+  /*
+   * The package is a compiled artefact (SPEC003 E1.6). A comment never renders
+   * and is already out of search, so this zip was the last place an author's
+   * annotations reached the reader.
+   */
+  it('strips the author’s comments from the content it writes', () => {
+    const annotated = {
+      './content/01-first.md': '# First\n\n<!-- REQ: haza-en-selle -->\n\nHello one.',
+      './content/02-second.md': '# Second\n\nHello two.',
+    };
+    const files = unzipSync(exportBookToZip(makeBook(descriptor, annotated, [])));
+    const written = strFromU8(files['content/01-first.md']);
+
+    expect(written).toContain('Hello one.');
+    expect(written).not.toContain('haza-en-selle');
+    expect(written).not.toContain('<!--');
+  });
+
   // Without declared chapters, order and titles survive only when filename
   // prefixes happen to encode them (SPEC003 D7).
   it('writes the resolved chapters into the manifest', () => {
