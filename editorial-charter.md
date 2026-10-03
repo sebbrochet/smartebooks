@@ -7,7 +7,7 @@
 > with `island-contract.json`, precisely so that a human and an agent are held to the same rules.
 > If the two ever disagree, the contract is what the linter enforces — fix the charter.
 >
-> Last updated: 2026-09-26
+> Last updated: 2026-10-03
 
 ---
 
@@ -19,6 +19,8 @@
   here *and* a matching component in the app registry — never an ad-hoc block.
 - **Local-only mindset.** Interactive elements must work with no network and no account. Never assume a
   server or fetch remote user data.
+- **Your file is source, the package is output.** What you write is not byte-for-byte what a reader
+  receives — see *Notes to yourself* below. The difference is small today and it is yours to use.
 - **Accessible by default.** Everything usable by keyboard; every figure has a text alternative;
   color is never the only signal.
 
@@ -70,6 +72,38 @@ parts once, then point chapters at them by `id`:
 - **Grouping is presentation only.** Chapters remain one flat sequence, so next/previous, search and
   your reader's saved position all cross a part boundary without noticing it. Do not use parts to
   imply that chapters are optional or out of order.
+
+### Notes to yourself
+
+An HTML comment is **yours, and it does not ship**. When a book is packaged — by `npm run package`
+or by *Export book* in the reader — comments are removed from the Markdown that goes into the
+`.smartbook`. Your own file keeps them; the reader's copy never had them.
+
+```markdown
+<!-- The lantern is why 12 works. Nothing before section 7 may mention it. -->
+```
+
+So a comment is the place for the things a chapter cannot say out loud: why a passage is phrased the
+way it is, what a section assumes, continuity you need to hold across thirty files, a note to the
+version of you that comes back in six months.
+
+**The platform defines no vocabulary for comments and reads none of them.** If you want an
+annotation language of your own — and a book with branching routes or a long continuity usually ends
+up wanting one — invent it, and point your own tooling at it. Nothing here will compete for the
+syntax, and nothing here will publish it.
+
+Three things worth knowing:
+
+- **A commented-out directive is genuinely parked.** `lint:content` reads the parsed document, where
+  a comment is one opaque block, so a half-written `::checkpoint` with no `id` inside one raises
+  nothing — while the same two lines written plainly are `id-missing` and `directive-unknown`. Draft
+  in a comment freely.
+- **A comment inside a fenced block survives**, because there it is *content*: a chapter that teaches
+  HTML is showing the reader a comment on purpose. The same goes for one written inside backticks in
+  a sentence. Only comments in your prose are stripped.
+- **This is tidiness, not secrecy.** The prose itself ships, and the comment is still in your source
+  file and its history. Stripping keeps your working notes out of the reader's copy; it is not a
+  place to put something that must not be read.
 
 ## 3. Directive syntax (how interactivity is declared)
 
