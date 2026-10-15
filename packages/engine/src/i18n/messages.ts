@@ -168,6 +168,15 @@ export interface Messages {
   musicFigure: string;
   musicPlay: string;
   musicStop: string;
+  chessPuzzle: string;
+  chessPuzzlePlayable: string;
+  chessPuzzleHint: string;
+  chessPuzzleReveal: string;
+  chessPuzzleHide: string;
+  chessPuzzleSolved: string;
+  chessPuzzleWrong: string;
+  chessPuzzleRight: string;
+  chessPuzzleYourMove: string;
   checkAnswers: string;
   tryAgain: string;
   quizScore: (score: number, total: number) => string;
@@ -294,6 +303,15 @@ const EN: Messages = {
   musicFigure: 'Music example',
   musicPlay: 'Play',
   musicStop: 'Stop',
+  chessPuzzle: 'Chess puzzle',
+  chessPuzzlePlayable: 'Chess puzzle — play the move',
+  chessPuzzleHint: 'Hint',
+  chessPuzzleReveal: 'Reveal solution',
+  chessPuzzleHide: 'Hide solution',
+  chessPuzzleSolved: 'Solved',
+  chessPuzzleWrong: 'Not that one — try again.',
+  chessPuzzleRight: 'Right. Keep going.',
+  chessPuzzleYourMove: 'Your move.',
   checkAnswers: 'Check answers',
   tryAgain: 'Try again',
   quizScore: (score, total) => `Score: ${score} / ${total}`,
@@ -429,6 +447,15 @@ const FR: Messages = {
   musicFigure: 'Exemple musical',
   musicPlay: 'Écouter',
   musicStop: 'Arrêter',
+  chessPuzzle: 'Problème d’échecs',
+  chessPuzzlePlayable: 'Problème d’échecs — jouez le coup',
+  chessPuzzleHint: 'Indice',
+  chessPuzzleReveal: 'Afficher la solution',
+  chessPuzzleHide: 'Masquer la solution',
+  chessPuzzleSolved: 'Résolu',
+  chessPuzzleWrong: 'Pas ce coup-là — réessayez.',
+  chessPuzzleRight: 'Exact. Continuez.',
+  chessPuzzleYourMove: 'À vous de jouer.',
   checkAnswers: 'Vérifier les réponses',
   tryAgain: 'Réessayer',
   quizScore: (score, total) => `Score\u00a0: ${score} / ${total}`,

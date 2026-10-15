@@ -165,18 +165,18 @@ export default function ChessPuzzleIsland({ attributes, id, data }: IslandCompon
       <div
         className={`chessboard-island__board cg-wrap cg-theme--${theme} cg-pieces--${pieces}`}
         ref={boardRef}
-        aria-label={interactive ? 'Chess puzzle — play the move' : 'Chess puzzle'}
+        aria-label={interactive ? words.chessPuzzlePlayable : words.chessPuzzle}
       />
 
       <div className="chessboard-island__controls">
         {hint && !showHint && !done && (
           <button type="button" onClick={() => setShowHint(true)}>
-            Hint
+            {words.chessPuzzleHint}
           </button>
         )}
         {(!interactive || done) && (
           <button type="button" onClick={() => setRevealed((value) => !value)}>
-            {revealed ? 'Hide solution' : 'Reveal solution'}
+            {revealed ? words.chessPuzzleHide : words.chessPuzzleReveal}
           </button>
         )}
         {interactive && (done || step > 0) && (
@@ -188,12 +188,12 @@ export default function ChessPuzzleIsland({ attributes, id, data }: IslandCompon
           // No self-marking checkbox: the island knows.
           <span className="chesspuzzle__state" data-testid="chess-puzzle-state" role="status">
             {done
-              ? 'Solved'
+              ? words.chessPuzzleSolved
               : verdict === 'wrong'
-                ? 'Not that one — try again.'
+                ? words.chessPuzzleWrong
                 : verdict === 'right'
-                  ? 'Right. Keep going.'
-                  : 'Your move.'}
+                  ? words.chessPuzzleRight
+                  : words.chessPuzzleYourMove}
           </span>
         ) : (
           <label className="chesspuzzle__solved">
@@ -202,7 +202,7 @@ export default function ChessPuzzleIsland({ attributes, id, data }: IslandCompon
               checked={done}
               onChange={(event) => setState({ solved: event.target.checked })}
             />{' '}
-            Solved
+            {words.chessPuzzleSolved}
           </label>
         )}
       </div>
