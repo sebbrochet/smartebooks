@@ -16,6 +16,8 @@
  * - `::chess-board{at="…"}` — the same label vocabulary. A pin that resolves to
  *   nothing does not fail; it silently becomes a *live* board that follows the
  *   reader, so the diagram the author placed wanders off. **Error.**
+ * - Either label matching several sidelines and no main-line move keeps its
+ *   first-match behaviour, but names the competing lines. **Warning.**
  * - `::chess-diagram{fen="…"}` — a diagram whose position the game reaches is a
  *   tap target, and one it does not reach is a plain figure. **Both are legal**
  *   (a book may print a position from anywhere), so this is a **warning**: a
@@ -32,7 +34,7 @@ import { join } from 'node:path';
 import { parsePgn, startingPosition } from 'chessops/pgn';
 import { parseSan } from 'chessops/san';
 import { BOOKS_DIR, listBookFolders, listContentFiles, readDescriptor } from './book-sources.mjs';
-import { labelsOf, normalise, positionKey, positionsOf } from './chess-labels.mjs';
+import { labelTargetsOf, normalise, positionKey, positionsOf } from './chess-labels.mjs';
 
 /**
  * A chess island holding its game inline, as `[id, pgn, index]`.
@@ -153,6 +155,19 @@ function gamesIn(markdown) {
   });
 }
 
+function warnIfAmbiguous(targets, where, id, reference) {
+  if (targets.length < 2 || targets.some((target) => target.mainline)) return;
+
+  const describe = (target) => JSON.stringify(target.line.join(' '));
+  console.warn(
+    `${where}: warning move-ambiguous: ${reference} matches ${targets.length} sideline moves ` +
+      `in "${id}"; it resolves to the first: ${describe(targets[0])}. ` +
+      `Other matches: ${targets.slice(1).map(describe).join('; ')}. ` +
+      `Use a move number if it disambiguates; otherwise use plain text for a move link ` +
+      `or chess-diagram with an explicit fen for a fixed position.`,
+  );
+}
+
 const wanted = process.argv.slice(2);
 const folders = listBookFolders().filter((name) => wanted.length === 0 || wanted.includes(name));
 
@@ -214,11 +229,15 @@ for (const folder of folders) {
     }
 
     for (const { id, pgn, moves: found, pins, diagrams } of gamesIn(markdown)) {
-      const known = labelsOf(pgn);
+      const known = labelTargetsOf(pgn);
 
       for (const { label, line } of found) {
         marks++;
-        if (known.has(normalise(label))) continue;
+        const targets = known.get(normalise(label));
+        if (targets) {
+          warnIfAmbiguous(targets, `${where}:${line}`, id, `:move[${label}]`);
+          continue;
+        }
         failed++;
         console.error(`${where}:${line}: error ${id}: :move[${label}] names no move in the game.`);
       }
@@ -228,7 +247,11 @@ for (const folder of folders) {
       // position the author placed it for.
       for (const { label, line } of pins) {
         marks++;
-        if (known.has(normalise(label))) continue;
+        const targets = known.get(normalise(label));
+        if (targets) {
+          warnIfAmbiguous(targets, `${where}:${line}`, id, `at="${label}"`);
+          continue;
+        }
         failed++;
         console.error(
           `${where}:${line}: error ${id}: at="${label}" names no move in the game, ` +

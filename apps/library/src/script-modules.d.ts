@@ -43,8 +43,16 @@ declare module '*/lint-islands.mjs' {
  * left the build validating books against the old rules.
  */
 declare module '*/chess-labels.mjs' {
+  export interface LabelTarget {
+    path: string;
+    fen: string;
+    mainline: boolean;
+    line: string[];
+  }
+
   export function normalise(label: string): string;
   export function labelsOf(pgn: string): Set<string>;
+  export function labelTargetsOf(pgn: string): Map<string, LabelTarget[]>;
   export function positionKey(fen: string): string;
   export function positionsOf(pgn: string): Set<string>;
 }

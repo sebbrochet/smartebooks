@@ -37,28 +37,50 @@ export function normalise(label) {
  * the safe direction to be wrong in.
  */
 export function labelsOf(pgn) {
+  return new Set(labelTargetsOf(pgn).keys());
+}
+
+/**
+ * Candidate moves for each normalized label, in the reader's search order.
+ * Keep their paths, positions and full lines so an ambiguity diagnostic can
+ * name the selected variation even when its immediate predecessor is repeated.
+ */
+export function labelTargetsOf(pgn) {
   const game = parsePgn(pgn)[0];
-  const found = new Set();
+  /** @type {Map<string, {path: string, fen: string, mainline: boolean, line: string[]}[]>} */
+  const found = new Map();
   if (!game) return found;
 
-  const walk = (node, position) => {
+  const walk = (node, position, parentPath, line, mainline) => {
+    let index = 0;
     for (const child of node.children) {
       const move = parseSan(position, child.data.san);
       if (!move) continue; // Reported by `plies`, which replays the same tree.
       const after = position.clone();
 
-      // Read the number *before* playing, as `tree.ts` does: that is whose move it is.
       const number = after.turn === 'white' ? `${after.fullmoves}.` : `${after.fullmoves}...`;
       after.play(move);
 
-      found.add(normalise(`${number} ${child.data.san}`));
-      found.add(normalise(child.data.san));
+      // `tree.ts` numbers only playable children, not illegal moves it skips.
+      const path = parentPath ? `${parentPath}.${index}` : `${index}`;
+      const target = {
+        path,
+        fen: makeFen(after.toSetup()),
+        mainline: mainline && index === 0,
+        line: [...line, `${number} ${child.data.san}`],
+      };
+      index++;
 
-      walk(child, after);
+      for (const label of [normalise(`${number} ${child.data.san}`), normalise(child.data.san)]) {
+        if (!found.has(label)) found.set(label, []);
+        found.get(label).push(target);
+      }
+
+      walk(child, after, path, target.line, target.mainline);
     }
   };
 
-  walk(game.moves, startingPosition(game.headers).unwrap());
+  walk(game.moves, startingPosition(game.headers).unwrap(), '', [], true);
   return found;
 }
 

@@ -54,6 +54,17 @@ function check(markdown, descriptor = DESCRIPTOR) {
 
 const SCHOLARS = '1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#';
 
+const AMBIGUOUS = [
+  '1. e4 c6 2. Nf3 d5',
+  '3. exd5 (3. e5 Bg4 4. d4 e6)',
+  '(3. Nc3 Bg4)',
+  '3... cxd5 4. d4',
+].join('\n');
+
+function gameBook(body, pgn = AMBIGUOUS) {
+  return `# One\n\n:::chess-game{id="g"}\n\n\`\`\`pgn\n${pgn}\n\`\`\`\n\n${body}\n\n:::\n`;
+}
+
 /** The position after 3…Nf6 in {@link SCHOLARS}, which the game does reach. */
 const AFTER_NF6 = 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4';
 
@@ -144,6 +155,68 @@ describe('check-games', () => {
     );
     assert.equal(result.code, 0, result.output);
     assert.match(result.output, /5 reference\(s\) resolve/);
+  });
+
+  test('ambiguous links and pins warn at their own lines without failing the check', () => {
+    const result = check(
+      gameBook('First :move[3... Bg4].\n\nAgain :move[3... Bg4].\n\n::chess-board{at="3... Bg4"}'),
+    );
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /3 reference\(s\) resolve/);
+    const warnings = result.output.split('\n').filter((line) => line.includes('move-ambiguous'));
+    assert.equal(warnings.length, 3, result.output);
+    assert.deepEqual(
+      warnings.map((line) => /01-chapter\.md:(\d+): warning move-ambiguous:/.exec(line)?.[1]),
+      ['12', '14', '16'],
+    );
+    for (const warning of warnings) {
+      assert.match(warning, /matches 2 sideline moves in "g"/);
+      assert.match(warning, /first: "1\. e4 1\.\.\. c6 2\. Nf3 2\.\.\. d5 3\. e5 3\.\.\. Bg4"/);
+      assert.match(
+        warning,
+        /Other matches: "1\. e4 1\.\.\. c6 2\. Nf3 2\.\.\. d5 3\. Nc3 3\.\.\. Bg4"/,
+      );
+      assert.match(warning, /plain text/);
+      assert.match(warning, /chess-diagram.*fen/);
+    }
+    assert.match(warnings[0], /:move\[3\.\.\. Bg4\]/);
+    assert.match(warnings[2], /at="3\.\.\. Bg4"/);
+  });
+
+  test('ambiguity uses the same bare, spaced, case-insensitive and annotated labels as the reader', () => {
+    const result = check(gameBook(':move[Bg4] :move[ 3...bg4?! ]\n\n::chessboard{at="3...Bg4+"}'));
+    assert.equal(result.code, 0, result.output);
+    assert.equal((result.output.match(/warning move-ambiguous:/g) ?? []).length, 3, result.output);
+  });
+
+  test('a matching mainline move retains priority without an ambiguity warning', () => {
+    const result = check(gameBook(':move[4. d4] :move[d4]\n\n::chess-board{at="4.d4"}'));
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /3 reference\(s\) resolve/);
+    assert.doesNotMatch(result.output, /warning/);
+  });
+
+  test('unused duplicate labels and unique sideline references do not warn', () => {
+    const result = check(gameBook(':move[3. Nc3]\n\n::chess-board{at="3. e5"}'));
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /2 reference\(s\) resolve/);
+    assert.doesNotMatch(result.output, /warning/);
+  });
+
+  test('an ambiguity warning does not hide an unresolved reference error', () => {
+    const result = check(gameBook(':move[3... Bg4] :move[9. Rd8]'));
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /warning move-ambiguous:/);
+    assert.match(result.output, /:move\[9\. Rd8\] names no move/);
+    assert.match(result.output, /1 problem\(s\) in 1 game\(s\)/);
+  });
+
+  test('ambiguity diagnostics name every competing variation', () => {
+    const pgn = AMBIGUOUS.replace('(3. Nc3 Bg4)', '(3. Nc3 Bg4) (3. d4 Bg4)');
+    const result = check(gameBook(':move[3... Bg4]', pgn));
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /matches 3 sideline moves/);
+    assert.match(result.output, /Other matches: .*3\. Nc3 3\.\.\. Bg4.*3\. d4 3\.\.\. Bg4/);
   });
 
   /*

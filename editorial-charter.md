@@ -382,8 +382,17 @@ no game: every mark becomes plain text and every board and score inside says so.
   - The label is a move, matched the way a reader reads it: `2. Bc4`, `2.Bc4` and `Bc4` all work, and
     annotation glyphs are ignored. An unqualified move means the main line; write the number to
     reach one inside a variation (`:move[3... g6]`).
+  - When several sidelines contain the same label and none matches the main line, the first match
+    wins. For inline PGNs, `npm run check:games` emits a **`move-ambiguous` warning** at each
+    ambiguous move link or `at` pin. It names the game, the selected line and every competing line.
+    A matching main-line move retains priority without this warning; unused duplicate labels do
+    not warn either. Warnings do not fail the check or change what the reader selects.
+  - A move number may disambiguate a bare label. If it does not, there is no selector for the other
+    variation yet: leave that move as plain text, or replace an ambiguous pin with
+    `::chess-diagram{fen="…"}` for the intended position. Adding a preceding move to the label,
+    an occurrence index, or a raw tree path is not supported.
   - A label the game does not contain renders as **the plain words you wrote** — no dead button. The
-    content linter cannot catch this for you, so check your marks against the score.
+    inline-PGN checker reports it as an error through `npm run check:games`.
 - **Static form:** your own body. Strip the interactivity and a `chess-game` is the prose, the moves
   named in it, and whatever the child islands emit — which is what a chess book is.
 - **State:** the current position, once for the whole game, under the same key a `chess-board` uses.

@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { pgnToTree } from './tree';
+import { allNodes, mainline, nodeAt, pgnToTree } from './tree';
 import { findByLabel, findByFen, positionKey } from './score';
 import {
   labelsOf,
+  labelTargetsOf,
   normalise,
   positionKey as scriptPositionKey,
   positionsOf,
@@ -40,6 +41,7 @@ const FROM_FEN = `[FEN "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1"]
 describe('the reader and the checker agree about labels', () => {
   const tree = pgnToTree(SCHOLARS);
   const known = labelsOf(SCHOLARS);
+  const targets = labelTargetsOf(SCHOLARS);
 
   /*
    * Every spelling the charter allows, plus the ones it does not. The negative
@@ -80,6 +82,92 @@ describe('the reader and the checker agree about labels', () => {
     const reader = findByLabel(tree, label) !== undefined;
     const checker = known.has(normalise(label));
     expect(checker, `reader ${reader}, checker ${checker}`).toBe(reader);
+    const target = targets.get(normalise(label))?.[0];
+    const path = findByLabel(tree, label);
+    expect(target?.path).toBe(path);
+    if (path !== undefined) expect(target?.fen).toBe(nodeAt(tree, path)?.fen);
+  });
+});
+
+const AMBIGUOUS = `1. e4 c6 2. Nf3 d5
+3. exd5 (3. e5 Bg4 4. d4 e6)
+(3. Nc3 Bg4)
+3... cxd5 4. d4`;
+
+describe('the checker identifies the actual target, not just a resolving label', () => {
+  it.each([
+    ['sibling sidelines', AMBIGUOUS],
+    [
+      'earlier divergence with identical immediate predecessors',
+      `1. e4 c6 2. Nf3 d5
+3. exd5 (3. e5 Bg4 4. Nc3 e6 5. d4)
+(3. Nc3 Bg4 4. e5 e6 5. d4)
+3... cxd5 4. d4`,
+    ],
+    ['skipped illegal siblings', '1. e4 e5 (1... Ke7) (1... c5) 2. Nf3'],
+    [
+      'a custom starting position and Black move number',
+      `[FEN "4k3/8/8/8/8/8/4P3/4K3 b - - 0 23"]
+
+23... Kd7 (23... Kf7) 24. e4 Kc6`,
+    ],
+  ])('matches paths, positions and mainline membership for %s', (_name, pgn) => {
+    const tree = pgnToTree(pgn);
+    const nodes = allNodes(tree);
+    const principal = new Set(mainline(tree).map((node) => node.path));
+    const targets = labelTargetsOf(pgn);
+    expect(nodes.length).toBeGreaterThan(0);
+    expect(targets.size).toBeGreaterThan(0);
+
+    for (const [label, candidates] of targets) {
+      expect(candidates[0].path, label).toBe(findByLabel(tree, label));
+      expect(candidates.map((target) => target.path)).toEqual(
+        nodes
+          .filter(
+            (node) =>
+              normalise(`${node.number} ${node.san}`) === label || normalise(node.san) === label,
+          )
+          .map((node) => node.path),
+      );
+      for (const target of candidates) {
+        const node = nodeAt(tree, target.path);
+        expect(node, `${label} at ${target.path}`).toBeDefined();
+        expect(target.fen).toBe(node?.fen);
+        expect(target.mainline).toBe(principal.has(target.path));
+        expect(target.line[target.line.length - 1]).toBe(`${node?.number} ${node?.san}`);
+      }
+    }
+
+    for (const node of nodes) {
+      const candidates = targets.get(normalise(`${node.number} ${node.san}`));
+      expect(
+        candidates?.some((target) => target.path === node.path),
+        node.path,
+      ).toBe(true);
+    }
+  });
+
+  it('keeps both sideline candidates while identifying the first selected position', () => {
+    const tree = pgnToTree(AMBIGUOUS);
+    const candidates = labelTargetsOf(AMBIGUOUS).get(normalise('3... Bg4'));
+    expect(candidates?.map(({ path, mainline }) => ({ path, mainline }))).toEqual([
+      { path: '0.0.0.0.1.0', mainline: false },
+      { path: '0.0.0.0.2.0', mainline: false },
+    ]);
+    expect(candidates?.[0].path).toBe(findByLabel(tree, '3... Bg4'));
+    expect(candidates?.[0].fen).not.toBe(candidates?.[1].fen);
+    expect(candidates?.map((target) => target.line[target.line.length - 2])).toEqual([
+      '3. e5',
+      '3. Nc3',
+    ]);
+  });
+
+  it('retains the mainline tie-break and the alternative behind it', () => {
+    const tree = pgnToTree(AMBIGUOUS);
+    const candidates = labelTargetsOf(AMBIGUOUS).get(normalise('4. d4'));
+    expect(candidates?.map((target) => target.mainline)).toEqual([true, false]);
+    expect(candidates?.[0].path).toBe(findByLabel(tree, '4. d4'));
+    expect(candidates?.[0].path).toBe('0.0.0.0.0.0.0');
   });
 });
 
