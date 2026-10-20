@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
-import { orientationFor } from './boardOptions';
+import { useMessages } from '@smart-ebooks/engine';
+import { orientationFor, type ResolvedOrientation } from './boardOptions';
 import { moveLabel, resolveMoveReference } from './score';
-import { allNodes, nodeAt, parentPath } from './tree';
+import { allNodes, nodeAt, parentPath, type GameTree } from './tree';
 import { useGame, useSequence } from './gameContext';
 import EvalBar from './EvalBar';
 import 'chessground/assets/chessground.base.css';
@@ -16,6 +17,10 @@ export interface GameBoardProps {
   /** Pin to one position, by the same move label `:move[…]` takes. */
   at?: string;
   line?: string;
+}
+
+interface LiveBoardProps extends GameBoardProps {
+  players?: GameTree['players'];
 }
 
 /**
@@ -34,7 +39,7 @@ export interface GameBoardProps {
  * container renders one of these itself, as the fixed board above its prose,
  * and it has no directive to read attributes from. The dispatcher adapts.
  */
-export default function ChessBoardInGame({ at = '', line }: GameBoardProps) {
+export default function ChessBoardInGame({ at = '', line, players }: LiveBoardProps) {
   const game = useGame();
   const sequence = useSequence();
 
@@ -128,6 +133,8 @@ export default function ChessBoardInGame({ at = '', line }: GameBoardProps) {
       sequence.go(pinned);
     }
   };
+  const names = pinned ? undefined : players;
+  const top = side === 'white' ? 'black' : 'white';
 
   // The same keys a standalone board answers to. Losing them in the newer
   // authoring form would be an accessibility regression, not a missing feature.
@@ -154,7 +161,8 @@ export default function ChessBoardInGame({ at = '', line }: GameBoardProps) {
   }
 
   return (
-    <div className="island chessboard-island">
+    <div className={`island chessboard-island${names ? ' chessboard-island--players' : ''}`}>
+      <PlayerLabel side={top} name={names?.[top]} position="top" />
       <div className="chessboard-island__stage">
         {/* Only the live board: a pinned diagram is a figure, not a readout. */}
         {game.evalBar && !pinned && <EvalBar evaluation={node?.evaluation} orientation={side} />}
@@ -189,6 +197,7 @@ export default function ChessBoardInGame({ at = '', line }: GameBoardProps) {
           onKeyDown={onKeyDown}
         />
       </div>
+      <PlayerLabel side={side} name={names?.[side]} position="bottom" />
       {!pinned && (
         <div className="chessboard-island__controls">
           <div className="chessboard-island__buttons" role="group" aria-label="Move navigation">
@@ -223,6 +232,67 @@ export default function ChessBoardInGame({ at = '', line }: GameBoardProps) {
         </div>
       )}
       {pinned && <p className="chess-diagram__caption">{moveLabel(node)}</p>}
+    </div>
+  );
+}
+
+function PlayerLabel({
+  side,
+  name,
+  position,
+}: {
+  side: ResolvedOrientation;
+  name?: string;
+  position: 'top' | 'bottom';
+}) {
+  const words = useMessages();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState(false);
+  const label = side === 'white' ? words.chessWhite : words.chessBlack;
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row || !name) return;
+    const measure = () => {
+      const text = nameRef.current;
+      if (!text) return;
+      // Measure the space without the disclosure icon so adding it cannot keep
+      // an otherwise fitting name permanently expandable.
+      const available = row.getBoundingClientRect().right - text.getBoundingClientRect().left;
+      setTruncated(text.scrollWidth > Math.round(available));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    document.fonts?.addEventListener('loadingdone', measure);
+    return () => {
+      observer.disconnect();
+      document.fonts?.removeEventListener('loadingdone', measure);
+    };
+  }, [name, label]);
+
+  if (!name) return null;
+  const content = (
+    <>
+      <span className="chess-player__side">{label}: </span>
+      <span className="chess-player__name" ref={nameRef}>
+        {name}
+      </span>
+    </>
+  );
+  return (
+    <div className={`chess-player chess-player--${position}`} ref={rowRef}>
+      {truncated ? (
+        <details key={name}>
+          <summary className="chess-player__label">{content}</summary>
+          <div className="chess-player__full" tabIndex={0}>
+            {name}
+          </div>
+        </details>
+      ) : (
+        <div className="chess-player__label">{content}</div>
+      )}
     </div>
   );
 }

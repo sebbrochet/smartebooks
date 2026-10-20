@@ -363,6 +363,17 @@ no game: every mark becomes plain text and every board and score inside says so.
 - `chess-game` (container): `pgn`, `shapes`, `evalBar`, plus `theme` / `pieces` / `orientation`. It
   owns the game, the position and the board. The fenced ` ```pgn ` block is configuration, not
   content: it is consumed, not printed.
+  - Usable `White` and `Black` PGN headers automatically name the players above and below the
+    container's live board, for inline and packaged PGNs alike. The name beside each player's side
+    follows the effective orientation: Black above and White below when viewed from White, and
+    the reverse when viewed from Black. Names retain their spelling; surrounding whitespace is
+    trimmed. Missing, blank and `?` values produce no row. Headerless repertoire lines keep their
+    compact layout, and pinned diagrams do not repeat names.
+  - Side labels follow the reader's UI language; player names do not. Long names stay on one line
+    in the compact view. Only truncated names offer a `+` control; tap or keyboard-activate the
+    name to open its full text. Names that fit remain plain text, with no extra focus stop.
+    This is rechecked when the row resizes or fonts finish loading. No name attributes,
+    extra network requests or author opt-out are required.
 - `::chess-board{at="…"}` **inside** a game is a **diagram**: a position pinned where you put it,
   with no controls, which is what a printed diagram is. Its value is a move written as you would
   write it in prose: `at="4. Qxf7#"`. It takes no PGN and no `id` — the container holds the game.

@@ -177,6 +177,8 @@ export interface Messages {
   chessPuzzleWrong: string;
   chessPuzzleRight: string;
   chessPuzzleYourMove: string;
+  chessWhite: string;
+  chessBlack: string;
   checkAnswers: string;
   tryAgain: string;
   quizScore: (score: number, total: number) => string;
@@ -312,6 +314,8 @@ const EN: Messages = {
   chessPuzzleWrong: 'Not that one — try again.',
   chessPuzzleRight: 'Right. Keep going.',
   chessPuzzleYourMove: 'Your move.',
+  chessWhite: 'White',
+  chessBlack: 'Black',
   checkAnswers: 'Check answers',
   tryAgain: 'Try again',
   quizScore: (score, total) => `Score: ${score} / ${total}`,
@@ -456,6 +460,8 @@ const FR: Messages = {
   chessPuzzleWrong: 'Pas ce coup-là — réessayez.',
   chessPuzzleRight: 'Exact. Continuez.',
   chessPuzzleYourMove: 'À vous de jouer.',
+  chessWhite: 'Blancs',
+  chessBlack: 'Noirs',
   checkAnswers: 'Vérifier les réponses',
   tryAgain: 'Réessayer',
   quizScore: (score, total) => `Score\u00a0: ${score} / ${total}`,

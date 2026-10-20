@@ -51,21 +51,21 @@ export default function ChessGameIsland({
   // Same rule as a standalone board: only a *packaged* file is read, never a
   // URL an imported book chose.
   const assetUrl = packagedAssets.includes('pgn') ? attrText(attributes.pgn) : '';
-  const [fromFile, setFromFile] = useState<string | null>(null);
+  const [fromFile, setFromFile] = useState<{ url: string; pgn: string } | null>(null);
 
   useEffect(() => {
     if (!assetUrl) return;
     let cancelled = false;
     fetch(assetUrl)
       .then((response) => response.text())
-      .then((text) => !cancelled && setFromFile(text))
-      .catch(() => !cancelled && setFromFile(''));
+      .then((pgn) => !cancelled && setFromFile({ url: assetUrl, pgn }))
+      .catch(() => !cancelled && setFromFile({ url: assetUrl, pgn: '' }));
     return () => {
       cancelled = true;
     };
   }, [assetUrl]);
 
-  const source = assetUrl ? (fromFile ?? '') : body;
+  const source = assetUrl ? (fromFile?.url === assetUrl ? fromFile.pgn : '') : body;
   const tree = useMemo(() => pgnToTree(source), [source]);
 
   // The same key a standalone board uses, and the same migration: a reader who
@@ -90,6 +90,10 @@ export default function ChessGameIsland({
     [tree, board, shapes, evalBar, line, selectLine],
   );
 
+  if (assetUrl && fromFile?.url !== assetUrl) {
+    return <div className="island island--loading" aria-busy="true" />;
+  }
+
   return (
     <GameProvider value={game}>
       <SequenceProvider positions={positions} current={current} onGo={go}>
@@ -102,8 +106,8 @@ export default function ChessGameIsland({
          * as a viewport-tall box with its prose spilling over whatever follows.
          */}
         <div className="chess-game ui-scroll-pane" data-testid="chess-game">
-          <div className="chess-game__board">
-            <ChessBoardInGame />
+          <div className={`chess-game__board${tree.players ? ' chess-game__board--players' : ''}`}>
+            <ChessBoardInGame players={tree.players} />
           </div>
           <div className="chess-game__prose ui-scroll-pane" data-testid="chess-game-prose">
             {children as ReactNode}

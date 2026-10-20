@@ -75,6 +75,8 @@ export interface GameNode {
 }
 
 export interface GameTree {
+  /** Usable player names from this game's PGN, absent for headerless repertoires. */
+  players?: { white?: string; black?: string };
   /** FEN of the starting position — not always the initial array. */
   fen: string;
   /** A comment written before the first move: the game's introduction. */
@@ -128,8 +130,15 @@ export function pgnToTree(pgn: string): GameTree {
 
     const root = startingPosition(game.headers).unwrap();
     const opening = annotate(game.comments);
+    const playerName = (tag: string) => {
+      const name = game.headers.get(tag)?.trim();
+      return name && name !== '?' ? name : undefined;
+    };
+    const white = playerName('White');
+    const black = playerName('Black');
 
     return {
+      ...(white || black ? { players: { white, black } } : {}),
       fen: makeFen(root.toSetup()),
       comment: opening.text,
       ...(opening.evaluation !== undefined ? { evaluation: opening.evaluation } : {}),

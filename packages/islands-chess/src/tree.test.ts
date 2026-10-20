@@ -46,6 +46,26 @@ describe('saved chess positions', () => {
 });
 
 describe('pgnToTree', () => {
+  it('retains player names from the same PGN as the moves, without rewriting their spelling', () => {
+    const tree = pgnToTree('[White "Greet, Andrew"]\n[Black "Arkell, Keith"]\n\n1. e4 c6');
+    expect(tree.players).toEqual({ white: 'Greet, Andrew', black: 'Arkell, Keith' });
+    expect(mainline(tree).map((node) => node.san)).toEqual(['e4', 'c6']);
+  });
+
+  it.each(['', '?', '   ', ' ? '])('does not retain unavailable player names %j', (name) => {
+    expect(pgnToTree(`[White "${name}"]\n[Black "${name}"]\n\n1. e4 c6`).players).toBeUndefined();
+  });
+
+  it('has no player metadata for headerless lines', () => {
+    expect(pgnToTree('1. e4 c6').players).toBeUndefined();
+  });
+
+  it('keeps a single available name, trimming only surrounding whitespace', () => {
+    const tree = pgnToTree('[White "  Élodie de la Tour  "]\n[Black "?"]\n\n1. e4 c6');
+    expect(tree.players?.white).toBe('Élodie de la Tour');
+    expect(tree.players?.black).toBeUndefined();
+  });
+
   it('reads a mainline into a chain of positions', () => {
     const tree = pgnToTree('1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#');
     expect(mainline(tree).map((node) => node.san)).toEqual([
