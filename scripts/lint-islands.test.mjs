@@ -13,6 +13,149 @@ const book = (islands) => ({ slug: 'demo', islands });
 const file = (markdown) => [{ path: 'content/01.md', markdown }];
 const rules = (problems) => problems.map((p) => p.rule);
 
+describe('container directive fences (BUG-001)', () => {
+  const chess = book({ packs: { chess: {} } });
+  const game = ':::chess-game{id="g"}\n\n```pgn\n1. e4 e5\n```\n\nSome prose.';
+  const board = '::chess-board{fen="8/8/8/8/8/8/8/8 w - - 0 1"}';
+
+  test('a balanced game does not exempt a following board from needing an id', () => {
+    const problems = checkDirectives(chess, file(`${game}\n\n:::\n\n${board}`));
+    assert.deepEqual(rules(problems), ['id-missing']);
+    assert.equal(problems[0].line, 11);
+  });
+
+  test('deleting the closing fence reports it without hiding the missing id', () => {
+    const problems = checkDirectives(chess, file(`${game}\n\n${board}`));
+    assert.deepEqual(rules(problems), ['directive-unclosed', 'id-missing']);
+    assert.deepEqual(problems[0], {
+      folder: 'demo',
+      file: 'content/01.md',
+      line: 1,
+      severity: 'error',
+      rule: 'directive-unclosed',
+      message: '":::chess-game" needs a closing fence of at least 3 colons.',
+    });
+    assert.equal(problems[1].line, 9);
+  });
+
+  for (const ending of ['\n', '\r\n', '\r']) {
+    test(`checks empty and nonempty containers with ${JSON.stringify(ending)} line endings`, () => {
+      for (const body of ['', 'Text.', 'Text.\n\n']) {
+        const markdown = `# Chapter\n\n:::quiz{id="q"}\n${body}`.replaceAll('\n', ending);
+        const problems = checkDirectives(book(), file(markdown));
+        assert.deepEqual(rules(problems), ['directive-unclosed']);
+        assert.equal(problems[0].line, 3);
+        assert.deepEqual(checkDirectives(book(), file(`${markdown}${ending}::: \t`)), []);
+      }
+    });
+  }
+
+  test('an opener at EOF is unclosed too', () => {
+    assert.deepEqual(rules(checkDirectives(book(), file(':::quiz{id="q"}'))), [
+      'directive-unclosed',
+    ]);
+  });
+
+  test('reports every unclosed container at its opener', () => {
+    const markdown = '::::quiz{id="q"}\n\n:::flashcard{id="f"}\n\nText.';
+    const problems = checkDirectives(book(), file(markdown));
+    assert.deepEqual(
+      problems.map(({ rule, line }) => ({ rule, line })),
+      [
+        { rule: 'directive-unclosed', line: 1 },
+        { rule: 'directive-unclosed', line: 3 },
+      ],
+    );
+  });
+
+  test('accepts nested containers closed with their own fence lengths', () => {
+    const markdown = '::::quiz{id="q"}\n\n:::flashcard{id="f"}\n\nText.\n\n:::\n\n::::';
+    assert.deepEqual(checkDirectives(book(), file(markdown)), []);
+  });
+
+  test('accepts a closing fence longer than its opener', () => {
+    assert.deepEqual(checkDirectives(book(), file(':::quiz{id="q"}\n\nText.\n\n:::::')), []);
+  });
+
+  test('a shorter fence cannot close a container', () => {
+    const problems = checkDirectives(book(), file('::::quiz{id="q"}\n\nText.\n\n:::'));
+    assert.deepEqual(rules(problems), ['directive-unclosed']);
+    assert.match(problems[0].message, /at least 4 colons/);
+  });
+
+  test('a child closer cannot also close its parent at EOF', () => {
+    const markdown = '::::quiz{id="q"}\n\n:::flashcard{id="f"}\n\nText.\n\n:::';
+    const problems = checkDirectives(book(), file(markdown));
+    assert.deepEqual(rules(problems), ['directive-unclosed']);
+    assert.equal(problems[0].line, 1);
+  });
+
+  test('a parent closer does not explicitly close its child', () => {
+    const markdown = '::::quiz{id="q"}\n\n:::flashcard{id="f"}\n\nText.\n\n::::';
+    const problems = checkDirectives(book(), file(markdown));
+    assert.deepEqual(rules(problems), ['directive-unclosed']);
+    assert.equal(problems[0].line, 3);
+  });
+
+  test('equal-length nested fences follow the parser, not a last-opened stack', () => {
+    const markdown = ':::quiz{id="q"}\n\n:::flashcard{id="f"}\n\nText.\n\n:::\n\n:::';
+    const problems = checkDirectives(book(), file(markdown));
+    assert.deepEqual(rules(problems), ['directive-unclosed']);
+    assert.equal(problems[0].line, 3);
+  });
+
+  for (const [label, markdown, closer] of [
+    ['blockquote', '> :::quiz{id="q"}\n>\n> Text.', '\n>\n> :::'],
+    ['list', '- :::quiz{id="q"}\n\n  Text.', '\n\n  :::'],
+    ['indented', '  :::quiz{id="q"}\n\n  Text.', '\n\n  :::'],
+  ]) {
+    test(`checks real containers inside a ${label}`, () => {
+      assert.deepEqual(rules(checkDirectives(book(), file(markdown))), ['directive-unclosed']);
+      assert.deepEqual(checkDirectives(book(), file(markdown + closer)), []);
+    });
+  }
+
+  test('reports a container that ends with its blockquote instead of a fence', () => {
+    const markdown = '> :::quiz{id="q"}\n>\n> Text.\n\nOutside.\n\n:::';
+    assert.deepEqual(rules(checkDirectives(book(), file(markdown))), ['directive-unclosed']);
+  });
+
+  for (const [label, markdown] of [
+    ['backtick code', '```markdown\n:::quiz\n```'],
+    ['tilde code', '~~~markdown\n:::quiz\n~~~'],
+    ['indented code', '    :::quiz'],
+    ['HTML comment', '<!--\n:::quiz\n-->'],
+    ['HTML block', '<div>\n:::quiz\n</div>'],
+    ['escaped opener', '\\:::quiz'],
+    ['inline code', '`:::quiz`'],
+    ['leaf directive', '::checkpoint{id="c"}'],
+    ['inline directive', 'A :term[word]{definition="Meaning."}.'],
+  ]) {
+    test(`does not require a closing fence for ${label}`, () => {
+      assert.deepEqual(checkDirectives(book(), file(markdown)), []);
+    });
+  }
+
+  test('checks structure even for unknown directives and aliases', () => {
+    assert.deepEqual(rules(checkDirectives(book(), file(':::nonsense'))), [
+      'directive-unclosed',
+      'directive-unknown',
+    ]);
+    assert.deepEqual(rules(checkDirectives(book(), file(':::matchingpairs{id="m"}'))), [
+      'directive-unclosed',
+      'directive-alias',
+    ]);
+  });
+
+  test('does not grant context-bound attributes an exemption from a broken container', () => {
+    const markdown = `${game}\n\n::chess-board{id="b" at="1. e4"}`;
+    assert.deepEqual(rules(checkDirectives(chess, file(markdown))), [
+      'directive-unclosed',
+      'attribute-ignored',
+    ]);
+  });
+});
+
 describe('checkDirectives', () => {
   test('accepts built-in islands with no pack declared', () => {
     assert.deepEqual(checkDirectives(book(), file(':::quiz{id="q1"}\n\n### Q\n\n:::')), []);

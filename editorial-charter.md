@@ -7,7 +7,7 @@
 > with `island-contract.json`, precisely so that a human and an agent are held to the same rules.
 > If the two ever disagree, the contract is what the linter enforces — fix the charter.
 >
-> Last updated: 2026-10-03
+> Last updated: 2026-10-20
 
 ---
 
@@ -127,6 +127,12 @@ Which form a directive takes is fixed per directive, not a choice — see §4.
 
 **Rules:**
 
+- Every container needs an **explicit closing fence**, with at least as many colons as its
+  opener. A missing fence is an error at the opening line (`directive-unclosed`), even though
+  the Markdown parser accepts it. For nesting, use longer fences outside (`::::` around `:::`)
+  and close each container separately; equal-length nested fences do not pair last-opened first.
+  Until its fence is fixed, an unclosed container grants no context-based lint exemptions
+  (for example, a board cannot borrow that game's exemption from `id-missing`).
 - `name` must be one of the registered directives in §4. Anything else **fails the build**
   (`directive-unknown`), it does not degrade to a placeholder.
 - Names are **kebab-case** (`matching-pairs`, `chess-board`). The old concatenated spellings still

@@ -47,6 +47,17 @@ export function allowedIslands(descriptor) {
   return { names, aliases, declaredPacks: declared };
 }
 
+/**
+ * A container can end at EOF or its enclosing block without a closing fence.
+ * Check only the source after its last child: a child's closer cannot close
+ * its parent too. The parser already owns nesting and fence-length matching.
+ */
+function hasClosingFence(node, markdown) {
+  const contentEnd = node.children.at(-1)?.position.end.offset ?? node.position.start.offset;
+  const tail = markdown.slice(contentEnd, node.position.end.offset);
+  return /(?:^|[\r\n])[ \t>]*:{3,}[ \t]*$/.test(tail);
+}
+
 /** Every directive in one Markdown source, with its name, id and position. */
 function directivesIn(markdown) {
   const found = [];
@@ -59,6 +70,10 @@ function directivesIn(markdown) {
       node.type === 'containerDirective' ||
       node.type === 'leafDirective' ||
       node.type === 'textDirective';
+    const unclosedFence =
+      node.type === 'containerDirective' && !hasClosingFence(node, markdown)
+        ? /^:+/.exec(markdown.slice(node.position.start.offset))[0]
+        : undefined;
 
     if (isDirective) {
       const attributes = {};
@@ -72,10 +87,13 @@ function directivesIn(markdown) {
         inline: node.type === 'textDirective',
         ancestors,
         line: node.position?.start?.line ?? 0,
+        unclosedFence,
       });
     }
 
-    const inner = isDirective ? [...ancestors, node.name] : ancestors;
+    // Broken containers must not suppress diagnostics through context-based
+    // exemptions, such as a board borrowing its game's saved state.
+    const inner = isDirective && !unclosedFence ? [...ancestors, node.name] : ancestors;
     for (const child of node.children ?? []) walk(child, inner);
   };
 
@@ -198,8 +216,20 @@ export function checkDirectives(descriptor, files, folder = descriptor.slug, ass
   const seenIds = new Map();
 
   for (const { path, markdown } of files) {
-    for (const { name, id, attributes, inline, ancestors, line } of directivesIn(markdown)) {
+    for (const { name, id, attributes, inline, ancestors, line, unclosedFence } of directivesIn(
+      markdown,
+    )) {
       const at = `${path}:${line}`;
+
+      if (unclosedFence) {
+        report(
+          'error',
+          'directive-unclosed',
+          `"${unclosedFence}${name}" needs a closing fence of at least ${unclosedFence.length} colons.`,
+          path,
+          line,
+        );
+      }
 
       if (!names.has(name)) {
         // Resolve the alias first, so a legacy spelling is diagnosed as the

@@ -12,7 +12,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { unzipSync, strFromU8 } from 'fflate';
@@ -95,6 +95,39 @@ describe('books outside this repository', () => {
     assert.equal(code, 1);
     assert.match(output, /asset-missing/);
   });
+
+  for (const script of ['lint-content.mjs', 'package-book.mjs']) {
+    test(`${script} rejects an unclosed container in an external book`, () => {
+      const folder = join(booksDir, 'unclosed');
+      mkdirSync(join(folder, 'content'), { recursive: true });
+      writeFileSync(
+        join(folder, 'smartbook.json'),
+        JSON.stringify({
+          schemaVersion: 2,
+          authorId: 'example.com',
+          slug: 'unclosed',
+          title: 'Unclosed',
+          visibility: 'private',
+        }),
+      );
+      writeFileSync(
+        join(folder, 'content', '01.md'),
+        '# Chapter\r\n\r\n:::quiz{id="q"}\r\n\r\n### Question\r\n',
+      );
+      try {
+        const { code, output } = run(
+          script,
+          script === 'package-book.mjs' ? ['unclosed'] : [],
+          env(),
+        );
+        assert.equal(code, 1, output);
+        assert.match(output, /books\/unclosed\/content\/01\.md:3: error directive-unclosed/);
+        assert.equal(existsSync(join(distDir, 'unclosed.smartbook')), false);
+      } finally {
+        rmSync(folder, { recursive: true, force: true });
+      }
+    });
+  }
 
   test('leaves the default location alone when nothing is set', () => {
     const { code, output } = run('lint-content.mjs', [], {});
