@@ -307,7 +307,9 @@ describe('checkDirectives', () => {
       '1. e4 e5',
       '```',
       '',
-      '::chess-board{at="1. e4"}',
+      '::chess-board{at="1. e4" line="1. e4 e5"}',
+      '',
+      ':move[1. e4]{line="1. e4 e5"}',
       '',
       '::chess-moves',
       '',
@@ -317,6 +319,17 @@ describe('checkDirectives', () => {
 
     const outside = ':::chess-board{id="b" moves=on}\n\n```pgn\n1. e4 e5\n```\n\n:::';
     assert.deepEqual(checkDirectives(chess, file(outside)), []);
+  });
+
+  test('rejects explicit move lines outside the game that gives them meaning', () => {
+    for (const markdown of [
+      ':move[1. e4]{line="1. e4 e5"}',
+      ':::chess-board{id="b" line="1. e4 e5"}\n\n```pgn\n1. e4 e5\n```\n\n:::',
+    ]) {
+      const problems = checkDirectives(chess, file(markdown));
+      assert.deepEqual(rules(problems), ['attribute-ignored']);
+      assert.match(problems[0].message, /"line".*outside a ":::chess-game"/);
+    }
   });
 
   /*

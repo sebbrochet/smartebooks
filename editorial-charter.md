@@ -26,6 +26,9 @@
 
 ## 2. Tone & structure
 
+- **Bundled books are for readers, not authors.** Explain the subject and how to use the
+  interactive elements, not how they are implemented. Keep directive syntax, attributes and
+  authoring instructions in this guide, out of the books' reader-facing prose.
 - **Second person, direct** ("you"), pedagogical and precise; no hype.
 - Reuse a **consistent chapter anatomy** where it fits the book (adapt from the certification books):
   intro → key concepts → how it works → practice (interactive) → recap.
@@ -366,8 +369,8 @@ no game: every mark becomes plain text and every board and score inside says so.
   - A `::chess-board` with no `at` inside a game still works, and still follows the reader, but you
     almost certainly do not want one: the game already gives you a board, and a second live board
     shows the same position twice.
-  - `moves`, `pgn` and `at` are **context-bound** (`attribute-ignored`): the first two mean nothing
-    inside a game, because the container owns the score and the game; `at` means nothing outside one,
+  - `moves`, `pgn`, `at` and `line` are **context-bound** (`attribute-ignored`): the first two mean nothing
+    inside a game, because the container owns the score and the game; `at` and `line` mean nothing outside one,
     because there is no published position to pin to. Inside a game, the score is `::chess-moves`.
 - **A diagram inside a game is also a way in.** Tap either kind — `::chess-board{at="…"}` or
   `::chess-diagram{fen="…"}` — and the game's board shows that position. You write nothing to get
@@ -387,16 +390,41 @@ no game: every mark becomes plain text and every board and score inside says so.
     ambiguous move link or `at` pin. It names the game, the selected line and every competing line.
     A matching main-line move retains priority without this warning; unused duplicate labels do
     not warn either. Warnings do not fail the check or change what the reader selects.
-  - A move number may disambiguate a bare label. If it does not, there is no selector for the other
-    variation yet: leave that move as plain text, or replace an ambiguous pin with
-    `::chess-diagram{fen="…"}` for the intended position. Adding a preceding move to the label,
-    an occurrence index, or a raw tree path is not supported.
+  - **Select a route explicitly with `line`.** The label still chooses the position initially
+    shown; `line` identifies a contiguous sequence already in the PGN, including earlier or
+    future moves that distinguish it. This works even when two variations share their opening:
+
+    ```markdown
+    :move[4... Nf6]{line="4... Nf6 5. Nxf6+ gxf6"}
+    :move[4... Nf6]{line="4... Nf6 5. Nxf6+ exf6"}
+    ::chess-board{at="4... Nf6" line="4... Nf6 5. Nxf6+ exf6"}
+    ```
+
+    Both links initially show `4... Nf6`; **Next** follows the chosen capture. A pin applies the
+    same route when clicked or activated with Enter/Space. Previous/Next and the board's arrow,
+    Home and End keys retain the route. After the supplied sequence, navigation follows its
+    first continuation. Choosing a move outside that route clears it; another explicit link
+    replaces it, even if the initial position is unchanged.
+  - Start `line` with a move number (`4... Nf6`, not just `Nf6`), followed by SAN moves. Subsequent
+    move numbers are optional, but must agree when supplied. Compact or spaced numbers, case,
+    check/mate signs and annotation glyphs are handled like ordinary move labels. Comments,
+    parentheses, result markers, occurrence indices and tree paths are not selector syntax.
+    The sequence must identify **one route**, and the visible label (or `at`) must name exactly
+    one move **within** it. Add earlier/later moves for a repeated sequence, or number a repeated
+    bare label. An explicit selector can choose a sideline even when a main-line label matches.
+  - Empty, malformed, nonexistent, ambiguous or mismatched explicit selectors are **errors**
+    in the inline-PGN checker (`move-line-*`), not first-match fallbacks. At runtime the text
+    remains readable but noninteractive, with an explanatory title; an invalid explicit pin shows
+    a diagnostic rather than becoming a live board. Existing unqualified references are unchanged.
+    Runtime selectors also work with packaged PGNs; `check:games` still checks inline PGNs only.
   - A label the game does not contain renders as **the plain words you wrote** — no dead button. The
     inline-PGN checker reports it as an error through `npm run check:games`.
 - **Static form:** your own body. Strip the interactivity and a `chess-game` is the prose, the moves
   named in it, and whatever the child islands emit — which is what a chess book is.
 - **State:** the current position, once for the whole game, under the same key a `chess-board` uses.
-  Rewriting a `chess-board` chapter as a `chess-game` keeps the reader's place.
+  The selected route is saved with it, so reopening the game preserves the intended continuation.
+  Old saved ply numbers and paths still load. Rewriting a `chess-board` chapter as a `chess-game`
+  keeps the reader's place.
 
 ### `term` — a mark inside a sentence
 

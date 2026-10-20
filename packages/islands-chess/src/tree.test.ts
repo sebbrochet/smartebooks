@@ -1,5 +1,49 @@
 import { describe, it, expect } from 'vitest';
-import { allNodes, mainline, mainlinePath, nodeAt, parentPath, pgnToTree } from './tree';
+import {
+  allNodes,
+  mainline,
+  mainlinePath,
+  nodeAt,
+  parentPath,
+  pgnToTree,
+  readChessPosition,
+} from './tree';
+
+describe('saved chess positions', () => {
+  const tree = pgnToTree('1. e4 e5 (1... c5 2. Nf3) 2. Bc4');
+
+  it.each([
+    [0, ''],
+    [2, '0.0'],
+    [999, '0.0.0'],
+    ['0.1', '0.1'],
+    ['9.9', ''],
+    [null, ''],
+    [{ path: '0.1', line: '0.1.0' }, '0.1'],
+  ])('reads old and current saved positions %j', (saved, path) => {
+    expect(readChessPosition(tree, saved).path).toBe(path);
+  });
+
+  it('retains a preferred route while reading its shared prefix or starting position', () => {
+    expect(readChessPosition(tree, { path: '0', line: '0.1.0' }).line).toBe('0.1.0');
+    expect(readChessPosition(tree, { path: '', line: '0.1.0' }).line).toBe('0.1.0');
+  });
+
+  it('discards a deleted route, or one incompatible with the saved current move', () => {
+    expect(readChessPosition(tree, { path: '0', line: '9.9' })).toEqual({
+      path: '0',
+      line: undefined,
+    });
+    expect(readChessPosition(tree, { path: '0.0', line: '0.1.0' })).toEqual({
+      path: '0.0',
+      line: undefined,
+    });
+    expect(readChessPosition(tree, { path: false, line: false })).toEqual({
+      path: '',
+      line: undefined,
+    });
+  });
+});
 
 describe('pgnToTree', () => {
   it('reads a mainline into a chain of positions', () => {

@@ -3,9 +3,9 @@
  *
  * Extracted from `check-games.mjs` so both the checker **and a parity test**
  * can reach them. These functions mirror `packages/islands-chess/src/score.ts`
- * — `findByLabel`, `findByFen` and `positionKey` — and are duplicated rather
- * than imported for the reason the island contract is duplicated: these scripts
- * are plain `.mjs` and cannot load the engine's TypeScript.
+ * — `findByLabel`, `findByFen` and `positionKey`. Tree construction is mirrored
+ * because these scripts are plain `.mjs`; move-reference matching is shared
+ * with the reader through the dependency-free `moveReference.mjs`.
  *
  * **A mirror with no parity test is a mirror that drifts.** That is what the
  * island contract taught (SPEC008 §4.19: `lint-islands.mjs` reads the JSON, so
@@ -17,15 +17,28 @@
 import { parsePgn, startingPosition } from 'chessops/pgn';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
+import { normalise, resolveMoveReference } from '../packages/islands-chess/src/moveReference.mjs';
+export { normalise } from '../packages/islands-chess/src/moveReference.mjs';
 
 /**
- * Compare labels the way `score.ts` does: no spaces, no glyphs, no case.
- *
- * Dots are kept: `1.` and `1...` are White's and Black's move one, and
- * collapsing them would make two different moves compare equal.
+ * Adapt the checker's candidate index to the shared explicit-line resolver.
+ * A target appears under both its numbered and bare labels; visit it once.
  */
-export function normalise(label) {
-  return label.replace(/[+#!?\s]+/g, '').toLowerCase();
+export function resolveLabelReference(targets, label, line) {
+  const nodes = new Map();
+  for (const candidates of targets.values()) {
+    for (const target of candidates) {
+      if (nodes.has(target.path)) continue;
+      const last = target.line[target.line.length - 1];
+      const space = last.indexOf(' ');
+      nodes.set(target.path, {
+        path: target.path,
+        number: last.slice(0, space),
+        san: last.slice(space + 1),
+      });
+    }
+  }
+  return resolveMoveReference([...nodes.values()], label, line);
 }
 
 /**

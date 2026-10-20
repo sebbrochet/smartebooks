@@ -1,6 +1,8 @@
 import type { GameNode, GameTree } from './tree';
 import { allNodes } from './tree';
 import { extractAnnotations } from './shapes';
+import { resolveMoveReference } from './moveReference.mjs';
+export { resolveMoveReference } from './moveReference.mjs';
 
 /**
  * The game score, grouped the way chess is written down (SPEC008 G2.1/G2.2).
@@ -74,23 +76,9 @@ export function moveLabel(node: GameNode | undefined): string {
  * unqualified move means the obvious one; sidelines are reachable by writing
  * the number too.
  */
-export function findByLabel(tree: GameTree, label: string): string | undefined {
-  const wanted = normalise(label);
-  if (!wanted) return undefined;
-
-  const nodes = allNodes(tree);
-  const match = (node: GameNode) =>
-    normalise(`${node.number} ${node.san}`) === wanted || normalise(node.san) === wanted;
-
-  // `allNodes` is depth-first from `children[0]`, so the main line comes first.
-  return nodes.find(match)?.path;
-}
-
-/** Compare the way a reader would: no spaces, no glyphs, no case. */
-function normalise(label: string): string {
-  // Dots are kept: `1.` and `1...` are White's and Black's move one, and
-  // collapsing them would make two different moves compare equal.
-  return label.replace(/[+#!?\s]+/g, '').toLowerCase();
+export function findByLabel(tree: GameTree, label: string, line?: string): string | undefined {
+  const result = resolveMoveReference(allNodes(tree), label, line);
+  return result.status === 'resolved' ? result.path : undefined;
 }
 
 /**

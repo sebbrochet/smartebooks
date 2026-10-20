@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import { orientationFor } from './boardOptions';
-import { findByLabel, moveLabel } from './score';
-import { nodeAt, parentPath } from './tree';
+import { moveLabel, resolveMoveReference } from './score';
+import { allNodes, nodeAt, parentPath } from './tree';
 import { useGame, useSequence } from './gameContext';
 import EvalBar from './EvalBar';
 import 'chessground/assets/chessground.base.css';
@@ -15,6 +15,7 @@ import './themes.css';
 export interface GameBoardProps {
   /** Pin to one position, by the same move label `:move[…]` takes. */
   at?: string;
+  line?: string;
 }
 
 /**
@@ -33,7 +34,7 @@ export interface GameBoardProps {
  * container renders one of these itself, as the fixed board above its prose,
  * and it has no directive to read attributes from. The dispatcher adapts.
  */
-export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
+export default function ChessBoardInGame({ at = '', line }: GameBoardProps) {
   const game = useGame();
   const sequence = useSequence();
 
@@ -45,7 +46,15 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
   // move four? — and cannot name a position in a sideline at all, so `at` takes
   // the same move label `:move[…]` takes: `at="4. Qxf7#"`. One way to name a
   // position in this pack, not two.
-  const pinned = tree && at ? (findByLabel(tree, at) ?? '') : '';
+  const reference = useMemo(
+    () =>
+      tree && (at || line !== undefined)
+        ? resolveMoveReference(allNodes(tree), at, line)
+        : undefined,
+    [tree, at, line],
+  );
+  const invalidLine = line !== undefined && reference?.status !== 'resolved';
+  const pinned = reference?.status === 'resolved' ? reference.path : '';
   const path = pinned || sequence?.current || '';
   const node = tree ? nodeAt(tree, path) : undefined;
   const fen = node?.fen ?? tree?.fen ?? '';
@@ -58,7 +67,7 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
   const side = orientationFor(game?.board.orientation, tree?.fen);
 
   useEffect(() => {
-    if (!boardRef.current || !tree?.fen) return;
+    if (!boardRef.current || !tree?.fen || invalidLine) return;
     const api = Chessground(boardRef.current, {
       viewOnly: true,
       coordinates: true,
@@ -71,7 +80,7 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
       api.destroy();
       apiRef.current = null;
     };
-  }, [tree, side]);
+  }, [tree, side, invalidLine]);
 
   useEffect(() => {
     if (!fen) return;
@@ -100,12 +109,24 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
     );
   }
 
+  if (invalidLine) {
+    return (
+      <div className="island island--unknown" role="note">
+        This <code>line</code> does not select one move in the game. Check its moves and{' '}
+        <code>at</code> label.
+      </div>
+    );
+  }
+
   const previous = node ? parentPath(node.path) : undefined;
-  const next = (node ? node.children[0] : tree.children[0])?.path;
-  const endOfLine = () => {
-    let last = node ?? tree.children[0];
-    while (last?.children[0]) last = last.children[0];
-    return last?.path ?? '';
+  const next = sequence.positions[sequence.index + 1];
+  const endOfLine = () => sequence.positions[sequence.positions.length - 1] ?? '';
+  const selectPin = () => {
+    if (reference?.status === 'resolved' && reference.line !== undefined) {
+      game.selectLine(pinned, reference.line);
+    } else {
+      sequence.go(pinned);
+    }
   };
 
   // The same keys a standalone board answers to. Losing them in the newer
@@ -118,7 +139,7 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
       // this position to the one the reader is using.
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      go(pinned);
+      selectPin();
       return;
     }
     const to: string | undefined = {
@@ -151,13 +172,20 @@ export default function ChessBoardInGame({ at = '' }: GameBoardProps) {
            */
           tabIndex={0}
           role={pinned ? 'button' : 'group'}
-          aria-current={pinned && sequence.current === pinned ? 'true' : undefined}
+          aria-current={
+            pinned &&
+            sequence.current === pinned &&
+            (line === undefined ||
+              (reference?.status === 'resolved' && game.line === reference.line))
+              ? 'true'
+              : undefined
+          }
           aria-label={
             pinned
               ? `Chess diagram: ${moveLabel(node)} — show this position on the board`
               : 'Chess board — arrow keys step through the game'
           }
-          onClick={pinned ? () => go(pinned) : undefined}
+          onClick={pinned ? selectPin : undefined}
           onKeyDown={onKeyDown}
         />
       </div>

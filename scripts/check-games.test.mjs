@@ -176,8 +176,8 @@ describe('check-games', () => {
         warning,
         /Other matches: "1\. e4 1\.\.\. c6 2\. Nf3 2\.\.\. d5 3\. Nc3 3\.\.\. Bg4"/,
       );
-      assert.match(warning, /plain text/);
-      assert.match(warning, /chess-diagram.*fen/);
+      assert.match(warning, /add line="/);
+      assert.match(warning, /identifies one route/);
     }
     assert.match(warnings[0], /:move\[3\.\.\. Bg4\]/);
     assert.match(warnings[2], /at="3\.\.\. Bg4"/);
@@ -219,6 +219,60 @@ describe('check-games', () => {
     assert.match(result.output, /Other matches: .*3\. Nc3 3\.\.\. Bg4.*3\. d4 3\.\.\. Bg4/);
   });
 
+  test('explicit lines resolve ambiguous links and pins without warnings', () => {
+    const result = check(
+      gameBook(
+        ':move[3... Bg4]{line="3. Nc3 Bg4"}\n\n' + '::chess-board{at="3... Bg4" line="3. e5 Bg4"}',
+      ),
+    );
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /2 reference\(s\) resolve/);
+    assert.doesNotMatch(result.output, /move-ambiguous/);
+  });
+
+  test('invalid, missing and still-ambiguous explicit lines fail at the reference', () => {
+    const result = check(
+      gameBook(
+        ':move[3... Bg4]{line=""}\n\n' +
+          ':move[3... Bg4]{line="3. Nc3 4... Bg4"}\n\n' +
+          ':move[3... Bg4]{line="3... Bg4"}\n\n' +
+          '::chess-board{at="3... Bg4" line="3. d4 Bg4"}',
+      ),
+    );
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /:12: error move-line-invalid:/);
+    assert.match(result.output, /:14: error move-line-invalid:/);
+    assert.match(result.output, /:16: error move-line-ambiguous:/);
+    assert.match(result.output, /:18: error move-line-missing:/);
+    assert.match(result.output, /4 problem\(s\) in 1 game\(s\)/);
+  });
+
+  test('a valid line cannot select a target outside that line', () => {
+    const result = check(gameBook(':move[1. e4]{line="3. Nc3 Bg4"}'));
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /error move-line-target:/);
+  });
+
+  test('a table can select two future routes through the same starting move', () => {
+    const result = check(
+      gameBook(
+        '| Variation | Move |\n| --- | --- |\n' +
+          '| First | :move[4... Nf6]{line="4... Nf6 5. Nxf6+ gxf6"} |\n' +
+          "| Second | :move[4... Nf6]{line='4... Nf6 5. Nxf6&#43; exf6'} |\n\n" +
+          "::chessboard{at='4... Nf6' line='4... Nf6 5. Nxf6+ exf6'}",
+        '1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5 ' + '(4... Nf6 5. Nxf6+ gxf6 (5... exf6))',
+      ),
+    );
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /3 reference\(s\) resolve/);
+    assert.doesNotMatch(result.output, /warning|error/);
+  });
+
+  test('code examples do not become invalid explicit references', () => {
+    const result = check(gameBook('`:move[bad]{line="bad"}`\n\n```\n:move[bad]{line="bad"}\n```'));
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /0 reference\(s\) resolve/);
+  });
   /*
    * `at` takes the same labels as `:move[…]` and had none of the same checking.
    * Its failure is quieter, too: an unresolved pin does not render an error, it

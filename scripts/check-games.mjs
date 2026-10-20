@@ -33,8 +33,22 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parsePgn, startingPosition } from 'chessops/pgn';
 import { parseSan } from 'chessops/san';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
+import remarkDirective from 'remark-directive';
+import { visit } from 'unist-util-visit';
 import { BOOKS_DIR, listBookFolders, listContentFiles, readDescriptor } from './book-sources.mjs';
-import { labelTargetsOf, normalise, positionKey, positionsOf } from './chess-labels.mjs';
+import {
+  labelTargetsOf,
+  normalise,
+  positionKey,
+  positionsOf,
+  resolveLabelReference,
+} from './chess-labels.mjs';
+
+const parser = unified().use(remarkParse).use(remarkGfm).use(remarkDirective);
+const textOf = (node) => node.value ?? (node.children ?? []).map(textOf).join('');
 
 /**
  * A chess island holding its game inline, as `[id, pgn, index]`.
@@ -118,10 +132,8 @@ function plies(pgn) {
  * rather than by searching the block for its text — which reports every
  * repetition of a mark at the line of the first one.
  *
- * The lookbehind keeps `::chess-board` from matching the last two colons of a
- * standalone `:::chess-board`. Alias spellings are accepted because the engine
- * accepts them: a book using `::chessdiagram` renders, so it must also be
- * checked.
+ * Parse body directives like the reader: table cells, quoted/encoded attributes,
+ * aliases and references inside code must not acquire different meanings here.
  */
 function gamesIn(markdown) {
   const pattern =
@@ -130,27 +142,33 @@ function gamesIn(markdown) {
   return [...markdown.matchAll(pattern)].map((match) => {
     const body = match[3];
     const bodyStart = match.indices[3][0];
-    const at = (sub) => lineAt(markdown, bodyStart + sub.index);
-
-    const attribute = (text, name) => new RegExp(`\\b${name}="([^"]*)"`).exec(text)?.[1];
-
-    const directives = [...body.matchAll(/(?<!:)::(chess-?board|chess-?diagram)\{([^}]*)\}/g)];
+    const moves = [];
+    const pins = [];
+    const diagrams = [];
+    visit(parser.parse(body), (node) => {
+      const attributes = node.attributes ?? {};
+      const sourceLine = lineAt(markdown, bodyStart + (node.position?.start.offset ?? 0));
+      if (node.type === 'textDirective' && node.name === 'move') {
+        moves.push({ label: textOf(node), line: sourceLine, selector: attributes.line });
+      }
+      if (node.type !== 'leafDirective') return;
+      if (
+        /^chess-?board$/.test(node.name) &&
+        (attributes.at !== undefined || attributes.line !== undefined)
+      ) {
+        pins.push({ label: attributes.at ?? '', line: sourceLine, selector: attributes.line });
+      }
+      if (/^chess-?diagram$/.test(node.name) && attributes.fen) {
+        diagrams.push({ fen: attributes.fen, line: sourceLine });
+      }
+    });
 
     return {
       id: match[1],
       pgn: match[2],
-      moves: [...body.matchAll(/:move\[([^\]]+)\]/g)].map((sub) => ({
-        label: sub[1],
-        line: at(sub),
-      })),
-      pins: directives
-        .filter((sub) => sub[1].includes('board'))
-        .map((sub) => ({ label: attribute(sub[2], 'at'), line: at(sub) }))
-        .filter((pin) => pin.label !== undefined),
-      diagrams: directives
-        .filter((sub) => sub[1].includes('diagram'))
-        .map((sub) => ({ fen: attribute(sub[2], 'fen'), line: at(sub) }))
-        .filter((diagram) => diagram.fen),
+      moves,
+      pins,
+      diagrams,
     };
   });
 }
@@ -163,9 +181,27 @@ function warnIfAmbiguous(targets, where, id, reference) {
     `${where}: warning move-ambiguous: ${reference} matches ${targets.length} sideline moves ` +
       `in "${id}"; it resolves to the first: ${describe(targets[0])}. ` +
       `Other matches: ${targets.slice(1).map(describe).join('; ')}. ` +
-      `Use a move number if it disambiguates; otherwise use plain text for a move link ` +
-      `or chess-diagram with an explicit fen for a fixed position.`,
+      `Use a move number if it disambiguates, or add line=${describe(targets[0])} ` +
+      `and extend it until it identifies one route.`,
   );
+}
+
+function checkExplicitLine(known, label, selector, where, id, reference) {
+  const result = resolveLabelReference(known, label, selector);
+  if (result.status === 'resolved') return true;
+  const reason = {
+    invalid: 'start with a move number and use contiguous SAN moves with consistent numbering',
+    missing: 'this sequence does not occur in the game; check its moves and numbering',
+    ambiguous:
+      'this sequence occurs on multiple routes; add earlier or later moves to distinguish them',
+    target:
+      'the label must name exactly one move within the supplied line; include it and number the label',
+  }[result.status];
+  console.error(
+    `${where}: error move-line-${result.status}: ${reference} with line=${JSON.stringify(selector)} ` +
+      `in "${id}" does not select one move: ${reason}.`,
+  );
+  return false;
 }
 
 const wanted = process.argv.slice(2);
@@ -231,8 +267,13 @@ for (const folder of folders) {
     for (const { id, pgn, moves: found, pins, diagrams } of gamesIn(markdown)) {
       const known = labelTargetsOf(pgn);
 
-      for (const { label, line } of found) {
+      for (const { label, line, selector } of found) {
         marks++;
+        if (selector !== undefined) {
+          if (!checkExplicitLine(known, label, selector, `${where}:${line}`, id, `:move[${label}]`))
+            failed++;
+          continue;
+        }
         const targets = known.get(normalise(label));
         if (targets) {
           warnIfAmbiguous(targets, `${where}:${line}`, id, `:move[${label}]`);
@@ -245,8 +286,13 @@ for (const folder of folders) {
       // A pin that resolves to nothing does not render an error, it renders a
       // *different board*: one that follows the reader instead of holding the
       // position the author placed it for.
-      for (const { label, line } of pins) {
+      for (const { label, line, selector } of pins) {
         marks++;
+        if (selector !== undefined) {
+          if (!checkExplicitLine(known, label, selector, `${where}:${line}`, id, `at="${label}"`))
+            failed++;
+          continue;
+        }
         const targets = known.get(normalise(label));
         if (targets) {
           warnIfAmbiguous(targets, `${where}:${line}`, id, `at="${label}"`);

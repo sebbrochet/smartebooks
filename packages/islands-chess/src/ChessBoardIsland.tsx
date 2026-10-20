@@ -7,7 +7,15 @@ import {
   usePersistentState,
   type IslandComponentProps,
 } from '@smart-ebooks/engine';
-import { mainlinePath, nodeAt, parentPath, pgnToTree, hasEvaluations } from './tree';
+import {
+  nodeAt,
+  parentPath,
+  pgnToTree,
+  hasEvaluations,
+  readChessPosition,
+  lineThrough,
+  type SavedChessPosition,
+} from './tree';
 import { moveLabel } from './score';
 import MoveList from './MoveList';
 import EvalBar from './EvalBar';
@@ -39,7 +47,10 @@ export default function ChessBoardIsland(props: IslandComponentProps) {
   if (game) {
     return (
       <Suspense fallback={<div className="island island--loading" aria-busy="true" />}>
-        <ChessBoardInGame at={attrText(props.attributes.at)} />
+        <ChessBoardInGame
+          at={attrText(props.attributes.at)}
+          line={props.attributes.line === undefined ? undefined : attrText(props.attributes.line)}
+        />
       </Suspense>
     );
   }
@@ -90,17 +101,19 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
   // Asked of the game, not of the current move: a bar that appeared and vanished
   // as the reader stepped past an unassessed position would be worse than none.
   const barOn = attrFlag(attributes.evalBar) && hasEvaluations(tree);
-  const [stored, setStored] = usePersistentState<string | number>(`chessply:${id}`, '');
+  const [stored, setStored] = usePersistentState<SavedChessPosition>(`chessply:${id}`, '');
   const boardRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<Api | null>(null);
 
   // Positions used to be addressed by ply, and readers have that number saved.
   // It still names the same move of the same game, so it is migrated rather
   // than discarded — losing someone's place in a book is not an upgrade.
-  const requested = typeof stored === 'number' ? mainlinePath(tree, stored) : stored;
   // A path from a position that no longer exists — an edited game, a deleted
   // sideline — must land somewhere real rather than blank the board.
-  const path = requested && nodeAt(tree, requested) ? requested : '';
+  const { path, line } = readChessPosition(tree, stored);
+  const positions = useMemo(() => lineThrough(tree, line ?? path), [tree, path, line]);
+  const go = (path: string) =>
+    setStored(line && (path === '' || positions.includes(path)) ? { path, line } : path);
   const node = nodeAt(tree, path);
 
   const fen = node?.fen ?? tree.fen;
@@ -114,13 +127,9 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
 
   // Navigation follows the line the reader is on, not the main line: stepping
   // forward inside a sideline must stay inside it.
-  const next = (node ? node.children[0] : tree.children[0])?.path;
+  const next = positions[positions.indexOf(path) + 1];
   const previous = node ? parentPath(node.path) : undefined;
-  const endOfLine = () => {
-    let last = node ?? tree.children[0];
-    while (last?.children[0]) last = last.children[0];
-    return last?.path ?? '';
-  };
+  const endOfLine = () => positions[positions.length - 1] ?? '';
 
   function onKeyDown(event: React.KeyboardEvent) {
     const to: string | undefined = {
@@ -131,7 +140,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
     }[event.key];
     if (to === undefined) return;
     event.preventDefault();
-    setStored(to);
+    go(to);
   }
 
   useEffect(() => {
@@ -187,7 +196,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
           <button
             type="button"
             aria-label="First move"
-            onClick={() => setStored('')}
+            onClick={() => go('')}
             disabled={path === ''}
           >
             ⏮
@@ -195,7 +204,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
           <button
             type="button"
             aria-label="Previous move"
-            onClick={() => setStored(previous ?? '')}
+            onClick={() => go(previous ?? '')}
             disabled={previous === undefined}
           >
             ◀
@@ -203,7 +212,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
           <button
             type="button"
             aria-label="Next move"
-            onClick={() => setStored(next ?? path)}
+            onClick={() => go(next ?? path)}
             disabled={next === undefined}
           >
             ▶
@@ -211,7 +220,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
           <button
             type="button"
             aria-label="Last move"
-            onClick={() => setStored(endOfLine())}
+            onClick={() => go(endOfLine())}
             disabled={next === undefined}
           >
             ⏭
@@ -232,7 +241,7 @@ function StandaloneBoard({ id, attributes, packagedAssets, data }: IslandCompone
         exactly as before. `scroll` is kept as an accepted spelling so books
         that name it still work.
       */}
-      {movesMode !== 'off' && <MoveList tree={tree} path={path} onSelect={setStored} scroll />}
+      {movesMode !== 'off' && <MoveList tree={tree} path={path} onSelect={go} scroll />}
       {movesMode === 'off' && evaluation && (
         // Only with the list off, for the same reason the comment is: the list
         // already prints an evaluation against every move it has one for.

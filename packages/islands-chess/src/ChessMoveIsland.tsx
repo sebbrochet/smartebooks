@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
-import type { IslandComponentProps } from '@smart-ebooks/engine';
-import { findByLabel } from './score';
+import { attrText, type IslandComponentProps } from '@smart-ebooks/engine';
+import { resolveMoveReference } from './score';
+import { allNodes } from './tree';
 import { useGame, useSequence } from './gameContext';
 import './chess.css';
 
@@ -17,22 +18,35 @@ import './chess.css';
  * resolves to nothing — a typo, a move that is not in this game — the mark is
  * the plain text the author wrote, and the content linter is what complains.
  */
-export default function ChessMoveIsland({ children }: IslandComponentProps) {
+export default function ChessMoveIsland({ children, attributes }: IslandComponentProps) {
   const game = useGame();
   const sequence = useSequence();
   const label = useMemo(() => textOf(children), [children]);
-  const path = game && label ? findByLabel(game.tree, label) : undefined;
+  const line = attributes.line === undefined ? undefined : attrText(attributes.line);
+  const result = useMemo(
+    () => (game && label ? resolveMoveReference(allNodes(game.tree), label, line) : undefined),
+    [game, label, line],
+  );
 
-  if (!sequence || !path) return <>{children}</>;
+  if (!game || !sequence || result?.status !== 'resolved') {
+    return line === undefined ? (
+      <>{children}</>
+    ) : (
+      <span title="This line does not select one move in the game.">{children}</span>
+    );
+  }
 
-  const current = sequence.current === path;
+  const { path } = result;
+  const current = sequence.current === path && (line === undefined || game.line === result.line);
 
   return (
     <button
       type="button"
       className="island-inline chess-move"
       aria-current={current ? 'true' : undefined}
-      onClick={() => sequence.go(path)}
+      onClick={() =>
+        result.line === undefined ? sequence.go(path) : game.selectLine(path, result.line)
+      }
     >
       {children as ReactNode}
     </button>

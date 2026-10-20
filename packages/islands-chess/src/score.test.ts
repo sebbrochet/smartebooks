@@ -67,6 +67,52 @@ describe('findByLabel', () => {
     expect(findByLabel(tree, '2. Bc4')).toBe('0.0.0');
   });
 
+  describe('explicit move lines', () => {
+    const tree = pgnToTree(
+      '1. e4 c6 2. Nf3 d5 3. exd5 (3. e5 Bg4 4. d4 e6) (3. Nc3 Bg4) 3... cxd5 4. d4',
+    );
+
+    it('selects the other identically labelled sideline', () => {
+      expect(findByLabel(tree, '3... Bg4', '3. Nc3 Bg4')).toBe('0.0.0.0.2.0');
+    });
+
+    it('can explicitly select a sideline instead of a matching mainline move', () => {
+      expect(findByLabel(tree, '4. d4', '3. e5 Bg4 4. d4')).toBe('0.0.0.0.1.0.0');
+    });
+
+    it('accepts compact numbers, whitespace, case and annotation glyphs', () => {
+      expect(findByLabel(tree, '3...bg4?!', ' 3.Nc3!?  3...bg4+ ')).toBe('0.0.0.0.2.0');
+    });
+
+    it.each(['', '   ', 'Nc3 Bg4', '3.. Nc3 Bg4', '3. Nc3 4... Bg4', '3. Nc3 nonsense'])(
+      'does not fall back for an invalid or missing line %j',
+      (line) => expect(findByLabel(tree, '3... Bg4', line)).toBeUndefined(),
+    );
+
+    it('rejects a line that still names multiple branches', () => {
+      expect(findByLabel(tree, '3... Bg4', '3... Bg4')).toBeUndefined();
+    });
+
+    it('rejects a target outside the supplied line', () => {
+      expect(findByLabel(tree, '1. e4', '3. Nc3 Bg4')).toBeUndefined();
+    });
+
+    it('requires more context when two identical move sequences occur in different branches', () => {
+      const repeated = pgnToTree(
+        '1. e4 c6 2. Nf3 d5 3. exd5 (3. e5 Bg4 4. Nc3 e6 5. d4) ' +
+          '(3. Nc3 Bg4 4. e5 e6 5. d4) 3... cxd5 4. d4',
+      );
+      expect(findByLabel(repeated, '5. d4', '4... e6 5. d4')).toBeUndefined();
+      expect(findByLabel(repeated, '5. d4', '3. Nc3 Bg4 4. e5 e6 5. d4')).toBeDefined();
+    });
+
+    it('requires numbering when a bare label repeats within the selected route', () => {
+      const repeated = pgnToTree('1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6');
+      expect(findByLabel(repeated, 'Nf3', '1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3')).toBeUndefined();
+      expect(findByLabel(repeated, '3. Nf3', '1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3')).toBe('0.0.0.0.0');
+    });
+  });
+
   it('accepts an unqualified move, and means the main line by it', () => {
     // `Nf6` exists only in the sideline; `e5` exists on the main line.
     expect(findByLabel(tree, 'e5')).toBe('0.0');

@@ -38,7 +38,15 @@ function diagram(boardAttrs: Record<string, string> = {}) {
 
 function inGame(child: ReactNode, board: BoardOptions) {
   return (
-    <GameProvider value={{ tree: pgnToTree('1. e4 e5'), board, shapes: true, evalBar: false }}>
+    <GameProvider
+      value={{
+        tree: pgnToTree('1. e4 e5'),
+        board,
+        shapes: true,
+        evalBar: false,
+        selectLine: () => {},
+      }}
+    >
       <SequenceProvider positions={[]} current="" onGo={() => {}}>
         {child}
       </SequenceProvider>

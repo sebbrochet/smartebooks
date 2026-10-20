@@ -66,7 +66,8 @@
         "ignoredInside": "chess-game"
       },
       "pgn": { "type": "asset", "ignoredInside": "chess-game" },
-      "at": { "type": "string", "requiresInside": "chess-game" }
+      "at": { "type": "string", "requiresInside": "chess-game" },
+      "line": { "type": "string", "requiresInside": "chess-game" }
     },
     "chess-puzzle": {
       "theme": { "type": "enum", "values": ["brown", "blue", "green", "grey"] },
@@ -96,7 +97,7 @@
       }
     },
     "chess-moves": { "scroll": { "type": "boolean" } },
-    "move": {},
+    "move": { "line": { "type": "string", "requiresInside": "chess-game" } },
     "journeys": {},
     "ending": {},
     "death": { "to": { "type": "string", "required": true } },

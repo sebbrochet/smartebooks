@@ -12,6 +12,7 @@ const game = {
   board: DEFAULT_BOARD_OPTIONS,
   shapes: true,
   evalBar: false,
+  selectLine: () => {},
 };
 
 let host: HTMLDivElement;
@@ -25,11 +26,11 @@ function mount(node: ReactNode) {
 }
 
 /** The mark as an author writes it, inside a game. */
-function inGame(label: string) {
+function inGame(label: string, line?: string) {
   return (
     <GameProvider value={game}>
       <SequenceProvider positions={[]} current="" onGo={(path) => went.push(path)}>
-        <ChessMoveIsland id="m" attributes={{}} packagedAssets={[]}>
+        <ChessMoveIsland id="m" attributes={line === undefined ? {} : { line }} packagedAssets={[]}>
           {label}
         </ChessMoveIsland>
       </SequenceProvider>
@@ -50,6 +51,13 @@ afterEach(() => {
 });
 
 describe('a move named in a sentence', () => {
+  it('makes an invalid explicit selector readable but not a wrong or dead button', () => {
+    mount(inGame('2. Bc4', '1. e4 e5'));
+    expect(host.querySelector('button')).toBeNull();
+    expect(host.textContent).toBe('2. Bc4');
+    expect(host.querySelector('span')?.title).toContain('does not select one move');
+  });
+
   it('is operable, and sets the position it names', () => {
     mount(inGame('2. Bc4'));
 

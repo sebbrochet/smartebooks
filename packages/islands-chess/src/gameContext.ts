@@ -26,6 +26,9 @@ export interface ChessGame {
   shapes: boolean;
   /** Show the evaluation bar: the author asked for it *and* the game has evals. */
   evalBar: boolean;
+  /** Preferred route endpoint, retained even when stepping back before its fork. */
+  line?: string;
+  selectLine: (path: string, line: string) => void;
 }
 
 const GameContext = createContext<ChessGame | undefined>(undefined);

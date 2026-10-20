@@ -15,7 +15,13 @@ import { DEFAULT_BOARD_OPTIONS } from './boardOptions';
  * which sent them to the wrong line of the chapter.
  */
 function game(pgn: string) {
-  return { tree: pgnToTree(pgn), board: DEFAULT_BOARD_OPTIONS, shapes: true, evalBar: false };
+  return {
+    tree: pgnToTree(pgn),
+    board: DEFAULT_BOARD_OPTIONS,
+    shapes: true,
+    evalBar: false,
+    selectLine: () => {},
+  };
 }
 
 function inGame(pgn: string, child: ReactNode) {

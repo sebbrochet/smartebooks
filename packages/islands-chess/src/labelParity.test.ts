@@ -1,13 +1,14 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { allNodes, mainline, nodeAt, pgnToTree } from './tree';
-import { findByLabel, findByFen, positionKey } from './score';
+import { findByLabel, findByFen, positionKey, resolveMoveReference } from './score';
 import {
   labelsOf,
   labelTargetsOf,
   normalise,
   positionKey as scriptPositionKey,
   positionsOf,
+  resolveLabelReference,
 } from '../../../scripts/chess-labels.mjs';
 
 /**
@@ -86,6 +87,44 @@ describe('the reader and the checker agree about labels', () => {
     const path = findByLabel(tree, label);
     expect(target?.path).toBe(path);
     if (path !== undefined) expect(target?.fen).toBe(nodeAt(tree, path)?.fen);
+  });
+});
+
+describe('the reader and checker select the same explicit route', () => {
+  const pgn =
+    '1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5 ' +
+    '(4... Nd7) (4... Nf6 5. Nxf6+ gxf6 (5... exf6))';
+  const tree = pgnToTree(pgn);
+  const targets = labelTargetsOf(pgn);
+
+  it.each([
+    ['4... Nf6', '4... Nf6 5. Nxf6+ gxf6', 'resolved'],
+    ['4... Nf6', '4... Nf6 5. Nxf6+ exf6', 'resolved'],
+    ['5... exf6', '4...Nf6 5.Nxf6+ exf6', 'resolved'],
+    ['5... exf6', '4... Nf6', 'target'],
+    ['4... Nf6', '4... Nf6 6. Nxf6+', 'invalid'],
+    ['4... Nf6', '', 'invalid'],
+    ['4... Nf6', '4... Nd7 5. Nxf6+', 'missing'],
+  ])('%s on %s gives %s', (label, line, status) => {
+    const reader = resolveMoveReference(allNodes(tree), label, line);
+    const checker = resolveLabelReference(targets, label, line);
+    expect(reader.status).toBe(status);
+    expect(checker).toEqual(reader);
+    if (reader.status === 'resolved') {
+      const end = nodeAt(tree, reader.line ?? '');
+      expect(end?.san).toBe(line.endsWith('exf6') ? 'exf6' : 'gxf6');
+      expect(nodeAt(tree, reader.path)?.san).toBe(label.includes('exf6') ? 'exf6' : 'Nf6');
+    }
+  });
+
+  it('agrees about a custom starting position and its move numbers', () => {
+    const pgn =
+      '[FEN "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"]\n\n' +
+      '3... a6 (3... Nf6) 4. Ba4';
+    const tree = pgnToTree(pgn);
+    const reader = resolveMoveReference(allNodes(tree), '3... a6', '3... a6 4.Ba4');
+    expect(reader).toEqual({ status: 'resolved', path: '0', line: '0.0' });
+    expect(resolveLabelReference(labelTargetsOf(pgn), '3... a6', '3... a6 4.Ba4')).toEqual(reader);
   });
 });
 

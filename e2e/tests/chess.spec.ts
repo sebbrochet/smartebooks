@@ -352,6 +352,57 @@ test('a focused board steps with the arrow keys', async ({ page }) => {
  * SPEC001 P2.10 / SPEC008 G4: a container island owning the position, with the
  * boards, the score and the prose as its children.
  */
+test('explicit line selectors retain the intended future route', async ({ page }) => {
+  await page.goto('/#/chess/05-choosing-a-line');
+  const status = page.getByTestId('chess-move');
+  const next = page.getByRole('button', { name: 'Next move' });
+  const previous = page.getByRole('button', { name: 'Previous move' });
+  const board = page.getByRole('group', { name: /Chess board/ });
+  const bronstein = page.getByRole('row', { name: /Bronstein-Larsen/ }).locator('.chess-move');
+  const tartakower = page.getByRole('row', { name: /Tartakower/ }).locator('.chess-move');
+
+  await expect(status).toHaveText('Start', { timeout: 30_000 });
+  await tartakower.click();
+  await expect(status).toHaveText('4... Nf6');
+  await expect(tartakower).toHaveAttribute('aria-current', 'true');
+  await expect(bronstein).not.toHaveAttribute('aria-current');
+  await next.click();
+  await expect(status).toHaveText('5. Nxf6+');
+  await next.click();
+  await expect(status).toHaveText('5... exf6');
+  await previous.click();
+  await previous.click();
+  await next.click();
+  await next.click();
+  await expect(status).toHaveText('5... exf6');
+
+  await bronstein.click();
+  await next.click();
+  await next.click();
+  await expect(status).toHaveText('5... gxf6');
+  await tartakower.click();
+  await page.reload();
+  await expect(status).toHaveText('4... Nf6', { timeout: 30_000 });
+  await next.click();
+  await next.click();
+  await expect(status).toHaveText('5... exf6');
+  await board.press('Home');
+  await expect(status).toHaveText('Start');
+  await board.press('End');
+  await expect(status).toHaveText('5... exf6');
+
+  await bronstein.click();
+  const pin = page.getByRole('button', { name: /Chess diagram: 4\.\.\. Nf6/ });
+  await pin.press('Enter');
+  await expect(status).toHaveText('4... Nf6');
+  await board.press('End');
+  await expect(status).toHaveText('5... exf6');
+
+  await page.getByTestId('chess-move-list').getByRole('button', { name: '4... Nd7' }).click();
+  await board.press('End');
+  await expect(status).toHaveText('4... Nd7');
+});
+
 test('a move named in a sentence drives every board on the page', async ({ page }) => {
   await page.goto('/#/chess/04-a-game-you-can-lay-out');
 

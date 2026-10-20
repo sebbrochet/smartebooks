@@ -53,6 +53,11 @@ declare module '*/chess-labels.mjs' {
   export function normalise(label: string): string;
   export function labelsOf(pgn: string): Set<string>;
   export function labelTargetsOf(pgn: string): Map<string, LabelTarget[]>;
+  export function resolveLabelReference(
+    targets: Map<string, LabelTarget[]>,
+    label: string,
+    line: string,
+  ): import('../../../packages/islands-chess/src/moveReference.mjs').MoveReference;
   export function positionKey(fen: string): string;
   export function positionsOf(pgn: string): Set<string>;
 }

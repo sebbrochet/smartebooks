@@ -140,6 +140,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
    */
   const IN_GAME_BOARD_ATTRIBUTES: Record<keyof GameBoardProps, true> = {
     at: true,
+    line: true,
   };
 
   /**
@@ -203,6 +204,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
         // publishing one, which is why SPEC008 §4.1.3 rejected `at` on a
         // standalone board rather than inventing a second meaning for it.
         at: { type: 'string', default: '', requiresInside: 'chess-game' },
+        line: { type: 'string', requiresInside: 'chess-game' },
       }),
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
@@ -405,7 +407,7 @@ export function chessIslands(options: ChessIslandsOptions = {}): IslandDefinitio
       // inside a paragraph without breaking it (SPEC001 P2.6).
       name: 'move',
       inline: true,
-      attributes: {},
+      attributes: { line: { type: 'string', requiresInside: 'chess-game' } },
       component: lazy(
         (): Promise<{ default: ComponentType<IslandComponentProps> }> =>
           import('./ChessMoveIsland'),

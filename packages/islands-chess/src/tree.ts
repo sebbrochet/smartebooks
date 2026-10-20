@@ -247,3 +247,43 @@ export function mainlinePath(tree: GameTree, ply: number): string {
   const line = mainline(tree);
   return line[Math.min(ply, line.length) - 1]?.path ?? '';
 }
+
+export type SavedChessPosition = string | number | { path: string; line: string };
+
+/** Ancestors of the selected branch, followed by its default continuation. */
+export function lineThrough(tree: GameTree, current: string): string[] {
+  if (!current) return mainline(tree).map((node) => node.path);
+  const steps = current.split('.');
+  const line = steps.map((_, index) => steps.slice(0, index + 1).join('.'));
+  let node = nodeAt(tree, current);
+  while (node?.children[0]) {
+    node = node.children[0];
+    line.push(node.path);
+  }
+  return line;
+}
+
+/** Accept legacy ply/path saves, and discard paths invalidated by a book edit. */
+export function readChessPosition(
+  tree: GameTree,
+  stored: unknown,
+): { path: string; line?: string } {
+  const record = typeof stored === 'object' && stored !== null ? stored : undefined;
+  const requested =
+    typeof stored === 'number'
+      ? mainlinePath(tree, stored)
+      : typeof stored === 'string'
+        ? stored
+        : record && 'path' in record && typeof record.path === 'string'
+          ? record.path
+          : '';
+  const path = requested && nodeAt(tree, requested) ? requested : '';
+  const line =
+    record && 'line' in record && typeof record.line === 'string' && nodeAt(tree, record.line)
+      ? record.line
+      : undefined;
+  return {
+    path,
+    line: line && (path === '' || lineThrough(tree, line).includes(path)) ? line : undefined,
+  };
+}
