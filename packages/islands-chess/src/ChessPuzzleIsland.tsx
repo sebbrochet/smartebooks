@@ -3,6 +3,7 @@ import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import {
   attrText,
+  useBook,
   useMessages,
   usePersistentState,
   type IslandComponentProps,
@@ -33,7 +34,12 @@ type Verdict = 'unanswered' | 'right' | 'wrong';
  * `orientation=auto` the position is shown from the side that has to find the
  * move, which is how a puzzle book prints it.
  */
-export default function ChessPuzzleIsland({ attributes, id, data }: IslandComponentProps) {
+export default function ChessPuzzleIsland(props: IslandComponentProps) {
+  const { slug } = useBook();
+  return <ChessPuzzle key={JSON.stringify([slug, props.id])} {...props} />;
+}
+
+function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
   const words = useMessages();
   const {
     fen: start,
