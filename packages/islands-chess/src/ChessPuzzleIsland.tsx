@@ -9,7 +9,7 @@ import {
   type IslandComponentProps,
 } from '@smart-ebooks/engine';
 import { DEFAULT_BOARD_OPTIONS, orientationFor, type BoardOptions } from './boardOptions';
-import { play, playSan, positionFrom, sameMove, solutionMoves } from './puzzle';
+import { play, playSan, positionFrom, sameMove, solutionLines } from './puzzle';
 import 'chessground/assets/chessground.base.css';
 import 'chessground/assets/chessground.brown.css';
 import 'chessground/assets/chessground.cburnett.css';
@@ -48,7 +48,7 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
   } = (data as { fen?: string; solution?: string; board?: BoardOptions }) ?? {};
   const { theme, pieces, orientation } = board;
   const hint = attrText(attributes.hint);
-  const expected = solutionMoves(attrText(attributes.solution));
+  const expected = solutionLines(attrText(attributes.solution));
   const interactive = expected.length > 0 && start !== undefined;
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -63,6 +63,7 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
   const [attempt, setAttempt] = useState(0);
   // How far into the solution line the reader has got, and the position there.
   const [step, setStep] = useState(0);
+  const [remaining, setRemaining] = useState(expected);
   const [fen, setFen] = useState(start ?? '');
   const [state, setState] = usePersistentState<{
     solved: boolean;
@@ -78,10 +79,13 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
   // would otherwise close over a stale step.
   const answer = useRef<(orig: string, dest: string) => void>(() => {});
   answer.current = (orig, dest) => {
-    const played = play(fen, orig, dest);
-    if (!played.san || !played.fen) return;
+    const { san, fen: playedFen } = play(fen, orig, dest);
+    if (!san || !playedFen) return;
 
-    if (!sameMove(played.san, expected[step])) {
+    const matching = remaining.filter(
+      (line) => line[step] !== undefined && sameMove(san, line[step]),
+    );
+    if (matching.length === 0) {
       setVerdict('wrong');
       // Put the piece back: a puzzle is a question, and a wrong answer should
       // leave the reader looking at the same question.
@@ -89,13 +93,19 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
       return;
     }
 
-    const reply = expected[step + 1];
-    const after = reply ? playSan(played.fen, reply) : undefined;
+    const complete = matching.some((line) => step + 1 >= line.length);
+    const reply = complete ? undefined : matching[0][step + 1];
+    const continuations = reply
+      ? matching.filter((line) => line[step + 1] !== undefined && sameMove(reply, line[step + 1]))
+      : matching;
+    const after = reply ? playSan(playedFen, reply) : undefined;
+    const nextStep = step + (reply ? 2 : 1);
     setVerdict('right');
-    setStep(step + (reply ? 2 : 1));
-    setFen(after ?? played.fen);
+    setRemaining(continuations);
+    setStep(nextStep);
+    setFen(after ?? playedFen);
 
-    if (step + (reply ? 2 : 1) >= expected.length) {
+    if (continuations.some((line) => nextStep >= line.length)) {
       setState({ solved: true });
       setRevealed(true);
     }
@@ -109,6 +119,7 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
    */
   function restart() {
     setStep(0);
+    setRemaining(expected);
     setFen(start ?? '');
     setVerdict('unanswered');
     setRevealed(false);

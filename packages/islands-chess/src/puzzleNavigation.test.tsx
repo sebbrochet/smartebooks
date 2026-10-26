@@ -94,6 +94,53 @@ async function click(label: string) {
 const status = () => host.querySelector('[role="status"]')?.textContent;
 
 describe('puzzle identity during imported-book navigation', () => {
+  it.each(['a2', 'h2'] as const)('accepts either authored rook move from %s', async (from) => {
+    await show('alternatives', '6k1/5ppp/8/8/8/8/R6R/6K1 w - - 0 1', 'Rae2 | Rhe2');
+    await move(from, 'e2');
+    expect(status()).toBe('Solved');
+  });
+
+  it.each(['g1', 'b1'] as const)('keeps shared-prefix alternatives open for %s', async (from) => {
+    await show('alternatives', START, 'e4 e5 Nf3 | e4 e5 Nc3');
+    await move('e2', 'e4');
+    expect(status()).toBe('Right. Keep going.');
+    await move(from, from === 'g1' ? 'f3' : 'c3');
+    expect(status()).toBe('Solved');
+  });
+
+  it('follows the selected alternative and refuses a move from a discarded line', async () => {
+    await show('alternatives', START, 'e4 e5 Nf3 | d4 d5 Nc3');
+    await move('d2', 'd4');
+    expect(status()).toBe('Right. Keep going.');
+    expect(board.config?.fen).toBe('rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2');
+    await move('g1', 'f3');
+    expect(status()).not.toBe('Solved');
+    expect(status()).not.toBe('Right. Keep going.');
+    await move('b1', 'c3');
+    expect(status()).toBe('Solved');
+    await click('Play again');
+    await move('e2', 'e4');
+    await move('g1', 'f3');
+    expect(status()).toBe('Solved');
+  });
+
+  it('finishes a valid shorter alternative without requiring the longer line', async () => {
+    await show('alternatives', START, 'e4 e5 Nf3 | e4');
+    await move('e2', 'e4');
+    expect(status()).toBe('Solved');
+  });
+
+  it('chooses the first authored opponent reply and retains only compatible lines', async () => {
+    await show('alternatives', START, 'e4 e5 Nf3 | e4 c5 Nc3');
+    await move('e2', 'e4');
+    expect(board.config?.fen).toBe('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2');
+    await move('b1', 'c3');
+    expect(status()).not.toBe('Solved');
+    expect(status()).not.toBe('Right. Keep going.');
+    await move('g1', 'f3');
+    expect(status()).toBe('Solved');
+  });
+
   it('reveals a self-assessment before offering outcomes and lets the reader retry', async () => {
     await show('reflection', NEXT, '');
     expect(status()).toBe('Your turn to think.');

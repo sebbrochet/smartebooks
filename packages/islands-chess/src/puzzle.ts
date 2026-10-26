@@ -60,6 +60,13 @@ export function solutionMoves(solution: string | undefined): string[] {
     .filter(Boolean);
 }
 
+export function solutionLines(solution: string | undefined): string[][] {
+  return (solution ?? '')
+    .split('|')
+    .map(solutionMoves)
+    .filter((line) => line.length > 0);
+}
+
 export interface PlayResult {
   /** SAN of the move that was played; absent if it was not legal. */
   san?: string;

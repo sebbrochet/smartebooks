@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { play, playSan, positionFrom, sameMove, solutionMoves } from './puzzle';
+import { play, playSan, positionFrom, sameMove, solutionLines, solutionMoves } from './puzzle';
 
 const BACK_RANK = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
 const BLACK_TO_MOVE = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3';
@@ -45,6 +45,26 @@ describe('solutionMoves', () => {
   it('has no moves for an absent or empty solution', () => {
     expect(solutionMoves(undefined)).toEqual([]);
     expect(solutionMoves('   ')).toEqual([]);
+  });
+});
+
+describe('solutionLines', () => {
+  it('keeps existing single-line syntax', () => {
+    expect(solutionLines('1. e4 e5 2. Nf3')).toEqual([['e4', 'e5', 'Nf3']]);
+  });
+
+  it('separates complete alternatives without confusing commas with branches', () => {
+    expect(solutionLines('1. e4, e5, 2. Nf3 | 1. d4 d5 2. Nc3')).toEqual([
+      ['e4', 'e5', 'Nf3'],
+      ['d4', 'd5', 'Nc3'],
+    ]);
+    expect(solutionLines('Rae2|Rhe2')).toEqual([['Rae2'], ['Rhe2']]);
+  });
+
+  it('ignores empty alternatives and does not invent an interactive solution', () => {
+    expect(solutionLines(undefined)).toEqual([]);
+    expect(solutionLines(' |   | ')).toEqual([]);
+    expect(solutionLines('| Ra8# |')).toEqual([['Ra8#']]);
   });
 });
 

@@ -287,6 +287,13 @@ Ra8# — a back-rank mate.
   `fen` (**required**), `solution`, `hint`.
   - With `solution` — SAN, one move or a whole line, e.g. `solution="Rb8 Rxb8 Rxb8#"` — the reader
     **plays** the move on the board and the island marks it, playing the opponent's replies.
+  - Separate accepted alternatives with `|`, e.g. `solution="Rae8 | Rhe8"`. Each alternative is
+    a complete SAN line from the starting position, not a branch inserted halfway through another
+    line: `solution="e4 e5 Nf3 | e4 e5 Nc3"` accepts either knight move after the shared opening.
+    Matching lines remain available until the reader's move distinguishes them. If they prescribe
+    different opponent replies, the first matching line chooses the reply; only lines compatible
+    with that reply remain. Completing any accepted line solves the puzzle, including a shorter
+    line that is a prefix of another. Retry restores all alternatives.
   - Without `solution`, the reader thinks, reveals the answer, then chooses **I found it** or
     **Needs practice**. This is self-assessment, not automatic move validation. The outcome is saved
     and the reader can retry; an existing self-marked completion is preserved.
