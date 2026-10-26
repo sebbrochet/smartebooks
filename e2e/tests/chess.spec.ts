@@ -49,10 +49,23 @@ test('the board shows the annotation for the move you are on', async ({ page }) 
   await expect(status).toHaveText('3. Qh5?!');
 });
 
-test('chess puzzle island reveals its solution', async ({ page }) => {
+test('a reveal-only puzzle records self-assessment and retries', async ({ page }) => {
   await page.goto('/#/chess/01-chess-basics');
-  await page.getByRole('button', { name: 'Reveal solution' }).click();
-  await expect(page.getByText(/Ra8#/)).toBeVisible();
+  const puzzle = page.getByTestId('chess-puzzle');
+  const status = puzzle.getByRole('status');
+  await expect(status).toHaveText('Your turn to think.');
+  await expect(puzzle.getByRole('checkbox')).toHaveCount(0);
+  await expect(puzzle.getByRole('button', { name: 'I found it', exact: true })).toHaveCount(0);
+  await puzzle.getByRole('button', { name: 'See answer', exact: true }).click();
+  await expect(puzzle.getByText(/Ra8#/)).toBeVisible();
+  await puzzle.getByRole('button', { name: 'Needs practice', exact: true }).click();
+  await expect(status).toHaveText('Needs practice.');
+  await puzzle.getByRole('button', { name: 'Play again', exact: true }).click();
+  await expect(status).toHaveText('Your turn to think.');
+  await expect(puzzle.getByText(/Ra8#/)).toHaveCount(0);
+  await puzzle.getByRole('button', { name: 'See answer', exact: true }).click();
+  await puzzle.getByRole('button', { name: 'I found it', exact: true }).click();
+  await expect(status).toHaveText('Self-assessed: found it.');
 });
 
 /**
@@ -381,6 +394,33 @@ test('explicit line selectors retain the intended future route', async ({ page }
   await next.click();
   await expect(status).toHaveText('5... gxf6');
   await tartakower.click();
+  await expect(status).toHaveText('4... Nf6');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<unknown>((resolve, reject) => {
+            const opening = indexedDB.open('keyval-store');
+            opening.onerror = () => reject(opening.error);
+            opening.onsuccess = () => {
+              const database = opening.result;
+              const request = database
+                .transaction('keyval')
+                .objectStore('keyval')
+                .get('smart-ebooks:chess:chessply:chess-caro-kann-lines');
+              request.onerror = () => {
+                database.close();
+                reject(request.error);
+              };
+              request.onsuccess = () => {
+                database.close();
+                resolve(request.result);
+              };
+            };
+          }),
+      ),
+    )
+    .toEqual({ path: '0.0.0.0.0.0.0.2', line: '0.0.0.0.0.0.0.2.0.1' });
   await page.reload();
   await expect(status).toHaveText('4... Nf6', { timeout: 30_000 });
   await next.click();
