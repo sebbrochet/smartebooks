@@ -177,6 +177,13 @@ export interface Messages {
   chessPuzzleWrong: string;
   chessPuzzleRight: string;
   chessPuzzleYourMove: string;
+  chessPuzzleThink: string;
+  chessPuzzleSeeAnswer: string;
+  chessPuzzleHideAnswer: string;
+  chessPuzzleFound: string;
+  chessPuzzleReview: string;
+  chessPuzzleSelfFound: string;
+  chessPuzzleNeedsPractice: string;
   chessWhite: string;
   chessBlack: string;
   checkAnswers: string;
@@ -314,6 +321,13 @@ const EN: Messages = {
   chessPuzzleWrong: 'Not that one — try again.',
   chessPuzzleRight: 'Right. Keep going.',
   chessPuzzleYourMove: 'Your move.',
+  chessPuzzleThink: 'Your turn to think.',
+  chessPuzzleSeeAnswer: 'See answer',
+  chessPuzzleHideAnswer: 'Hide answer',
+  chessPuzzleFound: 'I found it',
+  chessPuzzleReview: 'Needs practice',
+  chessPuzzleSelfFound: 'Self-assessed: found it.',
+  chessPuzzleNeedsPractice: 'Needs practice.',
   chessWhite: 'White',
   chessBlack: 'Black',
   checkAnswers: 'Check answers',
@@ -460,6 +474,13 @@ const FR: Messages = {
   chessPuzzleWrong: 'Pas ce coup-là — réessayez.',
   chessPuzzleRight: 'Exact. Continuez.',
   chessPuzzleYourMove: 'À vous de jouer.',
+  chessPuzzleThink: 'À vous de réfléchir.',
+  chessPuzzleSeeAnswer: 'Voir la réponse',
+  chessPuzzleHideAnswer: 'Masquer la réponse',
+  chessPuzzleFound: "J'avais trouvé",
+  chessPuzzleReview: 'À retravailler',
+  chessPuzzleSelfFound: 'Autoévaluation : trouvé.',
+  chessPuzzleNeedsPractice: 'À retravailler.',
   chessWhite: 'Blancs',
   chessBlack: 'Noirs',
   checkAnswers: 'Vérifier les réponses',

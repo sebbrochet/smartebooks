@@ -94,6 +94,55 @@ async function click(label: string) {
 const status = () => host.querySelector('[role="status"]')?.textContent;
 
 describe('puzzle identity during imported-book navigation', () => {
+  it('reveals a self-assessment before offering outcomes and lets the reader retry', async () => {
+    await show('reflection', NEXT, '');
+    expect(status()).toBe('Your turn to think.');
+    expect(host.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(host.textContent).not.toContain('I found it');
+    expect(host.querySelector('.chesspuzzle__solution')).toBeNull();
+
+    await click('See answer');
+    expect(host.querySelector('.chesspuzzle__solution')?.textContent).toBe('The explanation.');
+    await click('I found it');
+    expect(status()).toBe('Self-assessed: found it.');
+    expect(memStore.get('smart-ebooks:demo:chesspuzzle:reflection')).toEqual({
+      solved: true,
+      assessment: 'found',
+    });
+
+    await show('other');
+    await show('reflection', NEXT, '');
+    expect(status()).toBe('Self-assessed: found it.');
+    await click('Play again');
+    expect(status()).toBe('Your turn to think.');
+    expect(host.querySelector('.chesspuzzle__solution')).toBeNull();
+  });
+
+  it('remembers a self-assessment that needs practice without marking it solved', async () => {
+    await show('reflection', NEXT, '');
+    await click('See answer');
+    await click('Needs practice');
+    expect(status()).toBe('Needs practice.');
+    expect(memStore.get('smart-ebooks:demo:chesspuzzle:reflection')).toEqual({
+      solved: false,
+      assessment: 'review',
+    });
+    expect(host.querySelector('.is-solved')).toBeNull();
+    await show('other');
+    await show('reflection', NEXT, '');
+    expect(status()).toBe('Needs practice.');
+    await click('Play again');
+    expect(status()).toBe('Your turn to think.');
+  });
+
+  it('preserves an older self-marked completion', async () => {
+    memStore.set('smart-ebooks:demo:chesspuzzle:reflection', { solved: true });
+    await show('reflection', NEXT, '');
+    expect(status()).toBe('Self-assessed: found it.');
+    await click('Play again');
+    expect(status()).toBe('Your turn to think.');
+  });
+
   it('starts a different puzzle with its own position, feedback and hint visibility', async () => {
     await show('first');
     await click('Hint');

@@ -64,7 +64,10 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
   // How far into the solution line the reader has got, and the position there.
   const [step, setStep] = useState(0);
   const [fen, setFen] = useState(start ?? '');
-  const [state, setState] = usePersistentState<{ solved: boolean }>(`chesspuzzle:${id}`, {
+  const [state, setState] = usePersistentState<{
+    solved: boolean;
+    assessment?: 'found' | 'review';
+  }>(`chesspuzzle:${id}`, {
     solved: false,
   });
 
@@ -182,12 +185,18 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
         )}
         {(!interactive || done) && (
           <button type="button" onClick={() => setRevealed((value) => !value)}>
-            {revealed ? words.chessPuzzleHide : words.chessPuzzleReveal}
+            {interactive
+              ? revealed
+                ? words.chessPuzzleHide
+                : words.chessPuzzleReveal
+              : revealed
+                ? words.chessPuzzleHideAnswer
+                : words.chessPuzzleSeeAnswer}
           </button>
         )}
-        {interactive && (done || step > 0) && (
+        {(interactive ? done || step > 0 : done || state.assessment !== undefined) && (
           <button type="button" className="chesspuzzle__restart" onClick={restart}>
-            {done ? words.playAgain : words.reset}
+            {!interactive || done ? words.playAgain : words.reset}
           </button>
         )}
         {interactive ? (
@@ -202,14 +211,31 @@ function ChessPuzzle({ attributes, id, data }: IslandComponentProps) {
                   : words.chessPuzzleYourMove}
           </span>
         ) : (
-          <label className="chesspuzzle__solved">
-            <input
-              type="checkbox"
-              checked={done}
-              onChange={(event) => setState({ solved: event.target.checked })}
-            />{' '}
-            {words.chessPuzzleSolved}
-          </label>
+          <>
+            {revealed && !done && state.assessment === undefined && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setState({ solved: true, assessment: 'found' })}
+                >
+                  {words.chessPuzzleFound}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setState({ solved: false, assessment: 'review' })}
+                >
+                  {words.chessPuzzleReview}
+                </button>
+              </>
+            )}
+            <span className="chesspuzzle__state" data-testid="chess-puzzle-state" role="status">
+              {done
+                ? words.chessPuzzleSelfFound
+                : state.assessment === 'review'
+                  ? words.chessPuzzleNeedsPractice
+                  : words.chessPuzzleThink}
+            </span>
+          </>
         )}
       </div>
 

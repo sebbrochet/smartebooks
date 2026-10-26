@@ -45,8 +45,10 @@ describe('a chess puzzle in a French shell', () => {
   it('speaks French in the reveal-only form', () => {
     const html = shown('fr', {});
 
-    expect(html).toContain('Afficher la solution');
-    expect(html).toContain('Résolu');
+    expect(html).toContain('Voir la réponse');
+    expect(html).toContain('À vous de réfléchir.');
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).not.toContain('Résolu');
     expect(html).not.toContain('Reveal solution');
     expect(html).not.toMatch(/Solved/);
   });

@@ -286,8 +286,10 @@ Ra8# — a back-rank mate.
 - `chess-puzzle` (container, body is the solution **prose**): `theme`, `pieces`, `orientation`,
   `fen` (**required**), `solution`, `hint`.
   - With `solution` — SAN, one move or a whole line, e.g. `solution="Rb8 Rxb8 Rxb8#"` — the reader
-    **plays** the move on the board and the island marks it, playing the opponent's replies. Without
-    one it stays "reveal the answer and tick the box yourself".
+    **plays** the move on the board and the island marks it, playing the opponent's replies.
+  - Without `solution`, the reader thinks, reveals the answer, then chooses **I found it** or
+    **Needs practice**. This is self-assessment, not automatic move validation. The outcome is saved
+    and the reader can retry; an existing self-marked completion is preserved.
   - Move numbers in a solution are tolerated and ignored. Write the moves the way you would in prose.
 - `theme` is one of `brown` | `blue` | `green` | `grey`; `pieces` is `cburnett` | `unicode`;
   `orientation` is `white` | `black` | `auto` (the default — the side to move). A book can set its own
@@ -313,7 +315,8 @@ Ra8# — a back-rank mate.
 - **Any other `[%…]` tag is removed** rather than shown. Exported PGN is full of them — `[%clk]`,
   `[%ts]`, `[%cst]` — and a reader should never be shown machine text mid-sentence. So a game pasted
   straight out of Lichess reads correctly without being cleaned up first.
-- **State:** current position per board; solved flag per puzzle.
+- **State:** current position per board; solved flag per puzzle, plus the outcome for self-assessed
+  puzzles. Only **I found it** marks a self-assessed puzzle solved.
 
 #### `:::chess-game` — a game you lay out yourself
 
